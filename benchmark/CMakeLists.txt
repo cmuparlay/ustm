@@ -1,0 +1,23 @@
+set(SOURCES mixed_operation_benchmark.cpp)
+set(STRUCT_DIR ${PROJECT_SOURCE_DIR}/structures)
+set(OTHER_DIR ${PROJECT_SOURCE_DIR}/other)
+
+set(STRUCTS "leaftree")
+
+set(YCSB_COMMON_DEFS "")
+
+function(add_benchmark NAME STRUCT_NAME DEFS)
+  add_executable(${NAME} ${SOURCES})
+  target_compile_definitions(${NAME} PRIVATE ${YCSB_COMMON_DEFS})
+  target_compile_definitions(${NAME} PRIVATE ${DEFS})
+  target_link_libraries(${NAME} PRIVATE ustm)
+  target_include_directories(${NAME} PRIVATE ${STRUCT_NAME})
+  target_include_directories(${NAME} PRIVATE ${PROJECT_SOURCE_DIR}/benchmark)
+  target_include_directories(${NAME} PRIVATE ${OTHER_DIR})
+endfunction()
+
+foreach(bench ${STRUCTS})
+  add_benchmark(${bench}_ustm ${STRUCT_DIR}/${bench} "")
+  add_benchmark(${bench}_ustm_unprotected ${STRUCT_DIR}/${bench} "UnprotectedLoad")
+  add_benchmark(${bench}_2plsf ${STRUCT_DIR}/${bench} "TWOPLSF")
+endforeach()
