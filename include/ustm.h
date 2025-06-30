@@ -22,6 +22,7 @@
 #include <string>
 #include <bitset>
 #include "uepoch.h"
+#include "uhashMap.h"
 
 #define MO_acquire std::memory_order_acquire
 #define MO_release std::memory_order_release
@@ -75,25 +76,8 @@ namespace ustm {
 
   // ignores lowest 5 bits of address
   uint64_t hashAddress(const void* addr) {
-    auto x =  ((uint64_t)(addr) >> 5) * UINT64_C(0xbf58476d1ce4e5b9); 
-    return (x ^ (x >> 31)); }  // linear then non-linear transform
+    return ((uint64_t)(addr) >> 5) * UINT64_C(0xbf58476d1ce4e5b9); }
   
-  // Used for read, write, allocate and free logs
-  template <typename T, int Size, int type, bool clean=true>
-  struct Log {
-    int top = 0;
-    T entries[Size];
-    void reset() {
-      if (clean) for (int i = 0; i < top; i++) entries[i] = T();
-      top = 0;}
-    inline void push_back(const T x) {
-      if (top + 1 >= Size) {
-        std::cout << "ustm: overfull log: type "  << type << std::endl;
-        std::abort();  }
-      entries[top++] = x;}
-    T& operator [] (long i) { return entries[i]; }
-  };
-
   // Transaction descriptor, includes the logs and other state
   struct Descriptor {
     static constexpr int LogSize = 1ul << 12; // size of the logs
@@ -104,21 +88,21 @@ namespace ustm {
     uint64_t numRetries {0};    
     TS startStamp;
 
-    // Filter for fast check if entry in write log.  Can return false positives.
-    std::bitset<1024> filter;
-
-    // Following four entries are the logs
-    // Keeps the pointer and a function that writes the value to given location.
-    Log<std::tuple<void*,TS,std::function<void(void*)>>, LogSize, 0> writeLog;
+    // The following four entries are the logs.
+    // Write log keeps address, a time stamp used during validation,
+    // and a function that writes the value to given location.
+    std::vector<std::tuple<void*,TS,std::function<void(void*)>>> writeLog;
     // Read log keeps pointer to locations.  Used to later validate reads.
-    Log<const void*, 128*LogSize, 1, false> readLog;
-    // alloc/delete logs keep functions that delete values on abort/success
-    Log<std::function<void()>, LogSize, 2> allocLog;
-    Log<std::function<void()>, LogSize, 3> deleteLog;
+    std::vector<const void*> readLog;
+    // Alloc and delete logs keep pointers to function that does delete
+    std::vector<std::function<void()>> allocLog;
+    std::vector<std::function<void()>> deleteLog;
 
+    // Hash table to find self writes
+    uhashMap<const void*, int> writeTable;
     void reset() {
-      writeLog.reset(); readLog.reset();
-      deleteLog.reset(); allocLog.reset(); filter.reset();
+      writeLog.clear(); readLog.clear();
+      deleteLog.clear(); allocLog.clear(); writeTable.reset();
     }
   };
 
@@ -146,7 +130,8 @@ namespace ustm {
     std::atomic<Status> writeLocks[numLocks];
   public:
     timedLocks() {
-      for (int i = 0; i < numLocks; i++) writeLocks[i].store(Status(1));}
+      for (int i = 0; i < numLocks; i++)
+        writeLocks[i].store(Status(1));}
 
     // Returns a lock id in [0 .. numLocks) based on hash of the address
     uint64_t getLockNum(const void* addr) {
@@ -194,31 +179,30 @@ namespace ustm {
     Descriptor opDesc[MAX_THREADS];
 
     inline void commitTransaction(Descriptor* myd) {
-      if (myd->writeLog.top > 0) {
+      if (myd->writeLog.size() > 0) {
         // Take locks (abort if any fail)
-        for (int i = 0; i < myd->writeLog.top; i++) {
-          auto r = locks.tryLock(std::get<0>(myd->writeLog[i]), myd->tid,
-                                 myd->startStamp);
+        for (auto& e : myd->writeLog) {
+          auto r = locks.tryLock(std::get<0>(e), myd->tid, myd->startStamp);
           if (!r.has_value()) abortTransaction(myd);
-          std::get<1>(myd->writeLog[i]) = *r;
+          std::get<1>(e) = *r; // timestamp to restore if aborted
         }
         TS endStamp = getStamp();
         // Validate the reads (abort if any fail)
-        for (int i = 0; i < myd->readLog.top; i++)
-          if (!locks.validateRead(myd->readLog[i], myd->tid, myd->startStamp)) 
+        for (auto& e : myd->readLog) 
+          if (!locks.validateRead(e, myd->tid, myd->startStamp))
             abortTransaction(myd);
-        // If here (locks and validates succeeded) then transaction succeeded.
-        // Apply the writes and then unlock them.
-        for (int i = 0; i < myd->writeLog.top; i++) 
-          std::get<2>(myd->writeLog[i])(std::get<0>(myd->writeLog[i]));
+        // If here (locks and validates succeeded) then transaction
+        // succeeded.  Apply the writes and then unlock them.
+        for (auto& e : myd->writeLog) 
+          std::get<2>(e)(std::get<0>(e));
         std::atomic_thread_fence(std::memory_order_release);
-        for (int i = 0; i < myd->writeLog.top; i++)
-          if (std::get<1>(myd->writeLog[i]) != 0)
-            locks.unlock(std::get<0>(myd->writeLog[i]), endStamp);
+        for (auto& e : myd->writeLog) 
+          if (std::get<1>(e) != 0)
+            locks.unlock(std::get<0>(e), endStamp);
       }
       // Since successful, apply the deletes.
-      for (uint64_t i = 0; i < myd->deleteLog.top; i++)
-        uepoch::delay(std::move(myd->deleteLog[i]));
+      for (auto& e : myd->deleteLog)
+        uepoch::delay(std::move(e));
       myd->numCommits++;
       myd->reset();
       get_descriptor() = nullptr;
@@ -226,12 +210,11 @@ namespace ustm {
 
     inline void abortTransaction(Descriptor* myd) {
       // Release locks and apply deletes to allocated objects.
-      for (int i = 0; i < myd->writeLog.top; i++)
-        if (std::get<1>(myd->writeLog[i]) != 0) 
-          locks.unlock(std::get<0>(myd->writeLog[i]), 
-                       std::get<1>(myd->writeLog[i]));
-      for (int i = 0; i < myd->allocLog.top; i++)
-        uepoch::delay(std::move(myd->allocLog[i]));
+      for (auto& e : myd->writeLog) 
+        if (std::get<1>(e) != 0) 
+          locks.unlock(std::get<0>(e), std::get<1>(e));
+      for (auto& e : myd->allocLog)
+        uepoch::delay(std::move(e));
       myd->numAborts++;
       if (++myd->numRetries % 4000000 == 0) { 
         std::cout << "ustm: too many retries" << std::endl; abort();}
@@ -258,13 +241,12 @@ namespace ustm {
       Descriptor* myd = get_descriptor();
       if (myd == nullptr) { std::atomic_thread_fence(MO_acquire); return val; }
       // check if wrote it myself and read from write log if so
-      if (myd->filter[hashAddress(&val) & 1023ul])
-        for (int i = myd->writeLog.top - 1; i >= 0; i--)
-          if (std::get<0>(myd->writeLog[i]) == &val) {
-            typename std::remove_const<T>::type r;
-            std::get<2>(myd->writeLog[i])((void*) &r);
-            return r;
-          }
+      auto x = myd->writeTable.find(&val);
+      if (x.has_value()) { // found write of location in write buffer
+        typename std::remove_const<T>::type r;
+        std::get<2>(myd->writeLog[*x])((void*) &r);
+        return r;
+      }
       // Reads timestamp (status) before copying data to a local
       // buffer (tmp) and then again after.  Only succeeds if equal
       // and less than start stamp.
@@ -282,12 +264,12 @@ namespace ustm {
     template <typename T>
     inline void store(T& loc, T v) {
       Descriptor* myd = get_descriptor();
-      if (myd == nullptr) loc = v;
-      else {
-        myd->filter[hashAddress(&loc) & 1023ul] = 1;
+      if (myd != nullptr) {
+        int i = myd->writeLog.size();
         myd->writeLog.push_back(std::tuple(&loc, 0, [=] (void* p) {
-                                                      *((T*) p) = v;}));
-      }
+          *((T*) p) = v;}));
+        myd->writeTable.insert(&loc, i);
+      } else loc = v;
     }
 
     // func can either return a value or not
