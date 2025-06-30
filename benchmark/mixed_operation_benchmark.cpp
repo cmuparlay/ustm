@@ -286,7 +286,7 @@ double run_mixed_operations(parlay::sequence<K>& all,
       stm::atomic_region([&] {
           tr.remove(unique[i]);});
       }, 100);
-    delete map_ptr;
+    stm::atomic_region([=] { delete map_ptr; });
     
   }  return throughput/rounds;
 }
