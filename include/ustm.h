@@ -32,8 +32,7 @@ namespace ustm {
   // getStamp() returns the current timd stamp
   // nextStamp() returns the current time stamp and ensures
   //   it is incremented beyond that stamp before returning
-  using TS = uint64_t;
-  std::atomic<long> stamp = 0;
+  using TS = uint64_t; // type for timestamps
 #define HW_STAMP
 #ifdef HW_STAMP // use hardware timestamp (works with intel x86)
   TS getStamp() {

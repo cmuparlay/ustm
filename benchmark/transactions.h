@@ -16,6 +16,8 @@
 
 #ifdef TWOPLSF
 #include "glue/2plsf_glue.h"
+#elif MVUSTM
+#include "glue/mvustm_glue.h"
 #else
 #include "glue/ustm_glue.h"
 #endif

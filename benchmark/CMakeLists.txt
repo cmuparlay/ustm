@@ -18,6 +18,7 @@ endfunction()
 
 foreach(bench ${STRUCTS})
   add_benchmark(${bench}_ustm ${STRUCT_DIR}/${bench} "")
+  add_benchmark(${bench}_mvustm ${STRUCT_DIR}/${bench} "MVUSTM")
   add_benchmark(${bench}_ustm_unprotected ${STRUCT_DIR}/${bench} "UnprotectedLoad")
   add_benchmark(${bench}_2plsf ${STRUCT_DIR}/${bench} "TWOPLSF")
 endforeach()
