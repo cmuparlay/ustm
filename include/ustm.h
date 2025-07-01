@@ -6,7 +6,7 @@
 //   mystm.store(x, v) // stores v into x
 //   r = mystm.New<T>(args ...) // generate new object of type T
 //   mystm.Delete(x) // deletes x
-//   std::pair<long,log> mystm.statistics() // total # of aborts and commits
+//   std::pair<long,long> mystm.statistics() // total # of aborts and commits
 //
 // The types for load and store can be any relocatable type.
 // Memory should only be allocated with the mystm version in a transaction.
@@ -19,8 +19,6 @@
 #include <iostream>
 #include <functional>
 #include <csetjmp>
-#include <string>
-#include <bitset>
 #include "uepoch.h"
 #include "uhashMap.h"
 
@@ -31,23 +29,21 @@ namespace ustm {
 
 #define MAX_THREADS 256
 
-  using TS = uint64_t;
-  std::atomic<long> stamp = 0;
-
-#define HW_STAMP
   // getStamp() returns the current timd stamp
   // nextStamp() returns the current time stamp and ensures
   //   it is incremented beyond that stamp before returning
-#ifdef HW_STAMP
+  using TS = uint64_t;
+  std::atomic<long> stamp = 0;
+#define HW_STAMP
+#ifdef HW_STAMP // use hardware timestamp (works with intel x86)
   TS getStamp() {
     unsigned int lo,hi;
     __asm__ __volatile__ ("rdtsc" : "=a" (lo), "=d" (hi));
     return (TS) (((uint64_t)(hi & ~(1<<31)) << 32) | lo);
   }
   TS nextStamp() {
-    for(volatile int i = 1; i < 400; i++) {}
     return getStamp(); }
-#else
+#else // use software timestamp 
   extern inline std::atomic<TS>& timeStamp() {
     static std::atomic<TS> ts;
     return ts; }
@@ -74,11 +70,7 @@ namespace ustm {
     return id;
   }
 
-  // ignores lowest 5 bits of address
-  uint64_t hashAddress(const void* addr) {
-    return ((uint64_t)(addr) >> 5) * UINT64_C(0xbf58476d1ce4e5b9); }
-  
-  // Transaction descriptor, includes the logs and other state
+  // Transaction descriptor, includes the logs, stats, and other state
   struct Descriptor {
     static constexpr int LogSize = 1ul << 12; // size of the logs
     std::jmp_buf env;
@@ -90,11 +82,11 @@ namespace ustm {
 
     // The following four entries are the logs.
     // Write log keeps address, a time stamp used during validation,
-    // and a function that writes the value to given location.
+    // and a function that writes the value to a given location.
     std::vector<std::tuple<void*,TS,std::function<void(void*)>>> writeLog;
     // Read log keeps pointer to locations.  Used to later validate reads.
     std::vector<const void*> readLog;
-    // Alloc and delete logs keep pointers to function that does delete
+    // Alloc and delete logs keep pointers to functions that do deletes
     std::vector<std::function<void()>> allocLog;
     std::vector<std::function<void()>> deleteLog;
 
@@ -135,11 +127,12 @@ namespace ustm {
 
     // Returns a lock id in [0 .. numLocks) based on hash of the address
     uint64_t getLockNum(const void* addr) {
-      return hashAddress(addr) & (numLocks - 1); }
+      uint64_t hash = ((uint64_t)(addr) >> 5) * UINT64_C(0xbf58476d1ce4e5b9);
+      return hash & (numLocks - 1); }
     
-    // Returns 0 if self locked, timestamp if succeeded, or {} if
-    // lock is already locked.   Will fail if either locked (by another) or
-    // timestamp on lock is after startStamp.
+    // Returns 0 if self locked, timestamp if succeeded, or {} if try
+    // lock failed (i.e., is either locked by another or timestamp on
+    // lock is after startStamp).
     std::optional<TS> tryLock(const void* addr, int tid, TS startStamp) {
       uint64_t lockNum = getLockNum(addr);
       auto status = writeLocks[lockNum].load(MO_acquire);
@@ -164,8 +157,8 @@ namespace ustm {
               status.isPrior(startStamp));
     }
 
-    // Wrap the following around a load to check if it was safe (no
-    // updates during load).
+    // Wrap the following two functions around a load to check if it
+    // was safe (i.e., no updates overlapped the load).
     Status loadStart(uint64_t idx) {
       return writeLocks[idx].load(MO_acquire);}
     bool loadCheck(uint64_t idx, Status& status, TS startStamp) {
@@ -184,17 +177,18 @@ namespace ustm {
         for (auto& e : myd->writeLog) {
           auto r = locks.tryLock(std::get<0>(e), myd->tid, myd->startStamp);
           if (!r.has_value()) abortTransaction(myd);
-          std::get<1>(e) = *r; // timestamp to restore if aborted
+          std::get<1>(e) = *r; // stash timestamp to restore if aborted
         }
         TS endStamp = getStamp();
         // Validate the reads (abort if any fail)
         for (auto& e : myd->readLog) 
           if (!locks.validateRead(e, myd->tid, myd->startStamp))
             abortTransaction(myd);
-        // If here (locks and validates succeeded) then transaction
+        // If here (i.e. locks and validates succeeded), transaction
         // succeeded.  Apply the writes and then unlock them.
         for (auto& e : myd->writeLog) 
           std::get<2>(e)(std::get<0>(e));
+        // fence required since writes are not individually fenced
         std::atomic_thread_fence(std::memory_order_release);
         for (auto& e : myd->writeLog) 
           if (std::get<1>(e) != 0)
@@ -212,7 +206,7 @@ namespace ustm {
       // Release locks and apply deletes to allocated objects.
       for (auto& e : myd->writeLog) 
         if (std::get<1>(e) != 0) 
-          locks.unlock(std::get<0>(e), std::get<1>(e));
+          locks.unlock(std::get<0>(e), std::get<1>(e)); // restore stamp
       for (auto& e : myd->allocLog)
         uepoch::delay(std::move(e));
       myd->numAborts++;
@@ -244,6 +238,7 @@ namespace ustm {
       auto x = myd->writeTable.find(&val);
       if (x.has_value()) { // found write of location in write buffer
         typename std::remove_const<T>::type r;
+        // apply write into r
         std::get<2>(myd->writeLog[*x])((void*) &r);
         return r;
       }
@@ -252,6 +247,7 @@ namespace ustm {
       // and less than start stamp.
       uint64_t idx = locks.getLockNum(&val);
       auto status = locks.loadStart(idx);
+      // copy data into a buffer (tmp), and then loadCheck
       char tmp[sizeof(T)];
       std::memcpy(tmp, &val, sizeof(T));
       std::atomic_thread_fence(std::memory_order_acquire);
@@ -281,16 +277,16 @@ namespace ustm {
       Descriptor* myd = &opDesc[tid];
       d = myd; // set the thread local (note d is a ref type)
       myd->numRetries = 0;
-      if constexpr (!std::is_void_v<std::invoke_result_t<F>>) {
-        return uepoch::with_epoch([&] {
-          setjmp(myd->env);
+      if constexpr (!std::is_void_v<std::invoke_result_t<F>>) { 
+        return uepoch::with_epoch([&] { // func has result
+          setjmp(myd->env); // return to here if aborted
           myd->startStamp = (myd->numRetries > 0) ? nextStamp() : getStamp();
           auto retval = func();
           commitTransaction(myd);
           return retval;});
-      } else {
-        uepoch::with_epoch([&] {
-          setjmp(myd->env);
+      } else { // func does not have result
+        uepoch::with_epoch([&] { 
+          setjmp(myd->env); // return to here if aborted
           myd->startStamp = (myd->numRetries > 0) ? nextStamp() : getStamp();
           func();
           commitTransaction(myd);
