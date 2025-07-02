@@ -69,6 +69,14 @@ namespace ustm {
     return id;
   }
 
+  struct version {
+    version* value;
+    version* next = nullptr;
+    TS stamp = 0;
+    version(version* value, version* next, TS stamp)
+      : value(value), next(next), stamp(stamp) {}
+  };
+
   // Transaction descriptor, includes the logs, stats, and other state
   struct Descriptor {
     static constexpr int LogSize = 1ul << 12; // size of the logs
@@ -81,7 +89,8 @@ namespace ustm {
 
     // The following four entries are the logs.
     // Write log keeps address, a time stamp used during validation,
-    std::vector<std::tuple<void*,TS,void*>> writeLog;
+    // and a function that writes the value to a given location.
+    std::vector<std::tuple<std::atomic<version*>*,TS,version*>> writeLog;
     // Read log keeps pointer to locations.  Used to later validate reads.
     std::vector<const void*> readLog;
     // Alloc and delete logs keep pointers to functions that do deletes
@@ -155,16 +164,15 @@ namespace ustm {
               status.isPrior(startStamp));
     }
 
-    bool loadCheck(const void* addr, TS startStamp) {
-      return writeLocks[getLockNum(addr)].load(MO_acquire).isPrior(startStamp);
-    }
+    // Wrap the following two functions around a load to check if it
+    // was safe (i.e., no updates overlapped the load).
+    Status loadStart(uint64_t idx) {
+      return writeLocks[idx].load(MO_acquire);}
+    bool loadCheck(uint64_t idx, Status& status, TS startStamp) {
+      return (status.isPrior(startStamp) &&
+              writeLocks[idx].load(MO_acquire).getStamp()==status.getStamp());}
   };
 
-  struct version {
-    void* value;
-    version* next = nullptr;
-    TS stamp = 0;
-  };
 
   class STM {
   private:
@@ -187,10 +195,11 @@ namespace ustm {
         // If here (i.e. locks and validates succeeded), transaction
         // succeeded.  Apply the writes and then unlock them.
         for (auto& e : myd->writeLog) {
-          //version* v = New<version>(std::get<2>(e), *std::get<0>(e), endStamp);
-          //Delete(*std::get<0>(e));
-          //*((size_t**) std::get<0>(e)) = v;
-          *((size_t**) std::get<0>(e)) = (size_t*) std::get<2>(e);
+          version* oldv = std::get<0>(e)->load();
+          if (oldv == nullptr) std::cout << "yikes" << std::endl;
+          Delete(oldv);
+          //std::cout << "deleting: " << oldv << std::endl;
+          std::get<0>(e)->store(New<version>(std::get<2>(e), nullptr, 0)); //oldv, endStamp));
         }
         // fence required since writes are not individually fenced
         std::atomic_thread_fence(std::memory_order_release);
@@ -234,29 +243,39 @@ namespace ustm {
       return std::pair(totalAborts,totalCommits);
     }
 
-    template <typename T>
-    inline T* load(const std::atomic<T*>& val, bool validate=true) {
+    inline version* load(const std::atomic<version*>& val, bool validate=true) {
       Descriptor* myd = get_descriptor();
-      if (myd == nullptr) { std::atomic_thread_fence(MO_acquire); return val; }
+      if (myd == nullptr) { std::atomic_thread_fence(MO_acquire);
+        return val.load()->value; }
       // check if wrote it myself and read from write log if so
       auto x = myd->writeTable.find(&val);
-      if (x.has_value()) // found write of location in write buffer
-        return (T*) std::get<2>(myd->writeLog[*x]);
-      T* r = val.load();
-      if (!locks.loadCheck(&val, myd->startStamp))
+      if (x.has_value())  // found write of location in write buffer
+        return std::get<2>(myd->writeLog[*x]);
+      // Reads timestamp (status) before copying data to a local
+      // buffer (tmp) and then again after.  Only succeeds if equal
+      // and less than start stamp.
+      uint64_t idx = locks.getLockNum(&val);
+      auto status = locks.loadStart(idx);
+      // copy data into a buffer (tmp), and then loadCheck
+      version* r = val.load()->value;
+      //if (!locks.validateRead(&val, myd->tid, myd->startStamp))
+      if (!locks.loadCheck(idx, status, myd->startStamp))
         abortTransaction(myd);
       if (validate) myd->readLog.push_back(&val); // to validate later
       return r;
     }
 
-    template <typename T>
-    inline void store(std::atomic<T*>& loc, T* v) {
+    inline void init(std::atomic<version*>& loc, version* v) {
+      loc.store(New<version>(v, nullptr, 0));
+    }
+          
+    inline void store(std::atomic<version*>& loc, version* v) {
       Descriptor* myd = get_descriptor();
       if (myd != nullptr) {
         int i = myd->writeLog.size();
         myd->writeLog.push_back(std::tuple(&loc, 0, v));
         myd->writeTable.insert(&loc, i);
-      } else loc = v;
+      } else {std::cout << "ouch" << std::endl; loc = v;}
     }
 
     // func can either return a value or not

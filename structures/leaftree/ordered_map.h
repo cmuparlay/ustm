@@ -61,12 +61,12 @@ struct ordered_map {
       l = p_left ? (p->left).load_unprotected() : (p->right).load_unprotected();
     }
     if (gp) {
-      gp->removed.load();
-      if (gp_left) gp->left.load();
-      else gp->right.load();
+      gp->removed.validate();
+      if (gp_left) gp->left.validate();
+      else gp->right.validate();
     }
-    if (p_left) p->left.load();
-    else p->right.load();
+    if (p_left) p->left.validate();
+    else p->right.validate();
     return std::make_tuple(gp, gp_left, p, p_left, (leaf*) l);
   }
   
@@ -74,7 +74,6 @@ struct ordered_map {
     auto [gp, gp_left, p, p_left, l] = find_location(root, k);
     auto ptr = p_left ? &(p->left) : &(p->right);
     if (Equal(k, l)) return false;
-    auto l_new = ptr->load();
     node* new_l = stm::New<leaf>(k, v);
     *ptr = (Less(k, l) ?
             stm::New<internal>(l->key, new_l, l) :
@@ -108,8 +107,8 @@ struct ordered_map {
       ptr = Less(k, p) ? &(p->left) : &(p->right);
       l = ptr->load_unprotected();
     }
-    ptr->load();
-    p->removed.load();
+    ptr->validate();
+    p->removed.validate();
     auto ll = (leaf*) l;
     if (Equal(k, ll)) return ll->value; 
     else return {};

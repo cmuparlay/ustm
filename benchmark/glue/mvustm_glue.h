@@ -37,18 +37,20 @@ namespace stm {
   template <typename T>
   struct atomic {
   private:
-    std::atomic<T> val;
+    std::atomic<ustm::version*> val;
   public:
-    atomic(T v) : val(v) {}
-    atomic() {}
-    void store(T v) { getStm().store(val, v); }
-    T load() const { return getStm().load(val); }
+    atomic(T v) { init(v); }
+    atomic() { init(nullptr); }
+    void store(T v) { getStm().store(val, (ustm::version*) v); }
+    T load() const { return (T) getStm().load(val); }
 #ifdef UnprotectedLoad
     T load_unprotected() const { return getStm().load(val, false); }
+    void validate() const { load(); }
 #else
     T load_unprotected() const { return load();}
+    void validate() const { }
 #endif
-    void init(T x) { store(x); }
+    void init(T v) { getStm().init(val, (ustm::version*) v);}
     T operator=(T b) { store(b); return b; }
   };
 

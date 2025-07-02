@@ -45,8 +45,10 @@ namespace stm {
     T load() const { return getStm().load(val); }
 #ifdef UnprotectedLoad
     T load_unprotected() const { return getStm().load(val, false); }
+    void validate() const { load(); }
 #else
     T load_unprotected() const { return load();}
+    void validate() const { }
 #endif
     void init(T x) { store(x); }
     T operator=(T b) { store(b); return b; }

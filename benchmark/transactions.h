@@ -8,8 +8,9 @@
 //   struct stm::atomic<T>;
 //     - atomic()  // constructors
 //     - atomic(T v)
-//     - int T load()
-//     - int T unprotected_load()  // can be same as load
+//     - T load()
+//     - T unprotected_load()  // can be same as load
+//     - void validate()  // should be noop if no unprotected loads
 //     - void store(T)
 //     - void init(T)   // used before others have pointer to this
 //     - T operator=(T)
@@ -32,7 +33,7 @@ namespace stm {
   public:
     atomic_bool(bool x)  {}
     bool load() { return false;}
-    void validate(bool v) { }
+    void validate() { }
     void store(bool x) { }
     bool operator=(bool b) {store(b); return b; }
   };

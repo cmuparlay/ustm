@@ -133,7 +133,7 @@ double run_mixed_operations(parlay::sequence<K>& all,
     size_t initial_size = check();
 
     if (verbose)
-      std::cout << "initial size = " << initial_size << ", " << n << std::endl;
+      std::cout << "initial size = " << initial_size << std::endl;
 
     if (initial_size != n) {
       std::cout << "bad initial size: " << initial_size << std::endl;

@@ -48,6 +48,7 @@ namespace stm {
     void store(T v) { val = v; }
     T load() const { return val.pload(); }
     T load_unprotected() const { return val.pload();}
+    void validate() const { }
     void init(T x) { store(x); }
     T operator=(T b) { store(b); return b; }
   };
