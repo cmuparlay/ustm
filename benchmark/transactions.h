@@ -15,12 +15,15 @@
 //     - void init(T)   // used before others have pointer to this
 //     - T operator=(T)
 
-#ifdef TWOPLSF
-#include "glue/2plsf_glue.h"
-#elif MVUSTM
+#ifdef MVUSTM
 #include "glue/mvustm_glue.h"
 #else
+namespace stm { struct versioned {}; }
+#ifdef TWOPLSF
+#include "glue/2plsf_glue.h"
+#else
 #include "glue/ustm_glue.h"
+#endif
 #endif
 
 namespace stm {

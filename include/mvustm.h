@@ -70,11 +70,15 @@ namespace ustm {
   }
 
   struct version {
-    version* value;
     version* next = nullptr;
     TS stamp = 0;
-    version(version* value, version* next, TS stamp)
-      : value(value), next(next), stamp(stamp) {}
+    bool isLink = false;
+  };
+
+  struct link : version {
+    version* value;
+    link(version* value, version* next, TS stamp)
+      : version{next, stamp, true}, value(value) {}
   };
 
   // Transaction descriptor, includes the logs, stats, and other state
@@ -196,11 +200,15 @@ namespace ustm {
         // succeeded.  Apply the writes and then unlock them.
         for (auto& e : myd->writeLog) {
           version* oldv = std::get<0>(e)->load();
-          if (oldv == nullptr) std::cout << "yikes" << std::endl;
-          Delete(oldv);
-          //std::cout << "deleting: " << oldv << std::endl;
-          std::get<0>(e)->store(New<version>(std::get<2>(e), nullptr, 0)); //oldv, endStamp));
-        }
+          version* newv = std::get<2>(e);
+          if (oldv != nullptr && oldv->isLink) Delete((link*) oldv);
+          version* val = newv;
+          if (newv != nullptr && newv->stamp == 0) {
+            newv->stamp = endStamp;
+            newv->next = oldv;
+          } else val = (version*) New<link>(newv, oldv, endStamp);
+          std::get<0>(e)->store(val);
+         }
         // fence required since writes are not individually fenced
         std::atomic_thread_fence(std::memory_order_release);
         for (auto& e : myd->writeLog) 
@@ -245,20 +253,18 @@ namespace ustm {
 
     inline version* load(const std::atomic<version*>& val, bool validate=true) {
       Descriptor* myd = get_descriptor();
-      if (myd == nullptr) { std::atomic_thread_fence(MO_acquire);
-        return val.load()->value; }
+      if (myd == nullptr) {
+        version* v = val.load();
+        return ((v != nullptr) && v->isLink) ? ((link*) v)->value : v;
+      }
       // check if wrote it myself and read from write log if so
       auto x = myd->writeTable.find(&val);
       if (x.has_value())  // found write of location in write buffer
         return std::get<2>(myd->writeLog[*x]);
-      // Reads timestamp (status) before copying data to a local
-      // buffer (tmp) and then again after.  Only succeeds if equal
-      // and less than start stamp.
       uint64_t idx = locks.getLockNum(&val);
       auto status = locks.loadStart(idx);
-      // copy data into a buffer (tmp), and then loadCheck
-      version* r = val.load()->value;
-      //if (!locks.validateRead(&val, myd->tid, myd->startStamp))
+      version* v = val.load();
+      version* r = ((v != nullptr) && v->isLink) ? ((link*) v)->value : v;
       if (!locks.loadCheck(idx, status, myd->startStamp))
         abortTransaction(myd);
       if (validate) myd->readLog.push_back(&val); // to validate later
@@ -266,7 +272,7 @@ namespace ustm {
     }
 
     inline void init(std::atomic<version*>& loc, version* v) {
-      loc.store(New<version>(v, nullptr, 0));
+      loc.store(v);
     }
           
     inline void store(std::atomic<version*>& loc, version* v) {

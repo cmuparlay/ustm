@@ -54,4 +54,6 @@ namespace stm {
     T operator=(T b) { store(b); return b; }
   };
 
+  using versioned = ustm::version;
+  
 }

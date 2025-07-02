@@ -12,7 +12,7 @@ struct ordered_map {
   internal* root;
   
   // common header for internal nodes and leaves
-  struct node  {
+  struct node : stm::versioned  {
     K key;
     bool is_leaf;
     bool is_sentinal;
