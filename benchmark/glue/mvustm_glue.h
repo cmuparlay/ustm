@@ -16,10 +16,7 @@ namespace stm {
 
   template <typename F>
   auto atomic_read_only(F &&func) { 
-    if constexpr (std::is_void_v<std::invoke_result_t<F>>) {
-     atomic_region(func);
-    } else { return atomic_region(func); }
-  }
+    return getStm().transactionReadOnly(func); }
 
   template <typename F>
   auto atomic_read_only_singleton(F &&func) {

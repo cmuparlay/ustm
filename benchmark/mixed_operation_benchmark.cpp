@@ -67,10 +67,14 @@ struct statistics {
   long update_success_count;
   long query_count;
   long query_total_value;
+  long range_count;
+  long range_sum;
   statistics() :
     total(0), added_count(0), retry_count(0), 
     update_count(0), update_success_count(0),
-    query_count(0), query_total_value(0) {}
+    query_count(0), query_total_value(0),
+    range_count(0), range_sum(0)
+  {}
 };
 
 // for adding across processors
@@ -83,6 +87,8 @@ statistics adds(statistics s1, statistics s2) {
   r.update_success_count = s1.update_success_count + s2.update_success_count;
   r.query_count = s1.query_count + s2.query_count;
   r.query_total_value = s1.query_total_value + s2.query_total_value;
+  r.range_count = s1.range_count + s2.range_count;
+  r.range_sum = s1.range_sum + s2.range_sum;
   return r;
 }    
 
@@ -101,6 +107,8 @@ double run_mixed_operations(parlay::sequence<K>& all,
   long rounds = P.getOptionIntValue("-r", 1);
   double trial_time = P.getOptionDoubleValue("-t", 1.0);
   bool verbose = P.getOption("-verbose");
+  int range_size = P.getOptionIntValue("-rs",16);
+  int range_query_threads = P.getOptionIntValue("-rqthreads", 0);
   enum op_type : char {Find, Insert, Remove};
 
   auto op_types = parlay::tabulate(m, [&] (size_t i) -> op_type {
@@ -151,6 +159,11 @@ double run_mixed_operations(parlay::sequence<K>& all,
       return std::chrono::duration_cast<nano>(current - start_time).count();
     };
 
+    auto range_buffers = parlay::tabulate(p, [&] (size_t i) {
+       return std::vector<K>(100ul + 2*std::max(range_size, trans_size));});
+    K max_key = std::numeric_limits<K>::max();
+    K range_gap = (max_key/n)*range_size;
+
     // loop across the processors
     parlay::parallel_for(0, p, [&] (size_t proc_id) {
       long start = proc_id * m/p;
@@ -174,7 +187,26 @@ double run_mixed_operations(parlay::sequence<K>& all,
         }
         if (j + trans_size > end) j = start;
         if (jj + trans_size > end) jj = start + trans_size;
-
+#ifdef Range_Search
+        if (proc_id < range_query_threads) {
+          local_stats.range_count++;
+          std::vector<K>& range_keys = range_buffers[proc_id];
+          K end = all[j] + range_gap;
+          if (end < all[j]) end = max_key;
+          local_stats.range_sum += stm::atomic_read_only([&] {
+            long cnt = 0;
+            auto addf = [&] (K k, V v) {
+              assert(cnt < range_keys.size());
+              range_keys[cnt++] = k;
+            };
+            tr.range(addf, all[j], end);
+            return cnt;});
+          j += trans_size;
+          jj += trans_size;
+          continue;
+        }
+#endif
+        
         // if transaction is size one then only need to wrap atomic region around each operation
         // also a find can be put in an read_only region
         if (trans_size == 1) {
@@ -239,12 +271,17 @@ double run_mixed_operations(parlay::sequence<K>& all,
       throughput += num_ops / (duration * 1e6);
       std::cout << std::setprecision(4)
                 << P.commandName() << ","
-                << update_percent << "%update,"
+                << "u=" << update_percent << ","
                 << "trans=" << trans_size << ","
                 << "n=" << n << ","
                 << "p=" << p << ","
-                << "z=" << zipfian_param << ","
-                << num_ops / (duration * 1e6) << std::endl;
+                << "z=" << zipfian_param << ",";
+      if (range_query_threads > 0)
+        std::cout << "rs=" << range_size << ","
+                  << "rqthreads=" << range_query_threads << ","
+                  << "rqps=" << overall_stats.range_count / (duration * 1e6) << ",";
+      std::cout << "mops=" << num_ops / (duration * 1e6)
+                << std::endl;
     }
 
     // now we do various consistency checks

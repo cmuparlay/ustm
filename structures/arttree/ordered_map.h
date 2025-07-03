@@ -593,14 +593,14 @@ struct ordered_map {
     int eb = end.has_value() ? String::get_byte(end.value(), a->byte_num) : 255;
     if (a->nt == Full) {
       for (int i = sb; i <= eb; i++) 
-        range_internal(((full_node*) a)->children[i].read_snapshot(), add,
+        range_internal(((full_node*) a)->children[i].load(), add,
                        start, end, a->byte_num);
     } else if (a->nt == Indirect) {
       for (int i = sb; i <= eb; i++) {
         indirect_node* ai = (indirect_node*) a;
         int o = ai->idx[i];
         if (o != -1) {
-          range_internal(ai->ptr[o].read_snapshot(), add,
+          range_internal(ai->ptr[o].load(), add,
                          start, end, a->byte_num);
         }
       }
@@ -609,7 +609,7 @@ struct ordered_map {
       for (int i = 0; i < as->size; i++) {
         int b = as->keys[i];
         if (b >= sb && b <= eb)
-          range_internal(as->ptr[i].read_snapshot(), add, start, end, a->byte_num);
+          range_internal(as->ptr[i].load(), add, start, end, a->byte_num);
       }
     }
   }                       

@@ -85,6 +85,7 @@ namespace ustm {
   struct Descriptor {
     static constexpr int LogSize = 1ul << 12; // size of the logs
     std::jmp_buf env;
+    bool readOnly {false};
     uint64_t tid;
     uint64_t numAborts {0};
     uint64_t numCommits {0};
@@ -106,6 +107,7 @@ namespace ustm {
     void reset() {
       writeLog.clear(); readLog.clear();
       deleteLog.clear(); allocLog.clear(); writeTable.reset();
+      readOnly = false;
     }
   };
 
@@ -161,6 +163,9 @@ namespace ustm {
     void unlock(const void* addr, TS timeStamp) {
       writeLocks[getLockNum(addr)].store(Status(timeStamp), MO_release); };
 
+    bool isLocked(const void* addr) {
+      return writeLocks[getLockNum(addr)].load(MO_acquire).isLocked(); }
+      
     // checks that either self locked or timestamp has not changed
     bool validateRead(const void* addr, int tid, TS startStamp) {
       auto status = writeLocks[getLockNum(addr)].load(MO_acquire);
@@ -257,6 +262,7 @@ namespace ustm {
         version* v = val.load();
         return ((v != nullptr) && v->isLink) ? ((link*) v)->value : v;
       }
+      if (myd->readOnly) return load_snapshot(val, myd);
       // check if wrote it myself and read from write log if so
       auto x = myd->writeTable.find(&val);
       if (x.has_value())  // found write of location in write buffer
@@ -271,21 +277,15 @@ namespace ustm {
       return r;
     }
 
-    // inline version* load_snapshot(const std::atomic<version*>& val) {
-    //   Descriptor* myd = get_descriptor();
-    //   if (myd == nullptr) {
-    //     version* v = val.load();
-    //     return ((v != nullptr) && v->isLink) ? ((link*) v)->value : v;
-    //   }
-    //   uint64_t idx = locks.getLockNum(&val);
-    //   auto status = locks.loadStart(idx);
-    //   while (locks.isLocked(&val))
-    //     for (volatile int i = 0; i < 100; i++);
-    //   version* nxt = val.load();
-    //   while (nxt != nullptr && nxt->stamp > myd->startStamp)
-    //     nxt = nxt->next;
-    //   return ((v != nullptr) && v->isLink) ? ((link*) v)->value : v;
-    // }
+    inline version* load_snapshot(const std::atomic<version*>& val,
+                                  Descriptor* myd) {
+      while (locks.isLocked(&val))
+        for (volatile int i = 0; i < 100; i++);
+      version* nxt = val.load();
+      while (nxt != nullptr && nxt->stamp > myd->startStamp)
+        nxt = nxt->next;
+      return ((nxt != nullptr) && nxt->isLink) ? ((link*) nxt)->value : nxt;
+    }
 
     inline void init(std::atomic<version*>& loc, version* v) {
       loc.store(v);
@@ -324,6 +324,21 @@ namespace ustm {
           commitTransaction(myd);
           return;});
       }
+    }
+
+    // func must return a value
+    template<typename F>
+    auto transactionReadOnly(F&& func) {
+      Descriptor*& d = get_descriptor();
+      const int tid = thread_id();
+      Descriptor* myd = &opDesc[tid];
+      d = myd; // set the thread local (note d is a ref type)
+      myd->readOnly = true;
+      return uepoch::with_epoch([&] { // func has result
+          auto retval = func();
+          myd->reset();
+          d = nullptr;
+          return retval;});
     }
 
     // adds to log so can delete if aborted
