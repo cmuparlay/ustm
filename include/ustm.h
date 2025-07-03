@@ -162,7 +162,10 @@ namespace ustm {
       return writeLocks[idx].load(MO_acquire);}
     bool loadCheck(uint64_t idx, Status& status, TS startStamp) {
       return (status.isPrior(startStamp) &&
-              writeLocks[idx].load(MO_acquire).getStamp()==status.getStamp());}
+              writeLocks[idx].load(MO_acquire).v == status.v);}
+    bool loadUnprotectedCheck(uint64_t idx, Status& status) {
+      return (!status.isLocked() &&
+              writeLocks[idx].load(MO_acquire).v == status.v);}
   };
 
   class STM {
@@ -250,9 +253,12 @@ namespace ustm {
       char tmp[sizeof(T)];
       std::memcpy(tmp, &val, sizeof(T));
       std::atomic_thread_fence(std::memory_order_acquire);
-      if (!locks.loadCheck(idx, status, myd->startStamp))
+      if (validate) {
+        if (!locks.loadCheck(idx, status, myd->startStamp))
+          abortTransaction(myd);
+        myd->readLog.push_back(&val); // to validate later
+      } else if (!locks.loadUnprotectedCheck(idx, status))
         abortTransaction(myd);
-      if (validate) myd->readLog.push_back(&val); // to validate later
       return *((T*) tmp);
     }
 
