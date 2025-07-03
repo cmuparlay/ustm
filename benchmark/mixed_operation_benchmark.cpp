@@ -2,7 +2,6 @@
 #include <array>
 #include <atomic>
 #include <chrono>
-#include <iomanip>
 #include <iostream>
 #include <optional>
 #include <string>
@@ -11,17 +10,6 @@
 #include <vector>
 #include "parse_command_line.h"
 #include "zipfian.h"
-
-std::string command_string = R"(
-[-n <size>]  : size of the map
-[-p <num-threads>] : number of threads for tests
-[-z <zipfian-parameter>] : real parameter in range [0:1), 0 is uniform, .99 is highly skewed
-[-u <update-percent>] : percent of operations that are updates (1/2 inserts, 1/2 deletes)
-[-trans <ops-per-transaction>] : size of transaction in operations (0 means no transaction)
-[-r <rounds>]  : number of rounds to run the test
-[-t <time>] : time to run each test in seconds
-[-verbose] : print some info
-)";
 
 #include <parlay/io.h>
 #include <parlay/parallel.h>
@@ -33,18 +21,34 @@ std::string command_string = R"(
 // Requires
 //   stm::atomic_region(F f)
 //   stm::atomic_read_only(F f)
-//   stm::with_epoch(F f)
+//   stm::atomic_read_only_singleton(F f)
 
 #include "set.h"
 // Requires
 //   ordered_map<K,V>
-// or
-//   unordered_map<K,V,Hash> if HASH is defined
+// or if HASH is defined
+//   unordered_map<K,V,Hash> 
 // each must support:
 //   bool insert(K k, V v);
 //   bool remove(K k, V v);
 //   std::optional<V> find(K k);
 //   long check();   -- returns size
+// and if Range_Search is defined:
+//   range(Func f, K start, K end)
+
+std::string command_string = R"(
+[-n <sizes>]  : comma separated sizes of the map (default 1000)
+[-p <num-threads>] : number of threads to use (default # of threads on machine)
+[-r <rounds>]  : number of rounds to run the test (default 1)
+[-rqthr <threads>] : number of threads to be used for range queries (default 0)
+[-rs <range-size>] : number of elements returned in each range on average (default 1000)
+[-t <time>] : time to run each test in seconds (default 1)
+[-trans <ops-per-transaction>] : comma separated sizes of transaction in operations (default 1)
+[-u <update-percents>] : comma separated percents of operations that are updates (default 5)
+[-verbose] : print additional information when running
+[-z <zipfian-parameters>] : comma separated parameters in range [0:1), 0 (default) uniform, .99 highly skewed
+example: -n 10000,10000000 -u 0,5,50 -z 0,.99 -trans 1,16
+)";
 
 using K = unsigned long;
 using V = std::array<unsigned long, 1>;
@@ -107,8 +111,8 @@ double run_mixed_operations(parlay::sequence<K>& all,
   long rounds = P.getOptionIntValue("-r", 1);
   double trial_time = P.getOptionDoubleValue("-t", 1.0);
   bool verbose = P.getOption("-verbose");
-  int range_size = P.getOptionIntValue("-rs",16);
-  int range_query_threads = P.getOptionIntValue("-rqthreads", 0);
+  int range_size = P.getOptionIntValue("-rs",1000);
+  int range_query_threads = P.getOptionIntValue("-rqthr", 0);
   enum op_type : char {Find, Insert, Remove};
 
   auto op_types = parlay::tabulate(m, [&] (size_t i) -> op_type {
@@ -128,7 +132,7 @@ double run_mixed_operations(parlay::sequence<K>& all,
     using V = typename SetType::V;
     V default_value;
     default_value[0] = 3;
-
+    
     // insert n distinct elements
     parlay::parallel_for(0, n, [&] (size_t i) {
       stm::atomic_region([&] {
@@ -150,7 +154,6 @@ double run_mixed_operations(parlay::sequence<K>& all,
 
     parlay::sequence<statistics> processor_stats(p);
 
-    std::atomic<bool> finish = false;
     auto start = std::chrono::system_clock::now();
     auto get_time = [] () {return std::chrono::system_clock::now();};
     auto time_diff = [] (auto start_time) {
@@ -159,46 +162,42 @@ double run_mixed_operations(parlay::sequence<K>& all,
       return std::chrono::duration_cast<nano>(current - start_time).count();
     };
 
-    auto range_buffers = parlay::tabulate(p, [&] (size_t i) {
-       return std::vector<K>(100ul + 2*std::max(range_size, trans_size));});
     K max_key = std::numeric_limits<K>::max();
     K range_gap = (max_key/n)*range_size;
 
+    std::atomic<bool> finished = false;
+    
     // loop across the processors
     parlay::parallel_for(0, p, [&] (size_t proc_id) {
       long start = proc_id * m/p;
       long end = (proc_id + 1) * m/p;
       long cnt = 0;
-      long j = start;
-      long jj = start;
+      // when we wrap around the following two indexes are offset 
+      // this means we don't match the same operations with the same data
+      long j = start; // index for all[j]
+      long jj = start; // index for op_types[jj]
       statistics local_stats;
       auto start_time = get_time();
 
       while (true) {
-        // every once in a while check if finished
-        if (cnt >= 100 || finish) {
-          double duration = time_diff(start_time);
-          if (duration > 1000000000 * trial_time || finish) {
-            if (!finish) finish.store(true);
-            processor_stats[proc_id] = local_stats;
-            return;
-          }
-          cnt = 0;
+        // check if time is up
+        double duration = time_diff(start_time);
+        if (finished || duration > 1000000000 * trial_time) {
+          finished = true;
+          processor_stats[proc_id] = local_stats;
+          return;
         }
+        // on wraparound set offsets are different
         if (j + trans_size > end) j = start;
         if (jj + trans_size > end) jj = start + trans_size;
 #ifdef Range_Search
         if (proc_id < range_query_threads) {
           local_stats.range_count++;
-          std::vector<K>& range_keys = range_buffers[proc_id];
           K end = all[j] + range_gap;
           if (end < all[j]) end = max_key;
           local_stats.range_sum += stm::atomic_read_only([&] {
             long cnt = 0;
-            auto addf = [&] (K k, V v) {
-              assert(cnt < range_keys.size());
-              range_keys[cnt++] = k;
-            };
+            auto addf = [&] (K k, V v) { cnt++; };
             tr.range(addf, all[j], end);
             return cnt;});
           j += trans_size;
@@ -255,7 +254,6 @@ double run_mixed_operations(parlay::sequence<K>& all,
         }
         j += trans_size;
         jj += trans_size;
-        cnt += trans_size;
         local_stats.total += trans_size;
       } 
     }, 1);
@@ -269,7 +267,7 @@ double run_mixed_operations(parlay::sequence<K>& all,
     if (i >= warmup) { // don't report zeroth round -- warmup
       size_t num_ops = overall_stats.total;
       throughput += num_ops / (duration * 1e6);
-      std::cout << std::setprecision(4)
+      std::cout << std::setprecision(3)
                 << P.commandName() << ","
                 << "u=" << update_percent << ","
                 << "trans=" << trans_size << ","
@@ -278,7 +276,7 @@ double run_mixed_operations(parlay::sequence<K>& all,
                 << "z=" << zipfian_param << ",";
       if (range_query_threads > 0)
         std::cout << "rs=" << range_size << ","
-                  << "rqthreads=" << range_query_threads << ","
+                  << "rqthr=" << range_query_threads << ","
                   << "rqps=" << overall_stats.range_count / (duration * 1e6) << ",";
       std::cout << "mops=" << num_ops / (duration * 1e6)
                 << std::endl;
@@ -324,7 +322,10 @@ double run_mixed_operations(parlay::sequence<K>& all,
           tr.remove(unique[i]);});
       }, 100);
     stm::atomic_region([=] { delete map_ptr; });
-    
+
+#ifdef UEPOCH_H_
+    uepoch::clear();
+#endif
   }  return throughput/rounds;
 }
 

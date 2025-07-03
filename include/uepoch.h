@@ -103,7 +103,7 @@ namespace uepoch {
           pid.old.swap(pid.current);
           pid.epoch = current_epoch.load();
         }
-        long heuristic_threshold = 2 * num_threads();
+        long heuristic_threshold = 5 * num_threads();
         if (++pid.count == heuristic_threshold) { 
           pid.count = 0;
           update_epoch();
@@ -111,15 +111,17 @@ namespace uepoch {
       }
 
     public:
-      void clear() {
+      long clear() {
         update_epoch();
+        long cnt = 0;
         for (long i = 0; i < max_threads; i++) {
-          for (auto& x : pools[i].old) x();
-          for (auto& x : pools[i].current) x();
-          for (auto& x : pools[i].safe) x();
+          for (auto& x : pools[i].old) {x(); cnt++;}
+          for (auto& x : pools[i].current) {x(); cnt++;}
+          for (auto& x : pools[i].safe) {x(); cnt++;}
           pools[i].old.clear(); pools[i].current.clear();
           pools[i].safe.clear();
         }
+        return cnt;
       }
 
       void delay(std::function<void(void)> f) {

@@ -11,8 +11,8 @@
 // The types for load and store can be any relocatable type.
 // Memory should only be allocated with the mystm version in a transaction.
 
-#ifndef USTM_H_
-#define USTM_H_
+#ifndef MVUSTM_H_
+#define MVUSTM_H_
 
 #include <atomic>
 #include <thread>
@@ -335,6 +335,7 @@ namespace ustm {
       d = myd; // set the thread local (note d is a ref type)
       myd->readOnly = true;
       return uepoch::with_epoch([&] { // func has result
+          myd->startStamp = nextStamp();
           auto retval = func();
           myd->reset();
           d = nullptr;
@@ -361,4 +362,4 @@ namespace ustm {
   };
 } // End namespace ustm
 
-#endif // USTM_H_
+#endif // MVUSTM_H_

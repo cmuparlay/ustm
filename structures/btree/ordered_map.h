@@ -544,6 +544,10 @@ struct ordered_map {
 
   template<typename AddF>
   static bool range_internal(node* a, AddF& add, const K& start, const K& end) {
+    if (((unsigned long) a) < 1000) {
+      std::cout << "ouch: " << a << std::endl;
+      std::abort();
+    }
     while (true) {
       if (a->is_leaf) {
         leaf* la = (leaf*) a;
