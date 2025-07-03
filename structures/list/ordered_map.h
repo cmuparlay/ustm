@@ -1,4 +1,8 @@
-#include <verlib/verlib.h>
+#include <transactions.h>
+#include <functional>
+#include <iostream>
+#include <optional>
+#include <utility>
 
 template <typename K_,
           typename V_,
@@ -8,32 +12,28 @@ struct ordered_map {
   using V = V_;
   static constexpr auto less = Compare{};
 
-  struct alignas(32) node : verlib::versioned {
+  struct alignas(32) node : stm::versioned {
     K key;
-    verlib::versioned_ptr<node> next;
+    stm::atomic<node*> next;
     bool is_end = false;
-    verlib::atomic_bool removed = false;
+    stm::atomic_bool removed = false;
     V value;
     node(K key, V value, node* next) : key(key), value(value), next(next) {}
     node(node* next, bool is_end) : next(next), is_end(is_end) {};
   };
 
   node* root;
-  
-  static verlib::memory_pool<node> node_pool;
 
   static auto find_location(node* root, const K& k) {
     node* cur = root;
-    node* nxt = (cur->next).load_weak();
+    node* nxt = (cur->next).load_unprotected();
     while (true) {
       if (nxt->is_end || !less(nxt->key, k)) break;
       cur = nxt;
-      nxt = (nxt->next).load_weak(); // could prefetch
+      nxt = (nxt->next).load_unprotected(); // could prefetch
     }
-    cur->removed.validate(false);
-    cur->next.validate(nxt);
-    //cur->removed.validate();
-    //cur->next.validate();
+    cur->removed.validate();
+    cur->next.validate();
     return std::make_pair(cur, nxt);
   }
 
@@ -41,12 +41,10 @@ struct ordered_map {
     auto [cur, nxt] = find_location(root, k);
     if (!nxt->is_end && !less(k, nxt->key))
       return false;
-    node* new_node = node_pool.New(k, v, nxt);
+    node* new_node = stm::New<node>(k, v, nxt);
     cur->next = new_node; // splice in
     return true;
   }
-
-  bool insert_(const K& k, const V& v) { return insert(k);} 
 
   bool remove(const K& k) {
     auto [cur, nxt] = find_location(root, k);
@@ -55,25 +53,18 @@ struct ordered_map {
     node* nxtnxt = (nxt->next).load();
     nxt->removed = true;
     cur->next = nxtnxt; // shortcut
-    node_pool.Retire(nxt);
+    stm::Delete(nxt);
     return true;
   }
 
-  bool remove_(const K& k) { return remove(k); }
-
-  std::optional<V> find_(const K& k) {
+  std::optional<V> find(const K& k) {
     auto [cur, nxt] = find_location(root, k);
     if (!nxt->is_end && !less(k, nxt->key)) return nxt->value;
     else return {};
   }
 
-  std::optional<V> find(const K& k) {
-    return epoch::with_epoch([&] {return find_(k);}); }
-
-  std::optional<V> find_locked(const K& k) { return find_(k);}
-
   template<typename AddF>
-  void range_(AddF& add, const K& start, const K& end) {
+  void range(AddF& add, const K& start, const K& end) {
     node* nxt = (root->next).load();
     while (true) {
       node* nxt_nxt = (nxt->next).load(); // prefetch
@@ -86,8 +77,8 @@ struct ordered_map {
     }
   }
 
-  ordered_map() : root(node_pool.New(node_pool.New(nullptr,true),false)) {}
-  ordered_map(size_t n) : root(node_pool.New(node_pool.New(nullptr,true),false)) {}
+  ordered_map() : root(stm::New<node>(stm::New<node>(nullptr,true),false)) {}
+  ordered_map(size_t n) : root(stm::New<node>(stm::New<node>(nullptr,true),false)) {}
 
   void print() {
     node* ptr = (root->next).load();
@@ -100,7 +91,7 @@ struct ordered_map {
 
   void retire_recursive(node* p) {
     if (!p->is_end) retire_recursive(p->next.load());
-    node_pool.Retire(p);
+    stm::Delete(p);
   }
 
   ~ordered_map() {retire_recursive(root);}
@@ -123,12 +114,4 @@ struct ordered_map {
     return i;
   }
 
-  static void clear() { node_pool.clear();}
-  static void reserve(size_t n) { node_pool.reserve(n);}
-  static void shuffle(size_t n) { } // {node_pool.shuffle(n);}
-  static void stats() { node_pool.stats();}
-
 };
-
-template <typename K, typename V, typename C>
-verlib::memory_pool<typename ordered_map<K,V,C>::node> ordered_map<K,V,C>::node_pool;

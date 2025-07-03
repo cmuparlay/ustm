@@ -3,6 +3,7 @@
 #include <atomic>
 #include <chrono>
 #include <iostream>
+#include <limits>
 #include <optional>
 #include <string>
 #include <type_traits>
@@ -40,14 +41,14 @@ std::string command_string = R"(
 [-n <sizes>]  : comma separated sizes of the map (default 1000)
 [-p <num-threads>] : number of threads to use (default # of threads on machine)
 [-r <rounds>]  : number of rounds to run the test (default 1)
-[-rqthr <threads>] : number of threads to be used for range queries (default 0)
-[-rs <range-size>] : number of elements returned in each range on average (default 1000)
+[-rqp <percent>] : percent of threads to be used for range queries (default 0)
+[-rs <range-sizes>] : comma separated range sizes in number of elements returned (default 100)
 [-t <time>] : time to run each test in seconds (default 1)
 [-trans <ops-per-transaction>] : comma separated sizes of transaction in operations (default 1)
 [-u <update-percents>] : comma separated percents of operations that are updates (default 5)
 [-verbose] : print additional information when running
 [-z <zipfian-parameters>] : comma separated parameters in range [0:1), 0 (default) uniform, .99 highly skewed
-example: -n 10000,10000000 -u 0,5,50 -z 0,.99 -trans 1,16
+example: -n 10000,10000000 -u 0,5,50 -z 0,.99 -trans 1,16 -rs 100,1000 -rqp 50 -r 3
 )";
 
 using K = unsigned long;
@@ -102,6 +103,7 @@ double run_mixed_operations(parlay::sequence<K>& all,
                             float zipfian_param,
                             int update_percent,
                             int trans_size,
+                            long range_size,
                             bool warmup,
                             commandLine P) {
   long m = all.size();
@@ -111,8 +113,8 @@ double run_mixed_operations(parlay::sequence<K>& all,
   long rounds = P.getOptionIntValue("-r", 1);
   double trial_time = P.getOptionDoubleValue("-t", 1.0);
   bool verbose = P.getOption("-verbose");
-  int range_size = P.getOptionIntValue("-rs",1000);
-  int range_query_threads = P.getOptionIntValue("-rqthr", 0);
+  int range_query_percent = P.getOptionIntValue("-rqp", 0);
+  int range_query_threads = (range_query_percent * p)/100;
   enum op_type : char {Find, Insert, Remove};
 
   auto op_types = parlay::tabulate(m, [&] (size_t i) -> op_type {
@@ -193,12 +195,13 @@ double run_mixed_operations(parlay::sequence<K>& all,
 #ifdef Range_Search
         if (proc_id < range_query_threads) {
           local_stats.range_count++;
-          K end = all[j] + range_gap;
-          if (end < all[j]) end = max_key;
+          K begin = all[j];
+          K end = begin + range_gap;
+          if (end < begin) end = max_key;
           local_stats.range_sum += stm::atomic_read_only([&] {
             long cnt = 0;
             auto addf = [&] (K k, V v) { cnt++; };
-            tr.range(addf, all[j], end);
+            tr.range(addf, begin, end);
             return cnt;});
           j += trans_size;
           jj += trans_size;
@@ -276,8 +279,8 @@ double run_mixed_operations(parlay::sequence<K>& all,
                 << "z=" << zipfian_param << ",";
       if (range_query_threads > 0)
         std::cout << "rs=" << range_size << ","
-                  << "rqthr=" << range_query_threads << ","
-                  << "rqps=" << overall_stats.range_count / (duration * 1e6) << ",";
+                  << "rqp=" << range_query_percent << ","
+                  << "rqmops=" << overall_stats.range_count / (duration * 1e6) << ",";
       std::cout << "mops=" << num_ops / (duration * 1e6)
                 << std::endl;
     }
@@ -291,6 +294,7 @@ double run_mixed_operations(parlay::sequence<K>& all,
     long total_queries = overall_stats.query_count;
     double total_found = overall_stats.query_total_value / default_value[0];
     double success_ratio = total_found / total_queries;
+    int range_ratio = overall_stats.range_sum / overall_stats.range_count;
     if (verbose) {
       std::cout << "total updates =     " << total_updates 
                 << "\nsuccesful updates = " << (long) update_successes
@@ -302,6 +306,10 @@ double run_mixed_operations(parlay::sequence<K>& all,
                 << std::endl;
     }
 
+    if (range_query_percent > 0 &&
+        (range_ratio > range_size || range_ratio < .9 * range_size))
+      std::cout << "bad range sizes, average range size returned = "
+                << range_ratio << std::endl;
     if ((success_ratio < .4 || success_ratio > .6) && n > 10000)
       std::cout << "bad query success ratio, should be .5 is "
                 << success_ratio << std::endl;
@@ -356,6 +364,8 @@ int main(int argc, char* argv[]) {
                               parlay::chars_to_int);
   auto transaction_sizes = parlay::map(comma_separated_arg(P, "-trans", "1"),
                                        parlay::chars_to_int);
+  auto range_sizes = parlay::map(comma_separated_arg(P, "-rs", "100"),
+                                 parlay::chars_to_int);
   long p = P.getOptionIntValue("-p", parlay::num_workers());  
 
   using key_type = unsigned long;
@@ -386,15 +396,17 @@ int main(int argc, char* argv[]) {
                      else return unique_keys[parlay::hash64(i) % unique_size];});
       if (zipfian_param != 0.0)
         unique_keys = parlay::random_shuffle(unique_keys);
-      
+
+      for (auto range_size : range_sizes) {
       for (auto update_percent : percents) {
         for (auto trans_size : transaction_sizes) {
           auto tr = run_mixed_operations<SetType>(all_keys, unique_keys,
                                                   zipfian_param, update_percent,
-                                                  trans_size, warm, P);
+                                                  trans_size, range_size, warm, P);
           throughputs.push_back(tr);
           warm = false;
         }
+      }
       }
     }
   }

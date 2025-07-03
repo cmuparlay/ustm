@@ -2,9 +2,14 @@
 // Initial Author: Guy Blelloch
 
 // Nodes come in varying sizes and on update the node is copied.
+#include <transactions.h>
+#include <cmath>
+#include <functional>
+#include <iostream>
 #include <optional>
+#include <vector>
+#include <parlay/parallel.h>
 #include <parlay/primitives.h>
-#include <verlib/verlib.h>
 
 template <typename K_,
 	  typename V_,
@@ -68,7 +73,7 @@ private:
   // A node contains an array of up to Size entries (actual # of entries given by cnt)
   // Sizes are 1, 3, 7, 31
   template <int Size>
-  struct alignas(32) Node : verlib::versioned {
+  struct alignas(32) Node : stm::versioned {
     using node = Node<0>;
     int cnt;
     KV entries[Size];
@@ -123,7 +128,7 @@ private:
 
   // If a node overflows (cnt > 31), then it becomes a big node and its content
   // is stored indirectly in a parlay sequence.
-  struct BigNode : verlib::versioned {
+  struct BigNode : stm::versioned {
     using entries_type = std::vector<KV>;
     int cnt;
     entries_type entries;
@@ -150,8 +155,8 @@ private:
   // structure for each bucket
   struct bucket {
     node* load() {return ptr.load();}
-    verlib::versioned_ptr<node> ptr;
-    bucket() : ptr(nullptr) {}
+    stm::atomic<node*> ptr = nullptr;
+    bucket() {}
   };
 
   struct Table {
@@ -162,7 +167,7 @@ private:
       return &table[idx];
     }
     Table(size_t n) {
-      int bits = 1 + parlay::log2_up(n);
+      int bits = 1 + std::ceil(std::log2(n));
       size = 1ul << bits;
       table = std::vector<bucket>(size);
     }
@@ -174,45 +179,40 @@ private:
   using Node3 = Node<3>;
   using Node7 = Node<7>;
   using Node31 = Node<31>;
-  static verlib::memory_pool<Node1> node_pool_1;
-  static verlib::memory_pool<Node3> node_pool_3;
-  static verlib::memory_pool<Node7> node_pool_7;
-  static verlib::memory_pool<Node31> node_pool_31;
-  static verlib::memory_pool<BigNode> big_node_pool;
 
   static node* insert_to_node(node* old, const K& k, const V& v) {
-    if (old == nullptr) return (node*) node_pool_1.New(old, k, v);
-    if (old->cnt < 3) return (node*) node_pool_3.New(old, k, v);
-    else if (old->cnt < 7) return (node*) node_pool_7.New(old, k, v);
-    else if (old->cnt < 31) return (node*) node_pool_31.New(old, k, v);
-    else return (node*) big_node_pool.New(old, k, v);
+    if (old == nullptr) return (node*) stm::New<Node1>(old, k, v);
+    if (old->cnt < 3) return (node*) stm::New<Node3>(old, k, v);
+    else if (old->cnt < 7) return (node*) stm::New<Node7>(old, k, v);
+    else if (old->cnt < 31) return (node*) stm::New<Node31>(old, k, v);
+    else return (node*) stm::New<BigNode>(old, k, v);
   }
 
   template <typename F>
   static node* update_node(node* old, const K& k, const F& f) {
-    if (old->cnt == 1) return (node*) node_pool_1.New(old, k, f);
-    if (old->cnt <= 3) return (node*) node_pool_3.New(old, k, f);
-    else if (old->cnt <= 7) return (node*) node_pool_7.New(old, k, f);
-    else if (old->cnt <= 31) return (node*) node_pool_31.New(old, k, f);
-    else return (node*) big_node_pool.New(old, k, f);
+    if (old->cnt == 1) return (node*) stm::New<Node1>(old, k, f);
+    if (old->cnt <= 3) return (node*) stm::New<Node3>(old, k, f);
+    else if (old->cnt <= 7) return (node*) stm::New<Node7>(old, k, f);
+    else if (old->cnt <= 31) return (node*) stm::New<Node31>(old, k, f);
+    else return (node*) stm::New<BigNode>(old, k, f);
   }
 
   static node* remove_from_node(node* old, const K& k) {
     if (old->cnt == 1) return (node*) nullptr;
-    if (old->cnt == 2) return (node*) node_pool_1.New(old, k);
-    else if (old->cnt <= 4) return (node*) node_pool_3.New(old, k);
-    else if (old->cnt <= 8) return (node*) node_pool_7.New(old, k);
-    else if (old->cnt <= 32) return (node*) node_pool_31.New(old, k);
-    else return (node*) big_node_pool.New(old, k);
+    if (old->cnt == 2) return (node*) stm::New<Node1>(old, k);
+    else if (old->cnt <= 4) return (node*) stm::New<Node3>(old, k);
+    else if (old->cnt <= 8) return (node*) stm::New<Node7>(old, k);
+    else if (old->cnt <= 32) return (node*) stm::New<Node31>(old, k);
+    else return (node*) stm::New<BigNode>(old, k);
   }
 
   static void retire_node(node* old) {
     if (old == nullptr);
-    else if (old->cnt == 1) node_pool_1.Retire((Node1*) old);
-    else if (old->cnt <= 3) node_pool_3.Retire((Node3*) old);
-    else if (old->cnt <= 7) node_pool_7.Retire((Node7*) old);
-    else if (old->cnt <= 31) node_pool_31.Retire((Node31*) old);
-    else big_node_pool.Retire((BigNode*) old);
+    else if (old->cnt == 1) stm::Delete((Node1*) old);
+    else if (old->cnt <= 3) stm::Delete((Node3*) old);
+    else if (old->cnt <= 7) stm::Delete((Node7*) old);
+    else if (old->cnt <= 31) stm::Delete((Node31*) old);
+    else stm::Delete((BigNode*) old);
   }
 
 public:
@@ -224,23 +224,10 @@ public:
   }
   
   std::optional<V> find(const K& k) {
-    bucket* s = hash_table.get_bucket(k);
-    __builtin_prefetch (s);
-    return verlib::with_epoch([&] () -> std::optional<V> {
-      auto x = s->load();
-      if (x == nullptr) return {};
-      return x->find(k);
-    });
-  }
-
-  std::optional<V> find_(const K& k) {
     auto x = hash_table.get_bucket(k)->load();
     if (x == nullptr) return std::nullopt;
     return x->find(k);
   }
-
-  std::optional<V> find_locked(const K& k) {
-    return find(k);} 
       
   bool insert(const K& k, const V& v) {
     bucket* s = hash_table.get_bucket(k);
@@ -251,8 +238,6 @@ public:
     retire_node(old_node);
     return true;
   }
-
-  bool insert_(const K& k, const V& v) { return insert_(k, v); }
 
   bool upsert(const K& k, const V& v) {
     bucket* s = hash_table.get_bucket(k);
@@ -269,8 +254,6 @@ public:
     }
   }
 
-  bool upsert_(const K& k, const V& v) { return upsert(k, v); }
-
   bool remove(const K& k) {
     bucket* s = hash_table.get_bucket(k);
     node* old_node = s->load();
@@ -280,8 +263,6 @@ public:
     retire_node(old_node);
     return true;
   }
-
-  bool remove_(const K& k) { return remove(k);}
 
   long size() {
     auto& table = hash_table.table;
@@ -306,34 +287,4 @@ public:
   }
 
   long check() { return size();}
-
-  static void clear() {
-    node_pool_1.clear();
-    node_pool_3.clear();
-    node_pool_7.clear();
-    node_pool_31.clear();
-    big_node_pool.clear();
-  }
-  static void stats() {
-    node_pool_1.stats();
-    node_pool_3.stats();
-    node_pool_7.stats();
-    node_pool_31.stats();
-    big_node_pool.stats();
-  }
-  static void reserve(size_t n) {}
-  static void shuffle(size_t n) {}
-
 };
-
-template <typename K, typename V, typename H, typename E>
-verlib::memory_pool<typename unordered_map<K,V,H,E>::Node1> unordered_map<K,V,H,E>::node_pool_1;
-template <typename K, typename V, typename H, typename E>
-verlib::memory_pool<typename unordered_map<K,V,H,E>::Node3> unordered_map<K,V,H,E>::node_pool_3;
-template <typename K, typename V, typename H, typename E>
-verlib::memory_pool<typename unordered_map<K,V,H,E>::Node7> unordered_map<K,V,H,E>::node_pool_7;
-template <typename K, typename V, typename H, typename E>
-verlib::memory_pool<typename unordered_map<K,V,H,E>::Node31> unordered_map<K,V,H,E>::node_pool_31;
-template <typename K, typename V, typename H, typename E>
-verlib::memory_pool<typename unordered_map<K,V,H,E>::BigNode> unordered_map<K,V,H,E>::big_node_pool;
-
