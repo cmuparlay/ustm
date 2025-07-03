@@ -28,7 +28,8 @@
 #include <type_traits>
 #include <utility>
 
-#include <verlib/verlib.h>
+#include <transactions.h>
+#include <parlay/parallel.h>
 #include <parlay/primitives.h>
 
 // string definition for integer types
@@ -79,7 +80,7 @@ struct ordered_map {
   static constexpr int max_small_leaf_size = 2;
   static constexpr int max_big_leaf_size = (sizeof(K) + sizeof(V) > 16) ? 14 : 30;
   
-  struct header : verlib::versioned {
+  struct header : stm::versioned {
     const node_type nt;
     char size;
     // every node has a byte position in the key
@@ -94,7 +95,7 @@ struct ordered_map {
 
   // generic node
   struct node : header {
-    verlib::atomic_bool removed;
+    stm::atomic_bool removed;
     node(node_type nt, char size)
       : header(nt, size), removed(false) {}
     node(const K& key, node_type nt, char size, int byte_num)
@@ -103,7 +104,7 @@ struct ordered_map {
 
   node* root;
   
-  using node_ptr = verlib::versioned_ptr<node>;
+  using node_ptr = stm::atomic<node*>;
   struct indirect_node;
   struct sparse_node;
 
@@ -125,15 +126,20 @@ struct ordered_map {
     // copy from an indirect node, adding in child c with key k
     full_node(indirect_node* i_n, node* c, const K& k)
       : node(i_n->key, Full, 0, i_n->byte_num) {
+      for (int i = 0; i < 256; i++)
+        children[i].init(nullptr);
       for (int i=0; i < 256; i++) {
         int j = i_n->idx[i];
-        if (j != -1) children[i] = i_n->ptr[j].load();
+        children[i].init((j != -1) ? i_n->ptr[j].load() : nullptr);
       }
       auto b = String::get_byte(k, i_n->byte_num);
-      children[b] = c; 
+      children[b].init(c); 
     }
 
-    full_node() : node(Full, 0) {}
+    full_node() : node(Full, 0) {
+      for (int i = 0; i < 256; i++)
+        children[i].init(nullptr);
+    }
   };
 
   // Up to max_indirect_size entries, with array of 256 1-byte
@@ -153,19 +159,24 @@ struct ordered_map {
     void init_child(const K& k, node* c) {
       int i = node::size -1;
       idx[String::get_byte(k, header::byte_num)] = i;
-      ptr[i] = c;
+      ptr[i].init(c);
     }
 
     // an empty indirect node
-    indirect_node() : node(Indirect, 0) {};
+    indirect_node() : node(Indirect, 0) {
+      for (int i = 0; i < max_indirect_size; i++)
+        ptr[i].init(nullptr);
+    };
 
     // copy from another indirect node adding child c with key k
     indirect_node(indirect_node* i_n, node* c, const K& k)
       : node(i_n->key, Indirect, i_n->size + 1, i_n->byte_num) {
       for (int i=0; i < 256; i++)
         idx[i] = i_n->idx[i];
+      for (int i = 0; i < max_indirect_size; i++)
+        ptr[i].init(nullptr);
       for (int i=0; i < i_n->size; i++) 
-        ptr[i] = i_n->ptr[i].load();
+        ptr[i].init(i_n->ptr[i].load());
       init_child(k, c);
     }
 
@@ -173,9 +184,11 @@ struct ordered_map {
     indirect_node(sparse_node* s_n, node* c, const K& k)
       : node(s_n->key, Indirect, max_sparse_size + 1, s_n->byte_num) {
       for (int i=0; i < 256; i++) idx[i] = -1;
+      for (int i = 0; i < max_indirect_size; i++)
+        ptr[i].init(nullptr);
       for (int i=0; i < max_sparse_size; i++) {
         idx[s_n->keys[i]] = i; 
-        ptr[i] = s_n->ptr[i].load();
+        ptr[i].init(s_n->ptr[i].load());
       }
       init_child(k, c);
     }
@@ -202,16 +215,16 @@ struct ordered_map {
     void init_child(const K& k, node* c) {
       int kb = String::get_byte(k, header::byte_num);
       keys[node::size-1] = kb;
-      ptr[node::size-1] = c;
+      ptr[node::size-1].init(c);
     }
 
     // constructor for a new sparse node with two children
     sparse_node(int byte_num, node* v1, const K& k1, node* v2, const K& k2)
       : node(k1, Sparse, 2, byte_num) {
       keys[0] = String::get_byte(k1, byte_num);
-      ptr[0] = v1;
+      ptr[0].init(v1);
       keys[1] = String::get_byte(k2, byte_num);
-      ptr[1] = v2;
+      ptr[1].init(v2);
     }
 
     // constructor for a sparse node with multiple children 
@@ -219,7 +232,7 @@ struct ordered_map {
       node((*start)->key, Sparse, end - start, byte_num) {
       for (int i=0; i < (end-start); i++) {
         keys[i] = String::get_byte((*(start+i))->key, byte_num);
-        ptr[i] = *(start + i);
+        ptr[i].init(*(start + i));
       }
     }
 
@@ -228,7 +241,7 @@ struct ordered_map {
       : node(s_n->key, Sparse, s_n->size + 1, s_n->byte_num) {
       for (int i=0; i < s_n->size; i++) {
         keys[i] = s_n->keys[i];
-        ptr[i] = s_n->ptr[i].load();
+        ptr[i].init(s_n->ptr[i].load());
       }
       init_child(k, c);
     }
@@ -322,12 +335,6 @@ struct ordered_map {
   using small_leaf = generic_leaf<max_small_leaf_size>;
   using big_leaf = generic_leaf<max_big_leaf_size>;
   
-  static verlib::memory_pool<full_node> full_pool;
-  static verlib::memory_pool<indirect_node> indirect_pool;
-  static verlib::memory_pool<sparse_node> sparse_pool;
-  static verlib::memory_pool<small_leaf> small_leaf_pool;
-  static verlib::memory_pool<big_leaf> big_leaf_pool;
-
   // dispatch based on node type
   // A returned nullptr means no child matching the key
   static inline node_ptr* get_child(node* x, const K& k) {
@@ -358,28 +365,29 @@ struct ordered_map {
     //child_ptr->validate();
     //gp->removed.validate();
 
-    node* c = (node*) small_leaf_pool.New(k, v);
+    node* c = (node*) stm::New<small_leaf>(k, v);
     if (p->nt == Indirect) {
       indirect_node* i_n = (indirect_node*) p;
       i_n->removed = true;
       if (is_full(p)) // copy indirect to full
-        *child_ptr = (node*) full_pool.New(i_n, c, k);
+        *child_ptr = (node*) stm::New<full_node>(i_n, c, k);
       else // copy indirect to indirect
-        *child_ptr = (node*) indirect_pool.New(i_n, c, k);
-      indirect_pool.Retire(i_n);
+        *child_ptr = (node*) stm::New<indirect_node>(i_n, c, k);
+      stm::Delete(i_n);
     } else { // (p->nt == Sparse)
       sparse_node* s_n = (sparse_node*) p;
       s_n->removed = true;
       if (is_full(p)) // copy sparse to indirect
-        *child_ptr = (node*) indirect_pool.New(s_n, c, k);
+        *child_ptr = (node*) stm::New<indirect_node>(s_n, c, k);
       else // copy sparse to sparse
-        *child_ptr = (node*) sparse_pool.New(s_n, c, k);
-      sparse_pool.Retire(s_n);
+        *child_ptr = (node*) stm::New<sparse_node>(s_n, c, k);
+      stm::Delete(s_n);
     }
   }
 
   //*** will return one of 4 things: no child, empty child, leaf, subtree (cut edge)
   static auto find_location(node* root, const K& k, bool use_weak = false) {
+    use_weak = false;
     int byte_pos = 0;
     node* gp = nullptr;
     node* p = root;
@@ -388,7 +396,7 @@ struct ordered_map {
       if (cptr == nullptr) // has no child with given key
         return std::make_tuple(gp, p, cptr, (node*) nullptr, byte_pos);
 
-      node* c = use_weak ? cptr->load_weak() : cptr->load();
+      node* c = use_weak ? cptr->load_unprotected() : cptr->load();
       if (c == nullptr) // has empty child with given key
         return std::make_tuple(gp, p, cptr, c, byte_pos);
 
@@ -411,8 +419,8 @@ struct ordered_map {
 
   static node* new_leaf(int byte_pos, KV* start, KV* end) {
     if ((end-start) > max_small_leaf_size)
-      return (node*) big_leaf_pool.New(byte_pos, start, end);
-    else return (node*) small_leaf_pool.New(byte_pos, start, end);
+      return (node*) stm::New<big_leaf>(byte_pos, start, end);
+    else return (node*) stm::New<small_leaf>(byte_pos, start, end);
   }
   
   bool insert_(const K& k, const V& v) { return try_insert(k, v); }
@@ -436,23 +444,23 @@ struct ordered_map {
 
     if (cptr != nullptr) {// child pointer exists, always true for full node
       if (c == nullptr)
-        (*cptr) = (node*) small_leaf_pool.New(k, v);
+        (*cptr) = (node*) stm::New<small_leaf>(k, v);
       else if (c->is_leaf()) {
         leaf* l = (leaf*) c;
         small_leaf* sl = (small_leaf*) c;
         big_leaf* bl = (big_leaf*) c;
         if (l->size < max_small_leaf_size) {
-          *cptr = (node*) small_leaf_pool.New(byte_pos, l, k, v, replace);
-          small_leaf_pool.Retire(sl);
+          *cptr = (node*) stm::New<small_leaf>(byte_pos, l, k, v, replace);
+          stm::Delete(sl);
         } else if (l->size == max_small_leaf_size) {
           if (replace)
-            *cptr = (node*) small_leaf_pool.New(byte_pos, l, k, v, true);
+            *cptr = (node*) stm::New<small_leaf>(byte_pos, l, k, v, true);
           else
-            *cptr = (node*) big_leaf_pool.New(byte_pos, l, k, v, false);
-          small_leaf_pool.Retire(sl);
+            *cptr = (node*) stm::New<big_leaf>(byte_pos, l, k, v, false);
+          stm::Delete(sl);
         } else if (l->size < max_big_leaf_size || replace) {
-          *cptr = (node*) big_leaf_pool.New(byte_pos, l, k, v, replace);
-          big_leaf_pool.Retire(bl);
+          *cptr = (node*) stm::New<big_leaf>(byte_pos, l, k, v, replace);
+          stm::Delete(bl);
         } else { // too large
           int n = max_big_leaf_size + 1;
 
@@ -476,13 +484,13 @@ struct ordered_map {
           children[j++] = new_leaf(byte_pos+1, &tmp[start], &tmp[n]);
 
           // insert the new leaves into a sparse node
-          *cptr = (node*) sparse_pool.New(byte_pos, &children[0], &children[j]);
-          big_leaf_pool.Retire(bl);
+          *cptr = (node*) stm::New<sparse_node>(byte_pos, &children[0], &children[j]);
+          stm::Delete(bl);
         }
       } else { // not a leaf
-        node* new_l = (node*) small_leaf_pool.New(k, v);
-        *cptr = (node*) sparse_pool.New(byte_pos, c, c->key,
-                                        new_l, k);
+        node* new_l = (node*) stm::New<small_leaf>(k, v);
+        *cptr = (node*) stm::New<sparse_node>(byte_pos, c, c->key,
+                                              new_l, k);
       }
       return !replace;
     } else { // no child pointer, need to add
@@ -524,35 +532,30 @@ struct ordered_map {
     if (l->size == 1) {
       node* other_child = single_other_child(p, c);
       *cptr = nullptr;
-      small_leaf_pool.Retire((small_leaf*) l);
+      stm::Delete((small_leaf*) l);
       return true;
     } else { // at least 2 in leaf
       if (l->size > max_small_leaf_size + 1) {
-        *cptr = (node*) big_leaf_pool.New(l, k);
-        big_leaf_pool.Retire((big_leaf*) l);
+        *cptr = (node*) stm::New<big_leaf>(l, k);
+        stm::Delete((big_leaf*) l);
       } else if (l->size == max_small_leaf_size + 1) {
-        *cptr = (node*) small_leaf_pool.New(l, k);
-        big_leaf_pool.Retire((big_leaf*) l);
+        *cptr = (node*) stm::New<small_leaf>(l, k);
+        stm::Delete((big_leaf*) l);
       } else {
-        *cptr = (node*) small_leaf_pool.New(l, k);
-        small_leaf_pool.Retire((small_leaf*) l);
+        *cptr = (node*) stm::New<small_leaf>(l, k);
+        stm::Delete((small_leaf*) l);
       }
       return true;
     }
   }
 
-  std::optional<V> find_(const K& k) {
+  std::optional<V> find(const K& k) {
     auto [gp, p, cptr, l, pos] = find_location(root, k, true);
-    if (cptr != nullptr) cptr->validate(l);
-    p->removed.validate(false);
+    if (cptr != nullptr) cptr->validate();
+    p->removed.validate();
     if (l == nullptr) return {};
     else return ((leaf*) l)->find(k, pos);
   }
-
-  std::optional<V> find(const K& k) {
-    return epoch::with_epoch([&] {return find_(k);});}
-
-  std::optional<V> find_locked(const K& k) { return find_(k); }
 
   template<typename AddF>
   static void range_internal(node* a, AddF& add,
@@ -612,19 +615,19 @@ struct ordered_map {
   }                       
 
   template<typename AddF>
-  void range_(AddF& add, const K& start, const K& end) {
+  void range(AddF& add, const K& start, const K& end) {
     range_internal(root, add,
                    std::optional<K>(start), std::optional<K>(end), 0);
   }
 
   ordered_map() {
-    auto r = full_pool.New();
+    auto r = stm::New<full_node>();
     r->byte_num = 0;
     root = (node*) r;
   }
 
   ordered_map(size_t n) {
-    auto r = full_pool.New();
+    auto r = stm::New<full_node>();
     r->byte_num = 0;
     root = (node*) r;
   }
@@ -674,24 +677,24 @@ struct ordered_map {
     if (p == nullptr) return;
     if (p->nt == Leaf) {
       if (p->size > max_small_leaf_size)
-        big_leaf_pool.Retire((big_leaf*) p);
-      else small_leaf_pool.Retire((small_leaf*) p);
+        stm::Delete((big_leaf*) p);
+      else stm::Delete((small_leaf*) p);
     }
     else if (p->nt == Sparse) {
       auto pp = (sparse_node*) p;
       parlay::parallel_for(0, pp->size, [&] (size_t i) {
           retire_recursive(pp->ptr[i].load());});
-      sparse_pool.Retire(pp);
+      stm::Delete(pp);
     } else if (p->nt == Indirect) {
       auto pp = (indirect_node*) p;
       parlay::parallel_for(0, pp->size, [&] (size_t i) {
           retire_recursive(pp->ptr[i].load());});
-      indirect_pool.Retire(pp);
+      stm::Delete(pp);
     } else {
       auto pp = (full_node*) p;
       parlay::parallel_for(0, 256, [&] (size_t i) {
         retire_recursive(pp->children[i].load());});
-      full_pool.Retire(pp);
+      stm::Delete(pp);
     }
   }
   ~ordered_map() { retire_recursive(root);}
@@ -743,44 +746,7 @@ struct ordered_map {
   }
 
   long size() {  return check(); }
-
-  static void clear() {
-    full_pool.clear();
-    indirect_pool.clear();
-    sparse_pool.clear();
-    small_leaf_pool.clear();
-    big_leaf_pool.clear();
-  }
-
-  static void reserve(size_t n) {}
-  
-  static void shuffle(size_t n) {
-    // full_pool.shuffle(n/100);
-    // indirect_pool.shuffle(n/10);
-    // sparse_pool.shuffle(n/5);
-    // small_leaf_pool.shuffle(n);
-    // big_leaf_pool.shuffle(n);
-  }
-
-  static void stats() {
-    full_pool.stats();
-    indirect_pool.stats();
-    sparse_pool.stats();
-    small_leaf_pool.stats();
-    big_leaf_pool.stats();
-  }
   
 };
-
-template <typename K, typename V, typename S>
-verlib::memory_pool<typename ordered_map<K,V,S>::full_node> ordered_map<K,V,S>::full_pool;
-template <typename K, typename V, typename S>
-verlib::memory_pool<typename ordered_map<K,V,S>::indirect_node> ordered_map<K,V,S>::indirect_pool;
-template <typename K, typename V, typename S>
-verlib::memory_pool<typename ordered_map<K,V,S>::sparse_node> ordered_map<K,V,S>::sparse_pool;
-template <typename K, typename V, typename S>
-verlib::memory_pool<typename ordered_map<K,V,S>::small_leaf> ordered_map<K,V,S>::small_leaf_pool;
-template <typename K, typename V, typename S>
-verlib::memory_pool<typename ordered_map<K,V,S>::big_leaf> ordered_map<K,V,S>::big_leaf_pool;
 
 #endif // FLOCK_ARTTREE_H_

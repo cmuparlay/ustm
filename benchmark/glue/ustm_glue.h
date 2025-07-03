@@ -40,7 +40,7 @@ namespace stm {
     T val;
   public:
     atomic(T v) : val(v) {}
-    atomic() {}
+    atomic()  {}
     void store(T v) { getStm().store(val, v); }
     T load() const { return getStm().load(val); }
 #ifdef UnprotectedLoad
@@ -50,7 +50,7 @@ namespace stm {
     T load_unprotected() const { return load();}
     void validate() const { }
 #endif
-    void init(T x) { store(x); }
+    void init(T x) { getStm().init(val, x); }
     T operator=(T b) { store(b); return b; }
   };
 

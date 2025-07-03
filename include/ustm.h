@@ -267,6 +267,9 @@ namespace ustm {
       } else loc = v;
     }
 
+    template <typename T>
+    inline void init(T& loc, T v) { loc = v; }
+
     // func can either return a value or not
     template<typename F>
     auto transaction(F&& func) {
@@ -296,8 +299,10 @@ namespace ustm {
     // adds to log so can delete if aborted
     template <typename T, typename... Args>
     static T* New(Args&&... args) {
-      T* ptr = new T(args...);
       Descriptor* myd = get_descriptor();
+      //get_descriptor() = nullptr;
+      T* ptr = new T(args...);
+      //get_descriptor() = myd;
       if (myd != nullptr) myd->allocLog.push_back([=] {delete ptr;});
       return ptr;
     }

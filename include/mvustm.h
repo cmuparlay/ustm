@@ -271,6 +271,22 @@ namespace ustm {
       return r;
     }
 
+    // inline version* load_snapshot(const std::atomic<version*>& val) {
+    //   Descriptor* myd = get_descriptor();
+    //   if (myd == nullptr) {
+    //     version* v = val.load();
+    //     return ((v != nullptr) && v->isLink) ? ((link*) v)->value : v;
+    //   }
+    //   uint64_t idx = locks.getLockNum(&val);
+    //   auto status = locks.loadStart(idx);
+    //   while (locks.isLocked(&val))
+    //     for (volatile int i = 0; i < 100; i++);
+    //   version* nxt = val.load();
+    //   while (nxt != nullptr && nxt->stamp > myd->startStamp)
+    //     nxt = nxt->next;
+    //   return ((v != nullptr) && v->isLink) ? ((link*) v)->value : v;
+    // }
+
     inline void init(std::atomic<version*>& loc, version* v) {
       loc.store(v);
     }
