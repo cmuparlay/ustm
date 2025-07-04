@@ -180,6 +180,9 @@ namespace ustm {
     bool loadCheck(uint64_t idx, Status& status, TS startStamp) {
       return (status.isPrior(startStamp) &&
               writeLocks[idx].load(MO_acquire).getStamp()==status.getStamp());}
+    bool loadUnprotectedCheck(uint64_t idx, Status& status) {
+      return (!status.isLocked() &&
+              writeLocks[idx].load(MO_acquire).v == status.v);}
   };
 
 
@@ -271,9 +274,12 @@ namespace ustm {
       auto status = locks.loadStart(idx);
       version* v = val.load();
       version* r = ((v != nullptr) && v->isLink) ? ((link*) v)->value : v;
-      if (!locks.loadCheck(idx, status, myd->startStamp))
+      if (validate) {
+        if (!locks.loadCheck(idx, status, myd->startStamp))
+          abortTransaction(myd);
+        myd->readLog.push_back(&val); // to validate later
+      } else if  (!locks.loadUnprotectedCheck(idx, status))
         abortTransaction(myd);
-      if (validate) myd->readLog.push_back(&val); // to validate later
       return r;
     }
 

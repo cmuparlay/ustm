@@ -9,7 +9,7 @@
 //     - atomic()  // constructors
 //     - atomic(T v)
 //     - T load()
-//     - T unprotected_load()  // can be same as load
+//     - T load_unprotected()  // can be same as load
 //     - void validate()  // should be noop if no unprotected loads
 //     - void store(T)
 //     - void init(T)   // used before others have pointer to this

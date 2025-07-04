@@ -32,16 +32,16 @@ namespace stm {
   T *New(Args... args) { return getStm().New<T>(args...); }
 
   template <typename T>
-  struct atomic {
+  struct atomic_ptr {
   private:
     std::atomic<ustm::version*> val;
   public:
-    atomic(T v) { init(v); }
-    atomic() { init(nullptr); }
+    atomic_ptr(T v) { init(v); }
+    atomic_ptr() { init(nullptr); }
     void store(T v) { getStm().store(val, (ustm::version*) v); }
     T load() const { return (T) getStm().load(val); }
 #ifdef UnprotectedLoad
-    T load_unprotected() const { return getStm().load(val, false); }
+    T load_unprotected() const { return (T) getStm().load(val, false); }
     void validate() const { load(); }
 #else
     T load_unprotected() const { return load();}
@@ -50,7 +50,28 @@ namespace stm {
     void init(T v) { getStm().init(val, (ustm::version*) v);}
     T operator=(T b) { store(b); return b; }
   };
+  
+  struct Empty : ustm::version { Empty() {} };
+  Empty true_struct;
+  Empty* false_val = nullptr;
+  Empty* true_val = &true_struct;
+  
+  // Simulates a boolean with a pointer to an "Empty" dummy struct.
+  // If false, then pointer is nullptr otherwise pointer to "true_struct".
+  // Avoids level of indirection when storing false.
+  struct atomic_prim_bool {
+    atomic_ptr<Empty*> val;
+    bool load() { return val.load() == true_val; }
+    void validate() { val.validate(); }
+    void store(bool v) { val = (v ? true_val : false_val); }
+    atomic_prim_bool(bool v) : val(v ? true_val : false_val) {}
+    bool operator=(bool b) {store(b); return b; }
+  };
+
+  template<typename T>
+  using atomic = std::conditional_t<std::is_same_v<T, bool>,
+				    atomic_prim_bool,
+				    atomic_ptr<T>>;
 
   using versioned = ustm::version;
-  
 }
