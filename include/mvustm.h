@@ -20,54 +20,11 @@
 #include <functional>
 #include <csetjmp>
 #include "uepoch.h"
-#include "uhashMap.h"
-
-#define MO_acquire std::memory_order_acquire
-#define MO_release std::memory_order_release
+#include "common.h"
 
 namespace ustm {
 
 #define MAX_THREADS 256
-
-  // getStamp() returns the current timd stamp
-  // nextStamp() returns the current time stamp and ensures
-  //   it is incremented beyond that stamp before returning
-  using TS = uint64_t; // type for timestamps
-#define HW_STAMP
-#ifdef HW_STAMP // use hardware timestamp (works with intel x86)
-  TS getStamp() {
-    unsigned int lo,hi;
-    __asm__ __volatile__ ("rdtsc" : "=a" (lo), "=d" (hi));
-    return (TS) (((uint64_t)(hi & ~(1<<31)) << 32) | lo);
-  }
-  TS nextStamp() {
-    return getStamp(); }
-#else // use software timestamp 
-  extern inline std::atomic<TS>& timeStamp() {
-    static std::atomic<TS> ts;
-    return ts; }
-  TS getStamp() { return timeStamp().load(); }
-  TS nextStamp() {
-    TS ts1 = getStamp(); // delay and try again to avoid fetch-and-add
-    for(volatile int i = 1; i < 400; i++) {}
-    TS ts2 = getStamp();
-    if (ts1 == ts2) return timeStamp()++;
-    else return ts2-1;
-  }
-#endif
-  
-  // keep track of number of active threads
-  extern inline std::atomic<int>& num_threads() {
-    static std::atomic<int> num_threads;
-    return num_threads;
-  }
-
-  // returns a unique thread id for each thread
-  // increments num_threads first time it is called
-  extern inline int thread_id() {
-    static thread_local int id{num_threads().fetch_add(1)};
-    return id;
-  }
 
   struct version {
     version* next = nullptr;
@@ -117,92 +74,30 @@ namespace ustm {
     return d;
   }
 
-  // A set of shared locks.   Addresses are hashed to one of the locks.
-  struct timedLocks {
-  public:
-    // If locked (high bit set) keeps tid of owner, otherwise keeps timestamp
-    struct Status {
-      uint64_t v;
-      int getTID() { return ~(1ul << 63) & v;}
-      TS getStamp() { return v;}
-      bool isLocked() { return (v >> 63) & 1ul;}
-      bool isPrior(TS timeStamp) {return v < timeStamp;}
-      static Status setLock(int tid) {return Status((1ul << 63) | tid);}
-      Status() noexcept = default;
-      Status(TS stamp) : v(stamp) {}
-    };
-    static constexpr uint64_t numLocks = 1ul << 18; // 256K locks
-    std::atomic<Status> writeLocks[numLocks];
-  public:
-    timedLocks() {
-      for (int i = 0; i < numLocks; i++)
-        writeLocks[i].store(Status(1));}
-
-    // Returns a lock id in [0 .. numLocks) based on hash of the address
-    uint64_t getLockNum(const void* addr) {
-      uint64_t hash = ((uint64_t)(addr) >> 5) * UINT64_C(0xbf58476d1ce4e5b9);
-      return hash & (numLocks - 1); }
-    
-    // Returns 0 if self locked, timestamp if succeeded, or {} if try
-    // lock failed (i.e., is either locked by another or timestamp on
-    // lock is after startStamp).
-    std::optional<TS> tryLock(const void* addr, int tid, TS startStamp) {
-      uint64_t lockNum = getLockNum(addr);
-      auto status = writeLocks[lockNum].load(MO_acquire);
-      if (status.isLocked())
-        if (status.getTID() == tid) return 0;
-        else return {};
-      if (status.isPrior(startStamp) &&
-          writeLocks[lockNum].compare_exchange_strong(status,
-                                                      Status::setLock(tid))) 
-        return status.getStamp();
-      return {};
-    }
-
-    // unlocks by setting status to timestamp
-    void unlock(const void* addr, TS timeStamp) {
-      writeLocks[getLockNum(addr)].store(Status(timeStamp), MO_release); };
-
-    bool isLocked(const void* addr) {
-      return writeLocks[getLockNum(addr)].load(MO_acquire).isLocked(); }
-      
-    // checks that either self locked or timestamp has not changed
-    bool validateRead(const void* addr, int tid, TS startStamp) {
-      auto status = writeLocks[getLockNum(addr)].load(MO_acquire);
-      return ((status.isLocked() && status.getTID() == tid) ||
-              status.isPrior(startStamp));
-    }
-
-    // Wrap the following two functions around a load to check if it
-    // was safe (i.e., no updates overlapped the load).
-    Status loadStart(uint64_t idx) {
-      return writeLocks[idx].load(MO_acquire);}
-    bool loadCheck(uint64_t idx, Status& status, TS startStamp) {
-      return (status.isPrior(startStamp) &&
-              writeLocks[idx].load(MO_acquire).getStamp()==status.getStamp());}
-    bool loadUnprotectedCheck(uint64_t idx, Status& status) {
-      return (!status.isLocked() &&
-              writeLocks[idx].load(MO_acquire).v == status.v);}
-  };
-
-
   class STM {
   private:
-    timedLocks locks;
+    // state consists of locks and descriptors
+    static constexpr uint64_t numLocks = 1ul << 18; // 256K locks
+    lock writeLocks[numLocks];
     Descriptor opDesc[MAX_THREADS];
+
+    // Returns a lock corresponding to a hash of the address
+    inline lock& getLock(const void* addr) {
+      uint64_t hash = ((uint64_t)(addr) >> 5) * UINT64_C(0xbf58476d1ce4e5b9);
+      return writeLocks[hash & (numLocks - 1)]; }
 
     inline void commitTransaction(Descriptor* myd) {
       if (myd->writeLog.size() > 0) {
         // Take locks (abort if any fail)
         for (auto& e : myd->writeLog) {
-          auto r = locks.tryLock(std::get<0>(e), myd->tid, myd->startStamp);
+          auto r = getLock(std::get<0>(e)).tryLock(myd->tid, myd->startStamp);
           if (!r.has_value()) abortTransaction(myd);
           std::get<1>(e) = *r; // stash timestamp to restore if aborted
         }
         TS endStamp = getStamp();
         // Validate the reads (abort if any fail)
         for (auto& e : myd->readLog) 
-          if (!locks.validateRead(e, myd->tid, myd->startStamp))
+          if (!getLock(e).validateRead(myd->tid, myd->startStamp))
             abortTransaction(myd);
         // If here (i.e. locks and validates succeeded), transaction
         // succeeded.  Apply the writes and then unlock them.
@@ -221,7 +116,7 @@ namespace ustm {
         std::atomic_thread_fence(std::memory_order_release);
         for (auto& e : myd->writeLog) 
           if (std::get<1>(e) != 0)
-            locks.unlock(std::get<0>(e), endStamp);
+            getLock(std::get<0>(e)).unlock(endStamp);
       }
       // Since successful, apply the deletes.
       for (auto& e : myd->deleteLog)
@@ -235,7 +130,7 @@ namespace ustm {
       // Release locks and apply deletes to allocated objects.
       for (auto& e : myd->writeLog) 
         if (std::get<1>(e) != 0) 
-          locks.unlock(std::get<0>(e), std::get<1>(e)); // restore stamp
+          getLock(std::get<0>(e)).unlock(std::get<1>(e)); // restore stamp
       for (auto& e : myd->allocLog)
         uepoch::delay(std::move(e));
       myd->numAborts++;
@@ -270,22 +165,22 @@ namespace ustm {
       auto x = myd->writeTable.find(&val);
       if (x.has_value())  // found write of location in write buffer
         return std::get<2>(myd->writeLog[*x]);
-      uint64_t idx = locks.getLockNum(&val);
-      auto status = locks.loadStart(idx);
+      lock& lck = getLock(&val);
+      auto status = lck.loadStart();
       version* v = val.load();
       version* r = ((v != nullptr) && v->isLink) ? ((link*) v)->value : v;
       if (validate) {
-        if (!locks.loadCheck(idx, status, myd->startStamp))
+        if (!lck.loadCheck(status, myd->startStamp))
           abortTransaction(myd);
         myd->readLog.push_back(&val); // to validate later
-      } else if  (!locks.loadUnprotectedCheck(idx, status))
+      } else if (!lck.loadUnprotectedCheck(status))
         abortTransaction(myd);
       return r;
     }
 
     inline version* load_snapshot(const std::atomic<version*>& val,
                                   Descriptor* myd) {
-      while (locks.isLocked(&val))
+      while (getLock(&val).isLocked())
         for (volatile int i = 0; i < 100; i++);
       version* nxt = val.load();
       while (nxt != nullptr && nxt->stamp > myd->startStamp)
