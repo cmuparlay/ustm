@@ -104,22 +104,22 @@ struct ordered_map {
 
     // create with a single child (just the pointer to the root)
     node(leaf* l) : header{false, OK, 1} {
-      children[0].init((node*) l);
+      children[0].store((node*) l);
     }
 
     // create with two children separated by a key (a new root node)
     node(std::tuple<node*,K,node*> nec) : header{false, OK, 2} {
       auto [left,k,right] = nec;
       keys[0] = k;
-      children[0].init(left);
-      children[1].init(right);
+      children[0].store(left);
+      children[1].store(right);
     }
 
     // copy into a new node
     template <typename Key, typename Child>
     node(int size, Key get_key, Child get_child) 
       : header{false, check_size(size), size} {
-      for (int i = 0; i < size; i++) children[i].init(get_child(i));
+      for (int i = 0; i < size; i++) children[i].store(get_child(i));
       for (int i = 0; i < size-1; i++) keys[i] = get_key(i);
     }
   };

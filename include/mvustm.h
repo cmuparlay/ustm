@@ -38,42 +38,6 @@ namespace ustm {
       : version{next, stamp, true}, value(value) {}
   };
 
-  // Transaction descriptor, includes the logs, stats, and other state
-  struct Descriptor {
-    static constexpr int LogSize = 1ul << 12; // size of the logs
-    std::jmp_buf env;
-    bool readOnly {false};
-    uint64_t tid;
-    uint64_t numAborts {0};
-    uint64_t numCommits {0};
-    uint64_t numRetries {0};    
-    TS startStamp;
-
-    // The following four entries are the logs.
-    // Write log keeps address, a time stamp used during validation,
-    // and a function that writes the value to a given location.
-    std::vector<std::tuple<std::atomic<version*>*,TS,version*>> writeLog;
-    // Read log keeps pointer to locations.  Used to later validate reads.
-    std::vector<const void*> readLog;
-    // Alloc and delete logs keep pointers to functions that do deletes
-    std::vector<std::function<void()>> allocLog;
-    std::vector<std::function<void()>> deleteLog;
-
-    // Hash table to find self writes
-    uhashMap<const void*, int> writeTable;
-    void reset() {
-      writeLog.clear(); readLog.clear();
-      deleteLog.clear(); allocLog.clear(); writeTable.reset();
-      readOnly = false;
-    }
-  };
-
-  // thread local copy of descriptor.  Should be null when no transaction.
-  extern inline Descriptor*& get_descriptor() {
-    static thread_local Descriptor* d = nullptr;
-    return d;
-  }
-
   class STM {
   private:
     // state consists of locks and descriptors
@@ -102,15 +66,17 @@ namespace ustm {
         // If here (i.e. locks and validates succeeded), transaction
         // succeeded.  Apply the writes and then unlock them.
         for (auto& e : myd->writeLog) {
-          version* oldv = std::get<0>(e)->load();
-          version* newv = std::get<2>(e);
+          version* newv;
+          std::get<2>(e)(&newv);
+          version* oldv = *((version**) std::get<0>(e));
+          //version* newv = std::get<2>(e);
           if (oldv != nullptr && oldv->isLink) Delete((link*) oldv);
           version* val = newv;
           if (newv != nullptr && newv->stamp == 0) {
             newv->stamp = endStamp;
             newv->next = oldv;
           } else val = (version*) New<link>(newv, oldv, endStamp);
-          std::get<0>(e)->store(val);
+          *((version**) std::get<0>(e)) = val;
          }
         // fence required since writes are not individually fenced
         std::atomic_thread_fence(std::memory_order_release);
@@ -154,21 +120,31 @@ namespace ustm {
       return std::pair(totalAborts,totalCommits);
     }
 
-    inline version* load(const std::atomic<version*>& val, bool validate=true) {
+    template <typename T>
+    T getval (T v) {
+      return ((v != nullptr) && v->isLink) ? ((link*) v)->value : v; };
+    
+    template <typename T>
+    inline T load(T& val, bool validate=true) {
+      //inline version* load(version*& val, bool validate=true) {
       Descriptor* myd = get_descriptor();
       if (myd == nullptr) {
-        version* v = val.load();
-        return ((v != nullptr) && v->isLink) ? ((link*) v)->value : v;
+        std::atomic_thread_fence(MO_acquire);
+        return getval(val);
       }
       if (myd->readOnly) return load_snapshot(val, myd);
       // check if wrote it myself and read from write log if so
       auto x = myd->writeTable.find(&val);
-      if (x.has_value())  // found write of location in write buffer
-        return std::get<2>(myd->writeLog[*x]);
+      if (x.has_value()) {  // found write of location in write buffer
+        version* r;
+        std::get<2>(myd->writeLog[*x])((void*) &r);
+        return r;
+        // return std::get<2>(myd->writeLog[*x]);
+      }
       lock& lck = getLock(&val);
       auto status = lck.loadStart();
-      version* v = val.load();
-      version* r = ((v != nullptr) && v->isLink) ? ((link*) v)->value : v;
+      version* r = getval(val);
+      std::atomic_thread_fence(std::memory_order_acquire);
       if (validate) {
         if (!lck.loadCheck(status, myd->startStamp))
           abortTransaction(myd);
@@ -178,28 +154,30 @@ namespace ustm {
       return r;
     }
 
-    inline version* load_snapshot(const std::atomic<version*>& val,
+    inline version* load_snapshot(version*& val,
                                   Descriptor* myd) {
       while (getLock(&val).isLocked())
         for (volatile int i = 0; i < 100; i++);
-      version* nxt = val.load();
+      std::atomic_thread_fence(MO_acquire);
+      version* nxt = val;
       while (nxt != nullptr && nxt->stamp > myd->startStamp)
         nxt = nxt->next;
       return ((nxt != nullptr) && nxt->isLink) ? ((link*) nxt)->value : nxt;
     }
 
-    inline void init(std::atomic<version*>& loc, version* v) {
-      loc.store(v);
-    }
-          
-    inline void store(std::atomic<version*>& loc, version* v) {
+    template <typename T>
+    inline void store(T& loc, T v) {
       Descriptor* myd = get_descriptor();
       if (myd != nullptr) {
         int i = myd->writeLog.size();
-        myd->writeLog.push_back(std::tuple(&loc, 0, v));
+        myd->writeLog.push_back(std::tuple(&loc, 0, [=] (void* p) {
+          *((T*) p) = v;}));
         myd->writeTable.insert(&loc, i);
-      } else {std::cout << "ouch" << std::endl; loc = v;}
+      } else loc = v;
     }
+
+    template <typename T>
+    inline void init(T& loc, T v) { loc = v; }
 
     // func can either return a value or not
     template<typename F>

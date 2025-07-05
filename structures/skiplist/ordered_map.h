@@ -1,6 +1,11 @@
-#include <verlib/verlib.h>
+#include <transactions.h>
 #include <parlay/primitives.h>
 #include <parlay/sequence.h>
+
+#include <functional>
+#include <iostream>
+#include <optional>
+#include <vector>
 
 template <typename K_,
           typename V_,
@@ -29,14 +34,17 @@ struct ordered_map {
   }
 
   template <int NumLevels>
-  struct alignas(32) Node : verlib::versioned {
+  struct alignas(32) Node : stm::versioned {
     K key;
     V value;
     int level;
-    verlib::atomic_bool removed;
-    verlib::versioned_ptr<Node<0>> next[NumLevels+1];
+    stm::atomic_bool removed;
+    stm::atomic<Node<0>*> next[NumLevels+1];
     Node(const K& k, const V& v, int level)
-      : key(k), value(v), level(level), removed(false) {}
+      : key(k), value(v), level(level), removed(false) {
+      for (int i=0; i < level+1; i++)
+        next[i] = nullptr;
+    }
     // for the root
     Node() : level(max_levels-1), removed(false) {
       for (int i=0; i < max_levels; i++)
@@ -51,19 +59,17 @@ struct ordered_map {
   static constexpr int small_cutoff = 4;
   using tallNode = Node<max_levels>;
   using shortNode = Node<small_cutoff>;
-  static verlib::memory_pool<tallNode> tall_node_pool;
-  static verlib::memory_pool<shortNode> short_node_pool;
   
   node* new_node(const K& k, const V& v, int level) {
-    if (level > small_cutoff) return (node*) tall_node_pool.New(k, v, level);
-    else return (node*) short_node_pool.New(k, v, level);
+    if (level > small_cutoff) return (node*) stm::New<tallNode>(k, v, level);
+    else return (node*) stm::New<shortNode>(k, v, level);
   }
   void retire_node(node* v) {
-    if (v->level > small_cutoff) tall_node_pool.Retire((tallNode*) v);
-    else short_node_pool.Retire((shortNode*) v);
+    if (v->level > small_cutoff) stm::Delete((tallNode*) v);
+    else stm::Delete((shortNode*) v);
   }
   
-  node* new_root() { return (node*) tall_node_pool.New(); }
+  node* new_root() { return (node*) stm::New<tallNode>(); }
 
   node* root;
 
@@ -72,12 +78,12 @@ struct ordered_map {
     node* prev = cur;
     node* nxt = nullptr;
     while (level >= find_level) {
-      nxt = prev->next[level].load_weak();
+      nxt = prev->next[level].load_unprotected();
       if (nxt == nullptr || !less(nxt->key, k)) level--;
       else prev = nxt;
     }
-    prev->removed.validate(false);
-    prev->next[find_level].validate(nxt);
+    prev->removed.validate();
+    prev->next[find_level].validate();
     return std::make_pair(prev, nxt);
   }
 
@@ -85,24 +91,6 @@ struct ordered_map {
     auto [cur, nxt] = find_at_level(x, k, level, 0);
     return (nxt != nullptr) && !less(k, nxt->key);
   }
-  
-  // bool insert_at(node* cur, node* new_node, int level, int ilevel) {
-  //   node* nxt = cur->next[level].load();
-  //   while (nxt != nullptr && less(nxt->key, new_node->key)) {
-  //     cur = nxt;
-  //     nxt = cur->next[level].load();
-  //   }
-  //   if ((level == 0) ?
-  //       ((nxt == nullptr) || less(new_node->key, nxt->key)) :
-  //       insert_at(cur, new_node, level - 1, ilevel)) {
-  //     if (level <= ilevel) {
-  //       new_node->next[level] = nxt;
-  //       cur->next[level] = new_node;
-  //     }
-  //     return true;
-  //   }
-  //   return false;
-  // }
 
   void insert_at(node* x, node* new_node, int level) {
     if (level > 0) {
@@ -118,18 +106,15 @@ struct ordered_map {
     x->next[level] = new_node;
   }
 
-  bool insert_(const K& k, const V& v) {
+  bool insert(const K& k, const V& v) {
     int ilevel = get_level(k);
     auto [cur, nxt] = find_at_level(root, k, max_levels - 1, ilevel);
     if (is_found(cur, ilevel, k)) return false;
     insert_at(cur, new_node(k, v, ilevel), ilevel);
     return true;
   }
-  
-  bool insert(const K& k, const V& v) {
-    return verlib::with_epoch([=] {return insert_(k, v);}); }
 
-  bool upsert_(const K& k, const V& v) {
+  bool upsert(const K& k, const V& v) {
     // int level = get_level(k);
     // auto [cur, nxt] = find_at_level(k, level);
     // if (!(nxt == nullptr) && !less(k, nxt->key)) { // found
@@ -145,16 +130,12 @@ struct ordered_map {
     return true;
   }
 
-  bool upsert(const K& k, const V& v) {
-    return verlib::with_epoch([=] {return upsert_(k, v);}); }
-
   template <typename F>
   bool upsert_f(const K& k, const F& f) {
     return upsert_(k,f(find_(k)));
   }
-
   
-  bool remove_(const K& k) {
+  bool remove(const K& k) {
     int level = get_level(k);
     auto [prev, to_delete] = find_at_level(root, k, max_levels - 1, level);
     if (!is_found(prev, level, k)) return false;
@@ -170,23 +151,14 @@ struct ordered_map {
     return true;
   }
 
-  bool remove(const K& k) {
-    return verlib::with_epoch([=] { return remove_(k);});}
-
-  std::optional<V> find_(const K& k) {
+  std::optional<V> find(const K& k) {
     auto [cur, nxt] = find_at_level(root, k, max_levels - 1, 0);
     if  (nxt != nullptr && !less(k, nxt->key)) return nxt->value;
     else return {};
   }
 
-  std::optional<V> find_locked(const K& k) { return find_(k);}
-
-  std::optional<V> find(const K& k) {
-    return verlib::with_epoch([&] {return find_(k);});
-  }
-
   template<typename AddF>
-  void range_(AddF& add, const K& start, const K& end) {
+  void range(AddF& add, const K& start, const K& end) {
     auto [cur, nxt] = find_at_level(root, start, max_levels - 1, 0);
     while (nxt != nullptr && !less(end, nxt->key)) {
       add(nxt->key, nxt->value);
@@ -214,14 +186,14 @@ struct ordered_map {
       p = p->next[10].load();
     }
     parlay::parallel_for(0, tops.size(), [&] (long i) {
-         node* p = tops[i];
+      node* p = tops[i];
       node* nxt = p->next[0].load();
       while (nxt != nullptr && nxt->level < 10) {
         node* tmp = nxt;
         nxt = nxt->next[0].load();
         retire_node(tmp);
-      } 
-      retire_node(p); });
+      } });
+    for (auto p : tops) retire_node(p);
   }
 
   long check() {
@@ -250,16 +222,4 @@ struct ordered_map {
       }
       return cnt+1;})) - 1;
   }
-
-  static void clear() { tall_node_pool.clear(); short_node_pool.clear();}
-  static void reserve(size_t n) { }
-  static void shuffle(size_t n) { }
-  static void stats() { tall_node_pool.stats(); short_node_pool.stats();}
-
 };
-
-template <typename K, typename V, typename C>
-verlib::memory_pool<typename ordered_map<K,V,C>::shortNode> ordered_map<K,V,C>::short_node_pool;
-
-template <typename K, typename V, typename C>
-verlib::memory_pool<typename ordered_map<K,V,C>::tallNode> ordered_map<K,V,C>::tall_node_pool;

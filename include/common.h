@@ -1,5 +1,5 @@
-#ifndef USTM_UTILS_H_
-#define USTM_UTILS_H_
+#ifndef USTM_COMMON_H_
+#define USTM_COMMON_H_
 
 #include <atomic>
 #include <cmath>
@@ -63,33 +63,33 @@ namespace ustm {
     uhashMap() {}
   };
 
-  // getStamp() returns the current timd stamp
-  // nextStamp() returns the current time stamp and ensures
-  //   it is incremented beyond that stamp before returning
+  // getStamp() returns the current time stamp
+  // nextStamp() returns incremented stamp
   using TS = uint64_t; // type for timestamps
 #define HW_STAMP
 #ifdef HW_STAMP // use hardware timestamp (works with intel x86)
-  TS getStamp() {
-    unsigned int lo,hi;
-    __asm__ __volatile__ ("rdtsc" : "=a" (lo), "=d" (hi));
-    return (TS) (((uint64_t)(hi & ~(1<<31)) << 32) | lo);
-  }
-  TS nextStamp() {
-    return getStamp(); }
+  struct timeStamp {
+    TS getStamp() {
+      unsigned int lo,hi;
+      __asm__ __volatile__ ("rdtsc" : "=a" (lo), "=d" (hi));
+      return (TS) (((uint64_t)(hi & ~(1<<31)) << 32) | lo);
+    }
+    TS nextStamp() { return getStamp(); }
+  };
 #else // use software timestamp 
-  extern inline std::atomic<TS>& timeStamp() {
-    static std::atomic<TS> ts;
-    return ts; }
-  TS getStamp() { return timeStamp().load(); }
-  TS nextStamp() {
-    TS ts1 = getStamp(); // delay and try again to avoid fetch-and-add
-    for(volatile int i = 1; i < 400; i++) {}
-    TS ts2 = getStamp();
-    if (ts1 == ts2) return timeStamp()++;
-    else return ts2-1;
-  }
+  struct timeStamp {
+    std::atomic<TS> ts = 1ul;
+    TS getStamp() { return ts.load(); }
+    TS nextStamp() {
+      TS ts1 = ts.load(); // delay and try again to avoid fetch-and-increment
+      for(volatile int i = 1; i < 400; i++) {}
+      TS ts2 = ts.load();
+      if (ts1 == ts2) return ++ts; // fetch and increment
+      else return ts2;
+    }
+  };
 #endif
-  
+
   // keep track of number of active threads
   extern inline std::atomic<int>& num_threads() {
     static std::atomic<int> num_threads;
@@ -147,6 +147,43 @@ namespace ustm {
     bool loadUnprotectedCheck(Status& s) {
       return (!isLocked(s) && v.load(MO_acquire) == s);}
   };
+
+  // Transaction descriptor, includes the logs, stats, and other state
+  struct Descriptor {
+    static constexpr int LogSize = 1ul << 12; // size of the logs
+    std::jmp_buf env;
+    bool readOnly {false};
+    int inConstructor {0};
+    uint64_t tid;
+    uint64_t numAborts {0};
+    uint64_t numCommits {0};
+    uint64_t numRetries {0};    
+    TS startStamp;
+
+    // The following four entries are the logs.
+    // Write log keeps address, a time stamp used during validation,
+    // and a function that writes the value to a given location.
+    std::vector<std::tuple<void*,std::function<void(void*)>,bool,TS>> writeLog;
+    // Read log keeps pointer to locations.  Used to later validate reads.
+    std::vector<const void*> readLog;
+    // Alloc and delete logs keep pointers to functions that do deletes
+    std::vector<std::function<void()>> allocLog;
+    std::vector<std::function<void()>> deleteLog;
+
+    // Hash table to find self writes
+    uhashMap<const void*, int> writeTable;
+    void reset() {
+      writeLog.clear(); readLog.clear();
+      deleteLog.clear(); allocLog.clear(); writeTable.reset();
+      readOnly = false; inConstructor = false;
+    }
+  };
+
+  // thread local copy of descriptor.  Should be null when no transaction.
+  extern inline Descriptor*& get_descriptor() {
+    static thread_local Descriptor* d = nullptr;
+    return d;
+  }
 }
 
-#endif // USTM_UTILS_H_
+#endif // USTM_COMMON_H_

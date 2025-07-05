@@ -294,7 +294,7 @@ double run_mixed_operations(parlay::sequence<K>& all,
     long total_queries = overall_stats.query_count;
     double total_found = overall_stats.query_total_value / default_value[0];
     double success_ratio = total_found / total_queries;
-    int range_ratio = overall_stats.range_sum / overall_stats.range_count;
+    int range_ratio = overall_stats.range_sum / (overall_stats.range_count + 1);
     if (verbose) {
       std::cout << "total updates =     " << total_updates 
                 << "\nsuccesful updates = " << (long) update_successes
@@ -307,7 +307,8 @@ double run_mixed_operations(parlay::sequence<K>& all,
     }
 
     if (range_query_percent > 0 &&
-        (range_ratio > range_size || range_ratio < .9 * range_size))
+        (range_ratio > 1.1 * range_size ||
+         (10 * range_size < n) && (range_ratio < .9 * range_size)))
       std::cout << "bad range sizes, average range size returned = "
                 << range_ratio << std::endl;
     if ((success_ratio < .4 || success_ratio > .6) && n > 10000)

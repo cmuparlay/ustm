@@ -1,5 +1,5 @@
 #include <type_traits>
-#include <mvustm.h>
+#include <ustm.h>
 
 namespace stm {
   extern inline ustm::STM& getStm() {
@@ -34,20 +34,19 @@ namespace stm {
   template <typename T>
   struct atomic_ptr {
   private:
-    std::atomic<ustm::version*> val;
+    ustm::version* val;
   public:
-    atomic_ptr(T v) { init(v); }
-    atomic_ptr() { init(nullptr); }
+    atomic_ptr(T v) : val(v) { }
+    atomic_ptr() { }
     void store(T v) { getStm().store(val, (ustm::version*) v); }
-    T load() const { return (T) getStm().load(val); }
+    T load() { return (T) getStm().load(val); }
 #ifdef UnprotectedLoad
-    T load_unprotected() const { return (T) getStm().load(val, false); }
-    void validate() const { load(); }
+    T load_unprotected()  { return (T) getStm().load(val, false); }
+    void validate() { load(); }
 #else
-    T load_unprotected() const { return load();}
-    void validate() const { }
+    T load_unprotected() { return (T) load();}
+    void validate()  { }
 #endif
-    void init(T v) { getStm().init(val, (ustm::version*) v);}
     T operator=(T b) { store(b); return b; }
   };
   
@@ -68,10 +67,29 @@ namespace stm {
     bool operator=(bool b) {store(b); return b; }
   };
 
+  template <typename T>
+  struct atomic_other {
+  private:
+    T val;
+  public:
+    atomic_other(T v) : val(v) {}
+    atomic_other()  {}
+    void store(T v) { getStm().store(val, v); }
+    T load() const { return getStm().load(val); }
+#ifdef UnprotectedLoad
+    T load_unprotected() const { return getStm().load(val, false); }
+    void validate() const { load(); }
+#else
+    T load_unprotected() const { return load();}
+    void validate() const { }
+#endif
+    T operator=(T b) { store(b); return b; }
+  };
+
   template<typename T>
-  using atomic = std::conditional_t<std::is_same_v<T, bool>,
-				    atomic_prim_bool,
-				    atomic_ptr<T>>;
+  using atomic = std::conditional_t<std::is_pointer_v<T>,
+				    atomic_ptr<T>,
+				    atomic_other<T>>;
 
   using versioned = ustm::version;
 }

@@ -50,7 +50,6 @@ namespace stm {
     T load_unprotected() const { return load();}
     void validate() const { }
 #endif
-    void init(T x) { getStm().init(val, x); }
     T operator=(T b) { store(b); return b; }
   };
 

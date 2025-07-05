@@ -127,18 +127,18 @@ struct ordered_map {
     full_node(indirect_node* i_n, node* c, const K& k)
       : node(i_n->key, Full, 0, i_n->byte_num) {
       for (int i = 0; i < 256; i++)
-        children[i].init(nullptr);
+        children[i].store(nullptr);
       for (int i=0; i < 256; i++) {
         int j = i_n->idx[i];
-        children[i].init((j != -1) ? i_n->ptr[j].load() : nullptr);
+        children[i].store((j != -1) ? i_n->ptr[j].load() : nullptr);
       }
       auto b = String::get_byte(k, i_n->byte_num);
-      children[b].init(c); 
+      children[b].store(c); 
     }
 
     full_node() : node(Full, 0) {
       for (int i = 0; i < 256; i++)
-        children[i].init(nullptr);
+        children[i].store(nullptr);
     }
   };
 
@@ -159,13 +159,13 @@ struct ordered_map {
     void init_child(const K& k, node* c) {
       int i = node::size -1;
       idx[String::get_byte(k, header::byte_num)] = i;
-      ptr[i].init(c);
+      ptr[i].store(c);
     }
 
     // an empty indirect node
     indirect_node() : node(Indirect, 0) {
       for (int i = 0; i < max_indirect_size; i++)
-        ptr[i].init(nullptr);
+        ptr[i].store(nullptr);
     };
 
     // copy from another indirect node adding child c with key k
@@ -174,9 +174,9 @@ struct ordered_map {
       for (int i=0; i < 256; i++)
         idx[i] = i_n->idx[i];
       for (int i = 0; i < max_indirect_size; i++)
-        ptr[i].init(nullptr);
+        ptr[i].store(nullptr);
       for (int i=0; i < i_n->size; i++) 
-        ptr[i].init(i_n->ptr[i].load());
+        ptr[i].store(i_n->ptr[i].load());
       init_child(k, c);
     }
 
@@ -185,10 +185,10 @@ struct ordered_map {
       : node(s_n->key, Indirect, max_sparse_size + 1, s_n->byte_num) {
       for (int i=0; i < 256; i++) idx[i] = -1;
       for (int i = 0; i < max_indirect_size; i++)
-        ptr[i].init(nullptr);
+        ptr[i].store(nullptr);
       for (int i=0; i < max_sparse_size; i++) {
         idx[s_n->keys[i]] = i; 
-        ptr[i].init(s_n->ptr[i].load());
+        ptr[i].store(s_n->ptr[i].load());
       }
       init_child(k, c);
     }
@@ -215,16 +215,16 @@ struct ordered_map {
     void init_child(const K& k, node* c) {
       int kb = String::get_byte(k, header::byte_num);
       keys[node::size-1] = kb;
-      ptr[node::size-1].init(c);
+      ptr[node::size-1].store(c);
     }
 
     // constructor for a new sparse node with two children
     sparse_node(int byte_num, node* v1, const K& k1, node* v2, const K& k2)
       : node(k1, Sparse, 2, byte_num) {
       keys[0] = String::get_byte(k1, byte_num);
-      ptr[0].init(v1);
+      ptr[0].store(v1);
       keys[1] = String::get_byte(k2, byte_num);
-      ptr[1].init(v2);
+      ptr[1].store(v2);
     }
 
     // constructor for a sparse node with multiple children 
@@ -232,7 +232,7 @@ struct ordered_map {
       node((*start)->key, Sparse, end - start, byte_num) {
       for (int i=0; i < (end-start); i++) {
         keys[i] = String::get_byte((*(start+i))->key, byte_num);
-        ptr[i].init(*(start + i));
+        ptr[i].store(*(start + i));
       }
     }
 
@@ -241,7 +241,7 @@ struct ordered_map {
       : node(s_n->key, Sparse, s_n->size + 1, s_n->byte_num) {
       for (int i=0; i < s_n->size; i++) {
         keys[i] = s_n->keys[i];
-        ptr[i].init(s_n->ptr[i].load());
+        ptr[i].store(s_n->ptr[i].load());
       }
       init_child(k, c);
     }
@@ -423,16 +423,12 @@ struct ordered_map {
     else return (node*) stm::New<small_leaf>(byte_pos, start, end);
   }
   
-  bool insert_(const K& k, const V& v) { return try_insert(k, v); }
-  bool insert(const K& k, const V& v) { return try_insert(k, v); }
-  
-  bool upsert_(const K& k, const V& v) { return try_insert(k, v, true);}
-  bool upsert(const K& k, const V& v) { return try_insert(k, v, true);}
+  bool upsert(const K& k, const V& v) { return insert(k, v, true);}
 
   template <typename F>
-  bool upsert_f(const K& k, const F& f) { return upsert_(k,f(find_(k))); }
+  bool upsert_f(const K& k, const F& f) { return upsert(k,f(find_(k))); }
 
-  bool try_insert(const K& k, const V& v, bool upsert = false) {
+  bool insert(const K& k, const V& v, bool upsert = false) {
     auto [gp, p, cptr, c, byte_pos] = find_location(root, k);
     //if (cptr != nullptr) cptr->validate();
     //p->removed.validate();
@@ -514,13 +510,10 @@ struct ordered_map {
     return result;
   }
 
-  bool remove_(const K& k) { return try_remove(k); }
-  bool remove(const K& k) {  return try_remove(k); }
-
   // currently a "lazy" remove that only removes
   //   1) the leaf
   //   2) its parent if it is sparse with just two children
-  bool try_remove(const K& k) {
+  bool remove(const K& k) {
     auto [gp, p, cptr, c, byte_pos] = find_location(root, k);
     //cptr->validate();
     //p->removed.validate();
