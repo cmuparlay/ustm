@@ -21,8 +21,8 @@ namespace stm {
   template <typename F>
   auto atomic_read_only_singleton(F &&func) {
     if constexpr (std::is_void_v<std::invoke_result_t<F>>) {
-      uepoch::with_epoch(func);
-    } else { return uepoch::with_epoch(func); }
+      uepoch::protect(func);
+    } else { return uepoch::protect(func); }
   }
       
   template <typename T>

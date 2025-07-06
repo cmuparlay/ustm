@@ -3,7 +3,7 @@
 // epoch based delayed reclamation 
 // the interface consists of three functions
 //   template <typename F>
-//   uepoch::with_epoch(const F& f) : takes a lambda or function f
+//   uepoch::protect(const F& f) : takes a lambda or function f
 //      with no arguments and with or without a result, and runs it in
 //      protected mode
 //   uepoch::delay(std::function<void(void)> f) : takes a function f and
@@ -29,6 +29,7 @@
 #define UEPOCH
 
 namespace uepoch {
+  
   namespace internal {
     constexpr int max_threads = 1024;
 
@@ -42,6 +43,9 @@ namespace uepoch {
 
     // the main structure
     struct alignas(64) epoch_state {
+      // functions to run when epoch is incremented
+      std::vector<std::function<void()>> before_epoch_hooks;
+      std::vector<std::function<void()>> after_epoch_hooks;
 
       // announcements for each thread
       struct alignas(64) announce {
@@ -68,15 +72,16 @@ namespace uepoch {
       ~epoch_state() {clear();}
 
       // adds current epoch to the announcement slot of this thread
-      std::pair<bool,int> announce() {
+      bool announce() {
         size_t id = thread_id();
         if (announcements[id].last.load() == -1l) {
           announcements[id].last = current_epoch.load();
-          return std::pair(true, id);
-        } else return std::pair(false, id);
+          return true;
+        } else return false;
       }
 
-      void unannounce(size_t id) {
+      void unannounce() {
+        size_t id = thread_id();
         announcements[id].last.store(-1l, std::memory_order_relaxed); }
 
       // run every once in a while to check if epoch can be incremented
@@ -93,7 +98,10 @@ namespace uepoch {
                 announcements[i].last < current_e) return;
           if (num_threads() == threads) break;
         }
-        current_epoch.compare_exchange_strong(current_e, current_e+1);
+        for (const auto h : before_epoch_hooks) h();
+        if (current_epoch.compare_exchange_strong(current_e, current_e+1)) {
+          for (const auto h : after_epoch_hooks) h();
+        }
       }
 
       void advance_epoch(int i) {
@@ -135,31 +143,37 @@ namespace uepoch {
       }
     }; // end struct epoch_state
   
-    extern inline epoch_state& get_epoch() {
-      static epoch_state epoch;
-      return epoch;
-    }
   } // end namespace internal
 
+  extern inline internal::epoch_state& get_epoch() {
+    static internal::epoch_state epoch;
+    return epoch;
+  }
+
   template <typename Thunk>
-  auto with_epoch(const Thunk& f) {
-    auto& epoch = internal::get_epoch();
-    auto [not_in_epoch, id] = epoch.announce();
+  auto protect(const Thunk& f) {
+    auto& epoch = get_epoch();
+    auto not_in_epoch = epoch.announce();
     if constexpr (std::is_void_v<std::invoke_result_t<Thunk>>) {
       f();
-      if (not_in_epoch) epoch.unannounce(id);
+      if (not_in_epoch) epoch.unannounce();
     } else {
       auto v = f();
-      if (not_in_epoch) epoch.unannounce(id);
+      if (not_in_epoch) epoch.unannounce();
       return v;
     }
   }
 
   void delay(std::function<void(void)> f) {
-    internal::get_epoch().delay(std::move(f));
+    get_epoch().delay(std::move(f));
   }
 
-  void clear() {internal::get_epoch().clear();}
-} // end namespace epoch
+  void clear() {get_epoch().clear();}
 
-#endif //PARLAY_EPOCH_H_
+  void add_before_epoch_hook(std::function<void()> f) {
+    get_epoch().before_epoch_hooks.push_back(f);}
+  void add_after_epoch_hook(std::function<void()> f) {
+    get_epoch().after_epoch_hooks.push_back(f);}
+} // end namespace uepoch
+
+#endif // UEPOCH_H_

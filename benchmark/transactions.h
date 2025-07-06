@@ -12,17 +12,14 @@
 //     - T load_unprotected()  // can be same as load
 //     - void validate()  // should be noop if no unprotected loads
 //     - void store(T)
-//     - void init(T)   // used before others have pointer to this
 //     - T operator=(T)
 
-#ifdef MVUSTM
-#include "glue/mvustm_glue.h"
+#ifdef USTM
+#include "glue/ustm_glue.h"
 #else
-namespace stm { struct versioned {}; }
 #ifdef TWOPLSF
 #include "glue/2plsf_glue.h"
-#else
-#include "glue/ustm_glue.h"
+namespace stm { struct versioned {}; }
 #endif
 #endif
 

@@ -39,12 +39,12 @@ namespace ustm {
 
   class STM {
   private:
-    // state consists of locks and descriptors
+    // state consists of locks, descriptors, and timestamp
     static constexpr uint64_t numLocks = 1ul << 18; // 256K locks
     lock writeLocks[numLocks];
     Descriptor opDesc[MAX_THREADS];
     timeStamp ts;
-
+    
     // Returns a lock corresponding to a hash of the address
     inline lock& getLock(const void* addr) {
       uint64_t hash = ((uint64_t)(addr) >> 5) * UINT64_C(0xbf58476d1ce4e5b9);
@@ -55,13 +55,13 @@ namespace ustm {
       version* newv;
       write_f(&newv);
       version* oldv = *loc;
-      if (oldv != nullptr && oldv->isLink) Delete((link*) oldv);
-      version* val = newv;
       if (newv != nullptr && newv->stamp == 0) {
         newv->stamp = endStamp;
         newv->next = oldv;
-      } else val = (version*) New<link>(newv, oldv, endStamp);
-      *loc = val;
+      } else newv = (version*) New<link>(newv, oldv, endStamp);
+      if (oldv != nullptr && oldv->isLink)
+        Delete((link*) oldv); 
+      else *loc = newv;
     }
 
     inline void commitTransaction(Descriptor* myd) {
@@ -109,6 +109,7 @@ namespace ustm {
       if (++myd->numRetries % 4000000 == 0) { 
         std::cout << "ustm: too many retries" << std::endl; abort();}
       myd->reset();
+      uepoch::get_epoch().unannounce();
       std::longjmp(myd->env, 1);
     }
 
@@ -127,12 +128,14 @@ namespace ustm {
     }
 
     template <typename T>
-    inline T load(T& v, bool validate=true, bool mv=false) {
+    inline T load(T& v, bool validate=true) {
       using T_ = std::remove_const_t<T>;
+      Descriptor* myd = get_descriptor();
       auto getval = [&] () -> T {
         if constexpr (!std::is_same_v<T_,version*>) return v;
-        else return ((v != nullptr) && v->isLink) ? ((link*) v)->value : v; };
-      Descriptor* myd = get_descriptor();
+        else {
+          version* x = v;
+          return ((x != nullptr) && x->isLink) ? ((link*) x)->value : x; }};
       if (myd == nullptr) {
         std::atomic_thread_fence(MO_acquire);
         return getval();
@@ -175,7 +178,7 @@ namespace ustm {
         for (volatile int i = 0; i < 100; i++);
       std::atomic_thread_fence(MO_acquire);
       version* nxt = val;
-      while (nxt != nullptr && nxt->stamp > myd->startStamp)
+      while (nxt != nullptr && nxt->stamp >= myd->startStamp)
         nxt = nxt->next;
       return ((nxt != nullptr) && nxt->isLink) ? ((link*) nxt)->value : nxt;
     }
@@ -192,47 +195,29 @@ namespace ustm {
       } else loc = v;
     }
 
-    // func can either return a value or not
     template<typename F>
-    auto transaction(F&& func) {
+    auto transaction(F&& func, bool readOnly = false) {
       Descriptor*& d = get_descriptor();
       if (d != nullptr) return func(); // if nested then just run
       const int tid = thread_id();
       Descriptor* myd = &opDesc[tid];
       d = myd; // set the thread local (note d is a ref type)
       myd->numRetries = 0;
-      if constexpr (!std::is_void_v<std::invoke_result_t<F>>) { 
-        return uepoch::with_epoch([&] { // func has result
-          setjmp(myd->env); // return to here if aborted
-          myd->startStamp = (myd->numRetries > 0) ? ts.nextStamp() : ts.getStamp();
-          auto retval = func();
-          commitTransaction(myd);
-          return retval;});
-      } else { // func does not have result
-        uepoch::with_epoch([&] { 
-          setjmp(myd->env); // return to here if aborted
-          myd->startStamp = (myd->numRetries > 0) ? ts.nextStamp() : ts.getStamp();
-          func();
-          commitTransaction(myd);
-          return;});
-      }
-    }
+      if (readOnly) myd->readOnly = true;
+      else setjmp(myd->env); // return to here if aborted
+      // Using lazy timestamps from verlib.  Only increments
+      // on second try avoiding too many increments.
+      if (readOnly || myd->numRetries > 0)
+        myd->startStamp = ts.nextStamp();
+      else myd->startStamp = ts.getStamp();
+      auto retval = uepoch::protect([&] {return func();});
+      commitTransaction(myd);
+      return retval;
+    } 
 
     // func must return a value
     template<typename F>
-    auto transactionReadOnly(F&& func) {
-      Descriptor*& d = get_descriptor();
-      const int tid = thread_id();
-      Descriptor* myd = &opDesc[tid];
-      d = myd; // set the thread local (note d is a ref type)
-      myd->readOnly = true;
-      return uepoch::with_epoch([&] { // func has result
-          myd->startStamp = ts.nextStamp()-1;
-          auto retval = func();
-          myd->reset();
-          d = nullptr;
-          return retval;});
-    }
+    auto transactionReadOnly(F&& func) { return transaction(func, true);}
 
     // adds to log so can delete if aborted
     template <typename T, typename... Args>
@@ -256,6 +241,39 @@ namespace ustm {
       else myd->deleteLog.push_back([=] {delete obj;});
     }
   };
+
+  extern inline ustm::STM& getStm() {
+    static STM stm;
+    return stm;
+  }
+
+  template <typename F>
+  auto atomic_region(F &&func) {return getStm().transaction(func); }
+  template <typename F>
+  auto atomic_read_only(F &&func) { return getStm().transaction(func, true); }
+  template <typename T>
+  void Delete(T *ptr) { getStm().Delete(ptr); }
+  template <typename T, typename... Args>
+  T *New(Args... args) { return getStm().New<T>(args...); }
+  template <typename T>
+  T load(T& a) { return getStm().load(a, true); }
+  template <typename T>
+  T load_unprotected(T& a) { return getStm().load(a, false); }
+  template <typename T>
+  void store(T& a, T b) { getStm().store(a, b); }
+  
+  template <typename T>
+  struct version_ptr {
+  private: version* val;
+  public:
+    version_ptr(T* v) : val(v) { }
+    version_ptr() { }
+    void store(T* v) { getStm().store(val, (version*) v); }
+    T* load() { return (T*) getStm().load(val, true); }
+    T* load_unprotected()  { return (T*) getStm().load(val, false); }
+    T* operator=(T* b) { store(b); return b; }
+  };
+
 } // End namespace ustm
 
 #endif // USTM_H_

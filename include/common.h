@@ -159,6 +159,7 @@ namespace ustm {
     uint64_t numCommits {0};
     uint64_t numRetries {0};    
     TS startStamp;
+    TS epochStamp;
 
     // The following four entries are the logs.
     // Write log keeps address, a time stamp used during validation,

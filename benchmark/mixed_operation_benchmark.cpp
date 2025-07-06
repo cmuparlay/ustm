@@ -142,7 +142,8 @@ double run_mixed_operations(parlay::sequence<K>& all,
         if (!x) {
           std::cout << "Error: key found when inserting unique keys" << std::endl;
           std::abort();
-        }});}, 1000, true);
+        }
+        return true; });}, 1000, true);
 
     size_t initial_size = check();
 
@@ -328,9 +329,10 @@ double run_mixed_operations(parlay::sequence<K>& all,
     // finally remove all the keys and delete the map
     parlay::parallel_for(0, unique.size(), [&] (size_t i) {
       stm::atomic_region([&] {
-          tr.remove(unique[i]);});
+          tr.remove(unique[i]);
+          return true; });
       }, 100);
-    stm::atomic_region([=] { delete map_ptr; });
+    stm::atomic_region([=] { delete map_ptr; return true;});
 
 #ifdef UEPOCH_H_
     uepoch::clear();
