@@ -129,21 +129,11 @@ namespace ustm {
 
     template <typename T>
     inline T load(T& v, bool validate=true) {
-      using T_ = std::remove_const_t<T>;
       Descriptor* myd = get_descriptor();
-      auto getval = [&] () -> T {
-        if constexpr (!std::is_same_v<T_,version*>) return v;
-        else {
-          version* x = v;
-          return ((x != nullptr) && x->isLink) ? ((link*) x)->value : x; }};
       if (myd == nullptr) {
         std::atomic_thread_fence(MO_acquire);
-        return getval();
+        return v;
       }
-
-      // if versioned and read only, then load snapshot
-      if constexpr (std::is_same_v<T_,version*>)
-        if (myd->readOnly) return load_snapshot(v, myd);
       
       // check if wrote it myself and read from write log if so
       auto x = myd->writeTable.find(&v);
@@ -160,9 +150,7 @@ namespace ustm {
       lock& lck = getLock(&v);
       auto status = lck.loadStart();
       char tmp[sizeof(T)];
-      if constexpr (!std::is_same_v<T,version*>)
-        std::memcpy(tmp, &v, sizeof(T));
-      else *((T_*) tmp) = getval();
+      std::memcpy(tmp, &v, sizeof(T));
       std::atomic_thread_fence(std::memory_order_acquire);
       if (validate) {
         if (!lck.loadCheck(status, myd->startStamp))
@@ -171,6 +159,34 @@ namespace ustm {
       } else if (!lck.loadUnprotectedCheck(status))
         abortTransaction(myd);
       return *((T*) tmp);
+    }
+
+    inline version* load(version*& v, bool validate=true) {
+      Descriptor* myd = get_descriptor();
+      if (myd == nullptr) {
+        std::atomic_thread_fence(MO_acquire);
+        return ((v != nullptr) && v->isLink) ? ((link*) v)->value : v; 
+      }
+      if (myd->readOnly) return load_snapshot(v, myd);
+      
+      auto x = myd->writeTable.find(&v);
+      if (x.has_value()) { // found write of location in write buffer
+        version* r;
+        std::get<1>(myd->writeLog[*x])((void*) &r);
+        return r;
+      }
+
+      lock& lck = getLock(&v);
+      auto status = lck.loadStart();
+      version* r = ((v != nullptr) && v->isLink) ? ((link*) v)->value : v; 
+      std::atomic_thread_fence(std::memory_order_acquire);
+      if (validate) {
+        if (!lck.loadCheck(status, myd->startStamp))
+          abortTransaction(myd);
+        myd->readLog.push_back(&v); // to validate later
+      } else if (!lck.loadUnprotectedCheck(status))
+        abortTransaction(myd);
+      return r;
     }
 
     inline version* load_snapshot(version*& val, Descriptor* myd) {
