@@ -92,7 +92,6 @@ namespace ustm {
       // Since successful, apply the deletes.
       for (auto& e : myd->deleteLog)
         uepoch::delay(std::move(e));
-      myd->numCommits++;
       myd->reset();
       get_descriptor() = nullptr;
     }
@@ -104,7 +103,6 @@ namespace ustm {
           getLock(std::get<0>(e)).unlock(std::get<3>(e)); // restore stamp
       for (auto& e : myd->allocLog)
         uepoch::delay(std::move(e));
-      myd->numAborts++;
       if (++myd->numRetries % 4000000 == 0) { 
         std::cout << "ustm: too many retries" << std::endl; abort();}
       myd->reset();
@@ -115,16 +113,6 @@ namespace ustm {
   public:
     STM_() { for (int i=0; i < MAX_THREADS; i++) opDesc[i].tid = i; }
     ~STM_() {} 
-
-    std::pair<long,long> statistics() {
-      uint64_t totalAborts = 0;
-      uint64_t totalCommits = 0;
-      for (int i=0; i < num_threads().load(); i++) {
-        totalAborts += opDesc[i].numAborts;
-        totalCommits += opDesc[i].numCommits;
-      }
-      return std::pair(totalAborts,totalCommits);
-    }
 
     template <typename T>
     inline void loadVal(char* dest, T& v) {
@@ -157,7 +145,6 @@ namespace ustm {
       lock& lck = getLock(&v);
       auto status = lck.loadStart();
       loadVal(tmp, v);
-      //version* r = ((v != nullptr) && v->isLink) ? ((link*) v)->value : v; 
       std::atomic_thread_fence(std::memory_order_acquire);
       if (validate) {
         if (!lck.loadCheck(status, myd->startStamp))

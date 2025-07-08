@@ -50,7 +50,7 @@ namespace ustm {
         mask = new_entries.size() - 1;
         swap(entries, new_entries);
         for (auto kv : new_entries)
-          if (kv.first != empty) insert_(kv.first,kv.second);
+          if (kv.first != empty) insert_fits(kv.first,kv.second);
       }
       insert_fits(k,v);
     }
