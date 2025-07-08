@@ -37,7 +37,7 @@ namespace ustm {
       : version{next, stamp, true}, value(value) {}
   };
 
-  class STM {
+  class STM_ {
   private:
     // state consists of locks, descriptors, and timestamp
     static constexpr uint64_t numLocks = 1ul << 18; // 256K locks
@@ -59,9 +59,8 @@ namespace ustm {
         newv->stamp = endStamp;
         newv->next = oldv;
       } else newv = (version*) New<link>(newv, oldv, endStamp);
-      if (oldv != nullptr && oldv->isLink)
-        Delete((link*) oldv); 
-      else *loc = newv;
+      if (oldv != nullptr && oldv->isLink) Delete((link*) oldv);
+      *loc = newv;
     }
 
     inline void commitTransaction(Descriptor* myd) {
@@ -114,8 +113,8 @@ namespace ustm {
     }
 
   public:
-    STM() { for (int i=0; i < MAX_THREADS; i++) opDesc[i].tid = i; }
-    ~STM() {} 
+    STM_() { for (int i=0; i < MAX_THREADS; i++) opDesc[i].tid = i; }
+    ~STM_() {} 
 
     std::pair<long,long> statistics() {
       uint64_t totalAborts = 0;
@@ -128,29 +127,37 @@ namespace ustm {
     }
 
     template <typename T>
+    inline void loadVal(char* dest, T& v) {
+      std::memcpy(dest, &v, sizeof(T));}
+
+    inline void loadVal(char* dest, version*& v) {
+      version* x = v;
+      *((version**) dest) = 
+        ((x != nullptr) && x->isLink) ? ((link*) x)->value : x; }
+
+    template <typename T>
     inline T load(T& v, bool validate=true) {
+      char tmp[sizeof(T)];
       Descriptor* myd = get_descriptor();
       if (myd == nullptr) {
         std::atomic_thread_fence(MO_acquire);
-        return v;
+        loadVal(tmp, v);
+        return *((T*) tmp); 
       }
-      
-      // check if wrote it myself and read from write log if so
+      if constexpr (std::is_same_v<T,version*>)
+        if (myd->readOnly) return load_snapshot(v, myd);
+
       auto x = myd->writeTable.find(&v);
       if (x.has_value()) { // found write of location in write buffer
         typename std::remove_const<T>::type r;
-        // apply write into r
         std::get<1>(myd->writeLog[*x])((void*) &r);
         return r;
       }
 
-      // Reads timestamp (status) before copying data to a local
-      // buffer (tmp) and then again after.  Only succeeds if equal
-      // and less than start stamp.
       lock& lck = getLock(&v);
       auto status = lck.loadStart();
-      char tmp[sizeof(T)];
-      std::memcpy(tmp, &v, sizeof(T));
+      loadVal(tmp, v);
+      //version* r = ((v != nullptr) && v->isLink) ? ((link*) v)->value : v; 
       std::atomic_thread_fence(std::memory_order_acquire);
       if (validate) {
         if (!lck.loadCheck(status, myd->startStamp))
@@ -159,34 +166,6 @@ namespace ustm {
       } else if (!lck.loadUnprotectedCheck(status))
         abortTransaction(myd);
       return *((T*) tmp);
-    }
-
-    inline version* load(version*& v, bool validate=true) {
-      Descriptor* myd = get_descriptor();
-      if (myd == nullptr) {
-        std::atomic_thread_fence(MO_acquire);
-        return ((v != nullptr) && v->isLink) ? ((link*) v)->value : v; 
-      }
-      if (myd->readOnly) return load_snapshot(v, myd);
-      
-      auto x = myd->writeTable.find(&v);
-      if (x.has_value()) { // found write of location in write buffer
-        version* r;
-        std::get<1>(myd->writeLog[*x])((void*) &r);
-        return r;
-      }
-
-      lock& lck = getLock(&v);
-      auto status = lck.loadStart();
-      version* r = ((v != nullptr) && v->isLink) ? ((link*) v)->value : v; 
-      std::atomic_thread_fence(std::memory_order_acquire);
-      if (validate) {
-        if (!lck.loadCheck(status, myd->startStamp))
-          abortTransaction(myd);
-        myd->readLog.push_back(&v); // to validate later
-      } else if (!lck.loadUnprotectedCheck(status))
-        abortTransaction(myd);
-      return r;
     }
 
     inline version* load_snapshot(version*& val, Descriptor* myd) {
@@ -258,7 +237,9 @@ namespace ustm {
     }
   };
 
-  extern inline ustm::STM& getStm() {
+  struct STM : STM_ {};
+
+  extern inline STM& getStm() {
     static STM stm;
     return stm;
   }

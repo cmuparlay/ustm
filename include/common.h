@@ -35,7 +35,7 @@ namespace ustm {
       else return {};
     }
 
-    void insert_(const K k, const V v) {
+    void insert_fits(const K k, const V v) {
       int loc = hash(k) & mask;
       while (entries[loc].first != empty && entries[loc].first != k)
         loc = (loc + 1) & mask;
@@ -52,7 +52,7 @@ namespace ustm {
         for (auto kv : new_entries)
           if (kv.first != empty) insert_(kv.first,kv.second);
       }
-      insert_(k,v);
+      insert_fits(k,v);
     }
   
     void reset() {
@@ -155,8 +155,6 @@ namespace ustm {
     bool readOnly {false};
     int inConstructor {0};
     uint64_t tid;
-    uint64_t numAborts {0};
-    uint64_t numCommits {0};
     uint64_t numRetries {0};    
     TS startStamp;
     TS epochStamp;
