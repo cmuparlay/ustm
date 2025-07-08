@@ -37,7 +37,7 @@ namespace ustm {
       : version{next, stamp, true}, value(value) {}
   };
 
-  class STM_ {
+  class STM {
   private:
     // state consists of locks, descriptors, and timestamp
     static constexpr uint64_t numLocks = 1ul << 18; // 256K locks
@@ -69,7 +69,7 @@ namespace ustm {
         for (auto& e : myd->writeLog) {
           auto r = getLock(std::get<0>(e)).tryLock(myd->tid, myd->startStamp);
           if (!r.has_value()) abortTransaction(myd);
-          std::get<3>(e) = *r; // stash timestamp to restore if aborted
+          std::get<4>(e) = *r; // stash timestamp to restore if aborted
         }
         TS endStamp = ts.getStamp();
         // Validate the reads (abort if any fail)
@@ -79,14 +79,14 @@ namespace ustm {
         // If here (i.e. locks and validates succeeded), transaction
         // succeeded.  Apply the writes and then unlock them.
         for (auto& e : myd->writeLog) {
-          auto [loc, write_f, is_mv, ignore] = e;
+          auto [loc, hold, write_f, is_mv, ignore] = e;
           if (!is_mv) write_f(loc);
           else multiVersionWrite((version**) loc, write_f, endStamp);
         }
         // fence required since writes are not individually fenced
         std::atomic_thread_fence(std::memory_order_release);
         for (auto& e : myd->writeLog) 
-          if (std::get<3>(e) != 0) 
+          if (std::get<4>(e) != 0) 
             getLock(std::get<0>(e)).unlock(endStamp);
       }
       // Since successful, apply the deletes.
@@ -99,8 +99,8 @@ namespace ustm {
     inline void abortTransaction(Descriptor* myd) {
       // Release locks and apply deletes to allocated objects.
       for (auto& e : myd->writeLog) 
-        if (std::get<3>(e) != 0) 
-          getLock(std::get<0>(e)).unlock(std::get<3>(e)); // restore stamp
+        if (std::get<4>(e) != 0) 
+          getLock(std::get<0>(e)).unlock(std::get<4>(e)); // restore stamp
       for (auto& e : myd->allocLog)
         uepoch::delay(std::move(e));
       if (++myd->numRetries % 4000000 == 0) { 
@@ -111,8 +111,8 @@ namespace ustm {
     }
 
   public:
-    STM_() { for (int i=0; i < MAX_THREADS; i++) opDesc[i].tid = i; }
-    ~STM_() {} 
+    STM() { for (int i=0; i < MAX_THREADS; i++) opDesc[i].tid = i; }
+    ~STM() {} 
 
     template <typename T>
     inline void loadVal(char* dest, T& v) {
@@ -136,11 +136,8 @@ namespace ustm {
         if (myd->readOnly) return load_snapshot(v, myd);
 
       auto x = myd->writeTable.find(&v);
-      if (x.has_value()) { // found write of location in write buffer
-        typename std::remove_const<T>::type r;
-        std::get<1>(myd->writeLog[*x])((void*) &r);
-        return r;
-      }
+      if (x.has_value()) // found write of location in write buffer
+        return ((hold<T>*) std::get<1>(myd->writeLog[*x]))->value;
 
       lock& lck = getLock(&v);
       auto status = lck.loadStart();
@@ -163,18 +160,6 @@ namespace ustm {
       while (nxt != nullptr && nxt->stamp >= myd->startStamp)
         nxt = nxt->next;
       return ((nxt != nullptr) && nxt->isLink) ? ((link*) nxt)->value : nxt;
-    }
-
-    template <typename T>
-    inline void store(T& loc, T v) {
-      Descriptor* myd = get_descriptor();
-      if (myd != nullptr && myd->inConstructor == 0) {
-        bool is_mv = std::is_same_v<T,version*>;
-        int i = myd->writeLog.size();
-        myd->writeLog.push_back(std::tuple(&loc, [=] (void* p) {
-                     *((T*) p) = v;}, is_mv, 0));
-        myd->writeTable.insert(&loc, i);
-      } else loc = v;
     }
 
     template<typename F>
@@ -216,15 +201,35 @@ namespace ustm {
 
     // adds to log and only applies deletes on success
     template<typename T>
-    void Delete(T* obj) {
+    static void Delete(T* obj) {
       if (obj == nullptr) return;
       Descriptor* myd = get_descriptor();
       if (myd == nullptr) delete obj;
       else myd->deleteLog.push_back([=] {delete obj;});
     }
-  };
 
-  struct STM : STM_ {};
+    template <typename T>
+    struct hold {
+      T value;
+      hold(T v) : value(v) {} };
+
+    template <typename T>
+    inline void store(T& loc, T v) {
+      Descriptor* myd = get_descriptor();
+      if (myd != nullptr && myd->inConstructor == 0) {
+        bool is_mv = std::is_same_v<T,version*>;
+        hold<T>* hp = New<hold<T>>(v);
+        Delete(hp);
+        myd->writeTable.insert(&loc, myd->writeLog.size());
+        auto write_f = [=] (void* p) {
+          char* tmp[sizeof(T)];
+          std::memcpy(tmp, p, sizeof(T));
+          std::memcpy(p, &hp->value, sizeof(T));
+          std::memcpy(&hp->value, p, sizeof(T));};
+        myd->writeLog.push_back(std::tuple(&loc, hp, write_f, is_mv, 0));
+      } else loc = v;
+    }
+  };
 
   extern inline STM& getStm() {
     static STM stm;

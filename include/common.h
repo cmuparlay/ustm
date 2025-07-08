@@ -162,7 +162,7 @@ namespace ustm {
     // The following four entries are the logs.
     // Write log keeps address, a time stamp used during validation,
     // and a function that writes the value to a given location.
-    std::vector<std::tuple<void*,std::function<void(void*)>,bool,TS>> writeLog;
+    std::vector<std::tuple<void*,void*,std::function<void(void*)>,bool,TS>> writeLog;
     // Read log keeps pointer to locations.  Used to later validate reads.
     std::vector<const void*> readLog;
     // Alloc and delete logs keep pointers to functions that do deletes
