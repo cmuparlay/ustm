@@ -336,6 +336,8 @@ namespace ustm {
       return (found == nullptr) ? r : ((link<T>*) found)->value;
     }
 
+    // runs func in an transaction
+    // func takes no argument and must return a value
     template<typename F>
     auto transaction(F&& func, bool readOnly = false) {
       Descriptor*& d = getDescriptor();
@@ -356,7 +358,6 @@ namespace ustm {
       return retval;
     } 
 
-    // func must return a value
     template<typename F>
     auto transactionReadOnly(F&& func) { return transaction(func, true);}
 
