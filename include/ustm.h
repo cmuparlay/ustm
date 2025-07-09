@@ -139,16 +139,22 @@ namespace ustm {
       if (x.has_value()) // found write of location in write buffer
         return ((hold<T>*) std::get<1>(myd->writeLog[*x]))->value;
 
+      if (!validate) {
+        while (getLock(&v).isLocked())
+         for (volatile int i = 0; i < 400; i++);
+        return v;
+      }
+              
       lock& lck = getLock(&v);
       auto status = lck.loadStart();
       loadVal(tmp, v);
       std::atomic_thread_fence(std::memory_order_acquire);
-      if (validate) {
+      //if (validate) {
         if (!lck.loadCheck(status, myd->startStamp))
           abortTransaction(myd);
         myd->readLog.push_back(&v); // to validate later
-      } else if (!lck.loadUnprotectedCheck(status))
-        abortTransaction(myd);
+        //} else if (!lck.loadUnprotectedCheck(status))
+        //abortTransaction(myd);
       return *((T*) tmp);
     }
 

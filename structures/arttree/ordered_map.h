@@ -560,11 +560,12 @@ struct ordered_map {
       int s = 0;
       int e = a->size;
       if (start.has_value())
-        while (l->key_vals[s].key < *start) s++;
+        while (l->key_vals[s].key < *start && s < e) s++;
       if (end.has_value())
         while (l->key_vals[e-1].key > *end) e--;
-      for (int i = s; i < e; i++)
+      for (int i = s; i < e; i++) {
         add(l->key_vals[i].key, l->key_vals[i].value);
+      }
       return;
     }
     for (int i = pos; i < a->byte_num; i++) {

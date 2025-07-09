@@ -15,7 +15,11 @@
 //     - T operator=(T)
 
 #ifdef USTM
+#ifdef MV
 #include "glue/mvustm_glue.h"
+#else
+#include "glue/ustm_glue.h"
+#endif
 #else
 #ifdef TWOPLSF
 #include "glue/2plsf_glue.h"

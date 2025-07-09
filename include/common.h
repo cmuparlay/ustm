@@ -149,15 +149,13 @@ namespace ustm {
   };
 
   // Transaction descriptor, includes the logs, stats, and other state
-  struct Descriptor {
-    static constexpr int LogSize = 1ul << 12; // size of the logs
+  struct alignas(128) Descriptor {
     std::jmp_buf env;
     bool readOnly {false};
     int inConstructor {0};
     uint64_t tid;
     uint64_t numRetries {0};    
     TS startStamp;
-    TS epochStamp;
 
     // The following four entries are the logs.
     // Write log keeps address, a time stamp used during validation,

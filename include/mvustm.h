@@ -40,8 +40,7 @@ namespace ustm {
     size_t mask = 0;
     long num_entries = 0;
     size_t hash(K const& k) const noexcept {
-      auto x =  (uint64_t)(k) * UINT64_C(0xbf58476d1ce4e5b9); 
-      return (x ^ (x >> 31)); }  // linear then non-linear transform
+      return (uint64_t)(k) * UINT64_C(0xbf58476d1ce4e5b9);  }
   
     void insertFits(const K k, const V v) {
       int loc = hash(k) & mask;
@@ -62,7 +61,7 @@ namespace ustm {
     }
 
     void insert(const K k, const V v) {
-      if (num_entries >= entries.size()/2) {
+      if (num_entries >= entries.size()/2) { // grow
         bits = bits + 1;
         std::vector<KV> new_entries(1ul << bits, KV(empty,V{}));
         mask = new_entries.size() - 1;
@@ -77,8 +76,6 @@ namespace ustm {
       num_entries = 0;
       for (auto &a : entries) a.first = empty;
     }
-  
-    hashMap() {}
   };
 
   // getStamp() returns the current time stamp
@@ -122,7 +119,7 @@ namespace ustm {
   }
 
   // generic version link
-  struct version {
+  struct  version {
     version* next = nullptr;
     TS stamp = 0;
     void* addr;
@@ -137,7 +134,7 @@ namespace ustm {
   };
 
   // If locked (high bit set) keeps tid of owner, otherwise keeps timestamp
-  struct lock {
+  struct alignas(32) lock {
     using Status = uint64_t;
     std::atomic<Status> v = 1;
     std::atomic<version*> verlist = nullptr;
@@ -186,8 +183,7 @@ namespace ustm {
   };
 
   // Transaction descriptor, includes the logs, stats, and other state
-  struct Descriptor {
-    static constexpr int LogSize = 1ul << 12; // size of the logs
+  struct alignas(128) Descriptor {
     std::jmp_buf env;
     bool readOnly {false};
     int inConstructor {0};
@@ -242,6 +238,7 @@ namespace ustm {
           if (r == lock::Failed) abortTransaction(myd);
           std::get<3>(e) = (r == lock::Acquired);
         }
+        // get stamp -- this is the serialization point
         TS endStamp = ts.getStamp();
         // Validate the reads (abort if any fail)
         for (auto& e : myd->readLog) 

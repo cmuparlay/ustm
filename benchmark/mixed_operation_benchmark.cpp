@@ -114,7 +114,7 @@ double run_mixed_operations(parlay::sequence<K>& all,
   double trial_time = P.getOptionDoubleValue("-t", 1.0);
   bool verbose = P.getOption("-verbose");
   int range_query_percent = P.getOptionIntValue("-rqp", 0);
-  int range_query_threads = (range_query_percent * p)/100;
+  int range_query_threads = std::ceil((range_query_percent * p)/100.0);
   enum op_type : char {Find, Insert, Remove};
 
   auto op_types = parlay::tabulate(m, [&] (size_t i) -> op_type {
