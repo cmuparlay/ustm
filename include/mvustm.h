@@ -32,6 +32,7 @@ namespace ustm {
   // hashmap used for searching the write log
   template <typename K, typename V>
   struct hashMap {
+  private:
     using KV = std::pair<K, V>;
     static constexpr K empty = (K) 0ul;
     int bits = 5;
@@ -42,6 +43,15 @@ namespace ustm {
       auto x =  (uint64_t)(k) * UINT64_C(0xbf58476d1ce4e5b9); 
       return (x ^ (x >> 31)); }  // linear then non-linear transform
   
+    void insertFits(const K k, const V v) {
+      int loc = hash(k) & mask;
+      while (entries[loc].first != empty && entries[loc].first != k)
+        loc = (loc + 1) & mask;
+      entries[loc] = KV(k,v);
+      num_entries++;
+    }
+
+  public:
     std::optional<V> find(const K k) {
       int loc = hash(k) & mask;
       if (entries.size() == 0) return {};
@@ -51,14 +61,6 @@ namespace ustm {
       else return {};
     }
 
-    void insertFits(const K k, const V v) {
-      int loc = hash(k) & mask;
-      while (entries[loc].first != empty && entries[loc].first != k)
-        loc = (loc + 1) & mask;
-      entries[loc] = KV(k,v);
-      num_entries++;
-    }
-  
     void insert(const K k, const V v) {
       if (num_entries >= entries.size()/2) {
         bits = bits + 1;
@@ -146,6 +148,7 @@ namespace ustm {
     static bool isLocked(Status s) { return (s >> 63) & 1ul;}
     static bool isPrior(Status s, TS timeStamp) {return s < timeStamp;}
     static Status setLock(int tid) {return Status((1ul << 63) | tid);}
+    Status getStatus() { return v.load(MO_acquire);}
     version* getVersionList() { return verlist.load();}
     enum lckResult {Acquired, Self, Failed};
     
@@ -180,14 +183,6 @@ namespace ustm {
       return ((isLocked(s) && getTID(s) == tid) ||
               isPrior(s, startStamp));
     }
-
-    // Wrap the following two functions around a load to check if it
-    // was safe (i.e., no updates overlapped the load).
-    Status getStatus() { return v.load(MO_acquire);}
-    bool loadCheck(Status s, TS startStamp) {
-      return (isPrior(s, startStamp) && v.load(MO_acquire) == s);}
-    bool loadUnprotectedCheck(Status& s) {
-      return (!isLocked(s) && v.load(MO_acquire) == s);}
   };
 
   // Transaction descriptor, includes the logs, stats, and other state
@@ -284,6 +279,8 @@ namespace ustm {
       std::longjmp(myd->env, 1);
     }
 
+    // Like a sequence lock.   Keeps trying until the status is
+    // not locked and does not change.
     template <typename T>
     inline T safeLoad(T& val, lock& lck, lock::Status& s) {
       char tmp[sizeof(T)];
@@ -309,15 +306,17 @@ namespace ustm {
       if (myd == nullptr) return safeLoad(v, lck, status);
       if (myd->readOnly) return loadSnapshot(v, myd->startStamp);
 
+      // check if in write buffer
       auto x = myd->writeTable.find(&v);
-      if (x.has_value()) // found write of location in write buffer
+      if (x.has_value())
         return ((link<T>*) std::get<1>(myd->writeLog[*x]))->value;
 
       if (!validate) return safeLoad(v, lck, status);
       char tmp[sizeof(T)];
       std::memcpy(tmp, &v, sizeof(T));
       std::atomic_thread_fence(std::memory_order_acquire);
-      if (!lck.loadCheck(status, myd->startStamp))
+      if (!lck.isPrior(status, myd->startStamp) ||
+          lck.getStatus() != status)
         abortTransaction(myd);
       myd->readLog.push_back(&v); // to validate later
       return *((T*) tmp);
