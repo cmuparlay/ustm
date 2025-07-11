@@ -23,7 +23,11 @@ namespace stm {
   void Delete(T *ptr) { getStm().Delete(ptr); }
   template <typename T, typename... Args>
   T *New(Args... args) { return getStm().New<T>(args...); }
-
+  template <typename T>
+  T load(T& val) { return getStm().load(val); }
+  template <typename T>
+  void store(T& val, T v) { getStm().store(val, v); }
+  
   template <typename T>
   struct atomic {
   private:

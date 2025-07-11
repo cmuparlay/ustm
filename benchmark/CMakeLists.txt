@@ -23,3 +23,5 @@ foreach(bench ${STRUCTS})
   add_benchmark(${bench}_mvustm_unprotected ${STRUCT_DIR}/${bench} "USTM;MV;UnprotectedLoad")
   add_benchmark(${bench}_2plsf ${STRUCT_DIR}/${bench} "TWOPLSF")
 endforeach()
+
+add_benchmark(hash_probe_mvustm ${STRUCT_DIR}/hash_probe "USTM;MV")
