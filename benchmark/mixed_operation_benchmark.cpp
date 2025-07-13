@@ -219,7 +219,11 @@ double run_mixed_operations(parlay::sequence<K>& all,
         if (trans_size == 1) {
           if (op_types[jj] == Find) {
             local_stats.query_count++;
+#ifdef NoProtect
+            auto val = tr.find(all[j]);
+#else
             auto val = stm::atomic_read_only_singleton([&] {return tr.find(all[j]);});
+#endif
             if (val.has_value()) local_stats.query_total_value += val.value()[0];
           } else if (op_types[jj] == Insert) {
             local_stats.update_count++;
