@@ -6,7 +6,6 @@
 //   mystm.store(x, v) // stores v into x
 //   r = mystm.New<T>(args ...) // generate new object of type T
 //   mystm.Delete(x) // deletes x
-//   std::pair<long,long> mystm.statistics() // total # of aborts and commits
 //
 // The types for load and store can be any relocatable type.
 // Memory should only be allocated with the mystm version in a transaction.
@@ -81,7 +80,7 @@ namespace ustm {
   // getStamp() returns the current time stamp
   // nextStamp() returns incremented stamp
   using TS = uint64_t; // type for timestamps
-#define HW_STAMP
+  #define HW_STAMP
 #ifdef HW_STAMP // use hardware timestamp (works with intel x86)
   struct timeStamp {
     TS getStamp() {
@@ -133,12 +132,12 @@ namespace ustm {
     link(T* addr, T value) : version{addr}, value(value) {}
   };
 
-  // If locked (high bit set) keeps tid of owner, otherwise keeps timestamp
   struct alignas(32) lock {
     using Status = uint64_t;
-    std::atomic<Status> v = 1;
-    std::atomic<version*> verlist = nullptr;
-    TS oldStamp;
+    // If locked (high bit set) keeps tid of owner, otherwise keeps timestamp
+    std::atomic<Status> v = 1; 
+    std::atomic<version*> verlist = nullptr; // the version list
+    TS oldStamp; // used to temporarily stash old stamp when locked
     lock() {}
     static int getTID(Status s) { return ~(1ul << 63) & s;}
     static TS getStamp(Status s) { return s;}
@@ -150,7 +149,7 @@ namespace ustm {
     enum lckResult {Acquired, Self, Failed};
     
     // Returns whether acquired, self owned, or failed (i.e., locked
-    // by another or timestamp on lock is after startStamp).
+    // by another, or timestamp on lock is after startStamp).
     lckResult tryLock(int tid, TS startStamp) {
       Status s = v.load(MO_acquire);
       if (isLocked(s))
@@ -164,7 +163,7 @@ namespace ustm {
     }
 
     // unlocks by setting status to timestamp
-    // timestamp == 0 indicates it aborted, so restore stamp
+    // timeStamp == 0 indicates it aborted, so restore stamp
     void unlock(TS timeStamp, int tid) {
       v.store((timeStamp == 0) ? oldStamp : timeStamp, MO_release); }
 
@@ -184,30 +183,31 @@ namespace ustm {
 
   // Transaction descriptor, includes the logs, stats, and other state
   struct alignas(128) Descriptor {
-    std::jmp_buf env;
+    std::jmp_buf continuation;
     bool readOnly {false};
     int inConstructor {0};
-    uint64_t tid;
+    uint64_t tid; // thread identifier
     uint64_t numRetries {0};    
     TS startStamp;
 
     // The following four entries are the logs.
-    // Write log keeps address, a time stamp used during validation,
-    // and a function that writes the value to a given location.
+    // Each entry of the write log contains the address, the pointer
+    // to a link with the value, the size in bytes of the value, and a
+    // flag used during validation.
     std::vector<std::tuple<void*,version*,int,bool>> writeLog;                                        
-      //std::vector<std::tuple<void*,version*,std::function<void(void*)>,bool>> writeLog;
-    // Read log keeps pointer to locations.  Used to later validate reads.
+    // Each entry of the read log contains a pointer to a location.
     std::vector<const void*> readLog;
     // Alloc and delete logs keep pointers to functions that do deletes
     std::vector<std::function<void()>> allocLog;
     std::vector<std::function<void()>> deleteLog;
 
-    // Hash table to find self writes
+    // A hash map to help reads find prior writes
     hashMap<const void*, int> writeTable;
+
     void reset() {
       writeLog.clear(); readLog.clear();
       deleteLog.clear(); allocLog.clear(); writeTable.reset();
-      readOnly = false; inConstructor = false;
+      inConstructor = false;
     }
   };
 
@@ -248,17 +248,14 @@ namespace ustm {
         // If here (i.e. locks and validates succeeded), transaction
         // succeeded.  Apply the writes and then unlock them.
         for (auto& e : myd->writeLog) {
-           auto [loc, ver, size, self_locked] = e;                                                     
-          char* tmp[size];                                                                            
-          // swap loc and data in lnk                                                                 
-          auto lnk = (link<char>*) ver;                                                               
-          std::memcpy(tmp, loc, size);                                                                
-          std::memcpy(loc, &lnk->value, size);                                                        
-          std::memcpy(&lnk->value, tmp, size);                                                        
+          auto [loc, ver, size, self_locked] = e;
+          char* tmp[size];
+          // swap loc and data in lnk
+          char* newVal = &(((link<char>*) ver)->value);
+          std::memcpy(tmp, loc, size);
+          std::memcpy(loc, newval, size);
+          std::memcpy(newVal, tmp, size);
           getLock(loc).addLink(ver);
-          // auto [loc, lnk, write_f, self_locked] = e;
-          // write_f(loc);
-          // getLock(loc).addLink(lnk);
         }
         // fence required since writes are not individually fenced
         std::atomic_thread_fence(std::memory_order_release);
@@ -279,10 +276,10 @@ namespace ustm {
       for (auto& e : myd->allocLog)
         uepoch::delay(std::move(e));
       if (++myd->numRetries % 4000000 == 0) { 
-        std::cout << "ustm: too many retries" << std::endl; abort();}
+        std::cout << "ustm: too many retries: " << myd->readOnly << std::endl; abort();}
       myd->reset();
       uepoch::get_epoch().unannounce();
-      std::longjmp(myd->env, 1);
+      std::longjmp(myd->continuation, 1);
     }
 
     // Like a sequence lock.   Keeps trying until the status is
@@ -300,6 +297,29 @@ namespace ustm {
       }
     }
 
+    // for read only transactions
+    template <typename T>
+    inline T loadSnapshot(T& val, Descriptor* myd) {
+      auto& lck = getLock(&val);
+      lock::Status status;
+      T r = safeLoad(val, lck, status);
+      TS stamp = lck.getStamp(status);
+      if (stamp < myd->startStamp) return r;
+      // Because of lazy stamps, we need to abort if on the first try
+      // we see a timestamp equal to the startstamp.
+      if (stamp == myd->startStamp && myd->numRetries == 0)
+        abortTransaction(myd);
+      version* nxt = lck.getVersionList();
+      version* found = nullptr;
+      // Chase down the version list to the right one
+      while (stamp >= myd->startStamp && nxt != nullptr) {
+        if (nxt->addr == &val) found = nxt;
+        stamp = nxt->stamp;
+        nxt = nxt->next;
+      }
+      return (found == nullptr) ? r : ((link<T>*) found)->value;
+    }
+
   public:
     STM() { for (int i=0; i < MAX_THREADS; i++) opDesc[i].tid = i; }
     ~STM() {} 
@@ -310,7 +330,7 @@ namespace ustm {
       lock& lck = getLock(&v);
       auto status = lck.getStatus();
       if (myd == nullptr) return safeLoad(v, lck, status);
-      if (myd->readOnly) return loadSnapshot(v, myd->startStamp);
+      if (myd->readOnly) return loadSnapshot(v, myd);
 
       // check if in write buffer
       auto x = myd->writeTable.find(&v);
@@ -328,23 +348,6 @@ namespace ustm {
       return *((T*) tmp);
     }
 
-    template <typename T>
-    inline T loadSnapshot(T& val, TS startStamp) {
-      auto& lck = getLock(&val);
-      lock::Status status;
-      T r = safeLoad(val, lck, status);
-      TS stamp = lck.getStamp(status);
-      if (stamp < startStamp) return r;
-      version* nxt = lck.getVersionList();
-      version* found = nullptr;
-      while (stamp >= startStamp && nxt != nullptr) {
-        if (nxt->addr == &val) found = nxt;
-        stamp = nxt->stamp;
-        nxt = nxt->next;
-      }
-      return (found == nullptr) ? r : ((link<T>*) found)->value;
-    }
-
     // runs func in an transaction
     // func takes no argument and must return a value
     template<typename F>
@@ -355,13 +358,13 @@ namespace ustm {
       Descriptor* myd = &opDesc[tid];
       d = myd; // set the thread local (note d is a ref type)
       myd->numRetries = 0;
-      if (readOnly) myd->readOnly = true;
-      else setjmp(myd->env); // return to here if aborted
+      myd->readOnly = readOnly;
+      setjmp(myd->continuation); // return to here if aborted
       // Using lazy timestamps from verlib.  Only increments
       // on second try avoiding too many increments.
-      if (readOnly || myd->numRetries > 0)
-        myd->startStamp = ts.nextStamp();
-      else myd->startStamp = ts.getStamp();
+      if (myd->numRetries == 0) myd->startStamp = ts.getStamp();
+      else if (readOnly) ts.nextStamp();
+      else myd->startStamp = ts.nextStamp();
       auto retval = uepoch::protect([&] {return func();});
       commitTransaction(myd);
       return retval;
