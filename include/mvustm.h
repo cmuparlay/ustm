@@ -194,7 +194,8 @@ namespace ustm {
     // The following four entries are the logs.
     // Write log keeps address, a time stamp used during validation,
     // and a function that writes the value to a given location.
-    std::vector<std::tuple<void*,version*,std::function<void(void*)>,bool>> writeLog;
+    std::vector<std::tuple<void*,version*,int,bool>> writeLog;                                        
+      //std::vector<std::tuple<void*,version*,std::function<void(void*)>,bool>> writeLog;
     // Read log keeps pointer to locations.  Used to later validate reads.
     std::vector<const void*> readLog;
     // Alloc and delete logs keep pointers to functions that do deletes
@@ -247,9 +248,17 @@ namespace ustm {
         // If here (i.e. locks and validates succeeded), transaction
         // succeeded.  Apply the writes and then unlock them.
         for (auto& e : myd->writeLog) {
-          auto [loc, lnk, write_f, self_locked] = e;
-          write_f(loc);
-          getLock(loc).addLink(lnk);
+           auto [loc, ver, size, self_locked] = e;                                                     
+          char* tmp[size];                                                                            
+          // swap loc and data in lnk                                                                 
+          auto lnk = (link<char>*) ver;                                                               
+          std::memcpy(tmp, loc, size);                                                                
+          std::memcpy(loc, &lnk->value, size);                                                        
+          std::memcpy(&lnk->value, tmp, size);                                                        
+          getLock(loc).addLink(ver);
+          // auto [loc, lnk, write_f, self_locked] = e;
+          // write_f(loc);
+          // getLock(loc).addLink(lnk);
         }
         // fence required since writes are not individually fenced
         std::atomic_thread_fence(std::memory_order_release);
@@ -386,16 +395,11 @@ namespace ustm {
     template <typename T>
     inline void store(T& loc, T v) {
       Descriptor* myd = getDescriptor();
-      if (myd != nullptr && myd->inConstructor == 0) {
-        link<T>* hp = New<link<T>>(&loc, v);
-        Delete(hp);
-        myd->writeTable.insert(&loc, myd->writeLog.size());
-        auto write_f = [=] (void* p) {
-          char* tmp[sizeof(T)];
-          std::memcpy(tmp, p, sizeof(T));
-          std::memcpy(p, &hp->value, sizeof(T));
-          std::memcpy(&hp->value, p, sizeof(T));};
-        myd->writeLog.push_back(std::tuple(&loc, (version*) hp, write_f, false));
+      if (myd != nullptr && myd->inConstructor == 0) {                                                
+        link<T>* hp = New<link<T>>(&loc, v);                                                          
+        Delete(hp);                                                                                   
+        myd->writeTable.insert(&loc, myd->writeLog.size());                                           
+        myd->writeLog.push_back(std::tuple(&loc, (version*) hp, sizeof(T), false));                   
       } else loc = v;
     }
   };

@@ -174,22 +174,26 @@ double run_mixed_operations(parlay::sequence<K>& all,
     parlay::parallel_for(0, p, [&] (size_t proc_id) {
       long start = proc_id * m/p;
       long end = (proc_id + 1) * m/p;
-      long cnt = 0;
       // when we wrap around the following two indexes are offset 
       // this means we don't match the same operations with the same data
       long j = start; // index for all[j]
       long jj = start; // index for op_types[jj]
       statistics local_stats;
       auto start_time = get_time();
-
+      long count = 100;
+      
       while (true) {
         // check if time is up
-        double duration = time_diff(start_time);
-        if (finished || duration > 1000000000 * trial_time) {
-          finished = true;
-          processor_stats[proc_id] = local_stats;
-          return;
+        if (count-- == 0 || finished) {                                                               
+          double duration = time_diff(start_time);                                                    
+          if (duration > 1000000000 * trial_time || finished) {                                                   
+            finished = true;                                                                          
+            processor_stats[proc_id] = local_stats;                                                   
+            return;                                                                                   
+          }                                                                                           
+          count = 100;                                                                                
         }
+        
         // on wraparound set offsets are different
         if (j + trans_size > end) j = start;
         if (jj + trans_size > end) jj = start + trans_size;
@@ -262,7 +266,7 @@ double run_mixed_operations(parlay::sequence<K>& all,
       } 
     }, 1);
 
-    double duration = time_diff(start)/1000000000;
+    double duration = ((double) time_diff(start))/1000000000;
     if (duration > 1.1 * trial_time)
       std::cout << "long duration: " << duration << std::endl;
     
