@@ -198,8 +198,9 @@ struct ReadSet {
 
     // TODO: make a proper growable read-set
     inline void addEntry(const void* addr) {
-        // If you see this assert(), then increase MAX_READ_SET_ENTRIES
-        assert(size != MAX_READ_SET_ENTRIES);
+        if (size == MAX_READ_SET_ENTRIES) {
+          std::cout << "ERROR: read set too large" << std::endl;
+          abort();  }
         entries[size].widx = addr2writeIdx(addr);
         size++;
     }

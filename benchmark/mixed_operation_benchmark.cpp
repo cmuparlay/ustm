@@ -340,7 +340,14 @@ double run_mixed_operations(parlay::sequence<K>& all,
           tr.remove(unique[i]);
           return true; });
       }, 100);
-    stm::atomic_region([=] { delete map_ptr; return true;});
+    if (check() != 0) {
+      std::cout << "not empty after all keys deleted" << std::endl;
+      abort();
+    }
+
+    //using atomic region breaks 2plsf with hash_block since it runs out of read buffer
+    //stm::atomic_region([=] { delete map_ptr; return true;});
+    delete map_ptr; 
 
 #ifdef UEPOCH_H_
     uepoch::clear();
