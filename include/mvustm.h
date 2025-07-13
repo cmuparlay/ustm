@@ -294,8 +294,8 @@ namespace ustm {
         auto olds = s;
         std::memcpy(tmp, &val, sizeof(T));
         std::atomic_thread_fence(MO_acquire);
-        auto s = lck.getStatus();
-        if (!lck.isLocked(s) && olds == s);
+        s = lck.getStatus();
+        if (!lck.isLocked(s) && olds == s)
           return *((T*) tmp);
       }
     }
