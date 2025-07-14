@@ -33,12 +33,12 @@ namespace stm {
   private:
     T val;
   public:
-    atomic(T v) : val(v) { }
+    atomic(const T& v) : val(v) { }
     atomic()  {}
-    void store(T v) { getStm().store(val, v); }
+    void store(const T& v) { getStm().store(val, v); }
     T load() const { return getStm().load(val); }
 #ifdef UnprotectedLoad
-    T load_unprotected() const { return getStm().load(val, false); }
+    T load_unprotected() const { return getStm().load(val, true); }
     void validate() const { load(); }
 #else
     T load_unprotected() const { return load();}

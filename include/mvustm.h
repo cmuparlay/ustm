@@ -2,7 +2,9 @@
 //
 //   STM mystm;  // declare a transaction structure
 //   r = mystm.transaction(func) // runs function (no args) in a transaction
-//   r = mystm.load(x) // does a protected load on x
+//   r = mystm.transaction(func, true) // same but in read only mode
+//   r = mystm.load(x) // loads value from x
+//   r = mystm.load(x, true) // does an unprotected load on x
 //   mystm.store(x, v) // stores v into x
 //   r = mystm.New<T>(args ...) // generate new object of type T
 //   mystm.Delete(x) // deletes x
@@ -50,7 +52,7 @@ namespace ustm {
     }
 
   public:
-    std::optional<V> find(const K k) {
+    std::optional<V> find(const K k) const {
       int loc = hash(k) & mask;
       if (entries.size() == 0) return {};
       while (entries[loc].first != empty && entries[loc].first != k)
@@ -93,7 +95,7 @@ namespace ustm {
 #else // use software timestamp 
   struct timeStamp {
     std::atomic<TS> ts = 1ul;
-    TS getStamp() { return ts.load(); }
+    TS getStamp() const { return ts.load(); }
     TS nextStamp() {
       TS ts1 = ts.load(); // delay and try again to avoid fetch-and-increment
       for(volatile int i = 1; i < 400; i++) {}
@@ -142,15 +144,15 @@ namespace ustm {
     static int getTID(Status s) { return ~(1ul << 63) & s;}
     static TS getStamp(Status s) { return s;}
     static bool isLocked(Status s) { return (s >> 63) & 1ul;}
-    static bool isPrior(Status s, TS timeStamp) {return s < timeStamp;}
+    static bool isPrior(Status s, const TS timeStamp) {return s < timeStamp;}
     static Status setLock(int tid) {return Status((1ul << 63) | tid);}
-    Status getStatus() { return v.load(MO_acquire);}
-    version* getVersionList() { return verlist.load();}
+    Status getStatus() const { return v.load(MO_acquire);}
+    version* getVersionList() const { return verlist.load();}
     enum lckResult {Acquired, Self, Failed};
     
     // Returns whether acquired, self owned, or failed (i.e., locked
     // by another, or timestamp on lock is after startStamp).
-    lckResult tryLock(int tid, TS startStamp) {
+    lckResult tryLock(int tid, const TS startStamp) {
       Status s = v.load(MO_acquire);
       if (isLocked(s))
         if (getTID(s) == tid) return Self;
@@ -164,7 +166,7 @@ namespace ustm {
 
     // unlocks by setting status to timestamp
     // timeStamp == 0 indicates it aborted, so restore stamp
-    void unlock(TS timeStamp, int tid) {
+    void unlock(const TS timeStamp, int tid) {
       v.store((timeStamp == 0) ? oldStamp : timeStamp, MO_release); }
 
     // add to version list
@@ -174,7 +176,7 @@ namespace ustm {
       verlist.store(l, MO_release); }
 
     // checks that either self locked or timestamp has not changed
-    bool validateRead(int tid, TS startStamp) {
+    bool validateRead(const TS startStamp, int tid) const {
       Status s = v.load(MO_acquire);
       return ((isLocked(s) && getTID(s) == tid) ||
               isPrior(s, startStamp));
@@ -243,7 +245,7 @@ namespace ustm {
         TS endStamp = ts.getStamp();
         // Validate the reads (abort if any fail)
         for (auto& e : myd->readLog) 
-          if (!getLock(e).validateRead(myd->tid, myd->startStamp))
+          if (!getLock(e).validateRead(myd->startStamp, myd->tid))
             abortTransaction(myd);
         // If here (i.e. locks and validates succeeded), transaction
         // succeeded.  Apply the writes and then unlock them.
@@ -282,10 +284,10 @@ namespace ustm {
       std::longjmp(myd->continuation, 1);
     }
 
-    // Like a sequence lock.   Keeps trying until the status is
-    // not locked and does not change.
+    // Like a sequence lock.  Keeps trying until the status is not
+    // locked and does not change so bytes are properly copied.
     template <typename T>
-    inline T safeLoad(T& val, lock& lck, lock::Status& s) {
+    inline T safeLoad(const T& val, const lock& lck, lock::Status& s) {
       char tmp[sizeof(T)];
       while (true) {
         auto olds = s;
@@ -299,7 +301,7 @@ namespace ustm {
 
     // for read only transactions
     template <typename T>
-    inline T loadSnapshot(T& val, Descriptor* myd) {
+    inline T loadSnapshot(const T& val, Descriptor* myd) {
       auto& lck = getLock(&val);
       lock::Status status;
       T r = safeLoad(val, lck, status);
@@ -325,7 +327,7 @@ namespace ustm {
     ~STM() {} 
 
     template <typename T>
-    inline T load(T& v, bool validate=true) {
+    inline T load(const T& v, bool unprotected=false) {
       Descriptor* myd = getDescriptor();
       lock& lck = getLock(&v);
       auto status = lck.getStatus();
@@ -337,7 +339,7 @@ namespace ustm {
       if (x.has_value())
         return ((link<T>*) std::get<1>(myd->writeLog[*x]))->value;
 
-      if (!validate) return safeLoad(v, lck, status);
+      if (unprotected) return safeLoad(v, lck, status);
       char tmp[sizeof(T)];
       std::memcpy(tmp, &v, sizeof(T));
       std::atomic_thread_fence(std::memory_order_acquire);
@@ -370,9 +372,6 @@ namespace ustm {
       return retval;
     } 
 
-    template<typename F>
-    auto transactionReadOnly(F&& func) { return transaction(func, true);}
-
     // adds to log so can delete if aborted
     template <typename T, typename... Args>
     static T* New(Args&&... args) {
@@ -396,7 +395,7 @@ namespace ustm {
     }
 
     template <typename T>
-    inline void store(T& loc, T v) {
+    inline void store(T& loc, const T& v) {
       Descriptor* myd = getDescriptor();
       if (myd != nullptr && myd->inConstructor == 0) {                                                
         link<T>* hp = New<link<T>>(&loc, v);                                                          
