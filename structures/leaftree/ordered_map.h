@@ -1,5 +1,10 @@
 #include <transactions.h>
 #include <parlay/parallel.h>
+#include <algorithm>
+#include <functional>
+#include <iostream>
+#include <optional>
+#include <tuple>
 
 template <typename K_,
 	  typename V_,

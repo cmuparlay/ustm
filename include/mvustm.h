@@ -253,7 +253,7 @@ namespace ustm {
           // swap loc and data in lnk
           char* newVal = &(((link<char>*) ver)->value);
           std::memcpy(tmp, loc, size);
-          std::memcpy(loc, newval, size);
+          std::memcpy(loc, newVal, size);
           std::memcpy(newVal, tmp, size);
           getLock(loc).addLink(ver);
         }

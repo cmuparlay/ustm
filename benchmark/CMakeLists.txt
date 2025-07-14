@@ -2,7 +2,7 @@ set(SOURCES mixed_operation_benchmark.cpp)
 set(STRUCT_DIR ${PROJECT_SOURCE_DIR}/structures)
 set(OTHER_DIR ${PROJECT_SOURCE_DIR}/other)
 
-set(STRUCTS "leaftree" "btree" "arttree" "hash_block" "list" "skiplist")
+set(STRUCTS "treap" "leaftree" "btree" "arttree" "hash_block" "list" "skiplist")
 
 set(YCSB_COMMON_DEFS "")
 
