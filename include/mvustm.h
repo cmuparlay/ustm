@@ -1,14 +1,11 @@
-// Supports transactions with the following interface
-//
-//   STM mystm;  // declare a transaction structure
-//   r = mystm.transaction(func) // runs function (no args) in a transaction
-//   r = mystm.transaction(func, true) // same but in read only mode
-//   r = mystm.load(x) // loads value from x
-//   r = mystm.load(x, true) // does an unprotected load on x
-//   mystm.store(x, v) // stores v into x
-//   r = mystm.New<T>(args ...) // generate new object of type T
-//   mystm.Delete(x) // deletes x
-//
+// Supports transactions with the following interface:
+//   r = ustm::transaction(func) // runs function (no args) in a transaction
+//   r = ustm::transaction(func, true) // same but in read only mode
+//   r = ustm::load(x) // loads value from x
+//   r = ustm::load(x, true) // does an unprotected load on x
+//   ustm::store(x, v) // stores v into x
+//   r = ustm::New<T>(args ...) // generate new object of type T
+//   ustm::Delete(x) // deletes x
 // The types for load and store can be any relocatable type.
 // Memory should only be allocated with the mystm version in a transaction.
 
@@ -29,24 +26,13 @@
 #define MAX_THREADS 256
 
 namespace ustm {
-  // getStamp() returns the current time stamp
-  // nextStamp() returns incremented stamp
+
   using TS = uint64_t; // type for timestamps
-#define HW_STAMP
-#ifdef HW_STAMP // use hardware timestamp (works with intel x86)
-  struct timeStamp {
-    TS getStamp() {
-      unsigned int lo,hi;
-      __asm__ __volatile__ ("rdtsc" : "=a" (lo), "=d" (hi));
-      return (TS) (((uint64_t)(hi & ~(1<<31)) << 32) | lo);
-    }
-    TS nextStamp() { return getStamp(); }
-  };
-#else // use software timestamp 
   struct timeStamp {
     std::atomic<TS> ts = 1ul;
+    // returns current stamp
     TS getStamp() const { return ts.load(); }
-    TS nextStamp() {
+    TS nextStamp() { // returns incremented stamp
       TS ts1 = ts.load(); // delay and try again to avoid fetch-and-increment
       for (volatile int i = 1; i < 500; i++) {}
       TS ts2 = ts.load();
@@ -54,18 +40,12 @@ namespace ustm {
       else return ts2;
     }
   };
-#endif
 
-  // keep track of number of active threads
-  extern inline std::atomic<int>& numThreads() {
-    static std::atomic<int> numThreads;
-    return numThreads;
-  }
-
-  // returns a unique thread id for each thread
-  // increments numThreads first time it is called
+  // Returns a unique thread id for each thread.
+  // Increments numThreads first time it is called.
   extern inline int threadId() {
-    static thread_local int id{numThreads().fetch_add(1)};
+    static std::atomic<int> numThreads{0};
+    static thread_local int id{numThreads.fetch_add(1)};
     return id;
   }
 
@@ -116,9 +96,8 @@ namespace ustm {
 
     // unlocks by setting status to timestamp
     // timeStamp == 0 indicates it aborted, so restore stamp
-    void unlock(const TS timeStamp, int tid) {
-      v.store((timeStamp ==0 ) ? oldStamp :
-              timeStamp, std::memory_order_release); }
+    void unlock(const TS ts) {
+      v.store((ts == 0) ? oldStamp : ts, std::memory_order_release); }
 
     // add to version list
     void addLink(version* l) {
@@ -130,8 +109,7 @@ namespace ustm {
     bool validateRead(const TS startStamp, int tid) const {
       Status s = v.load(std::memory_order_acquire);
       return ((isLocked(s) && getTID(s) == tid) ||
-              isPrior(s, startStamp));
-    }
+              isPrior(s, startStamp));  }
   };
 
   // Transaction descriptor, includes the logs, stats, and other state
@@ -149,6 +127,7 @@ namespace ustm {
     // flag used during validation.
     std::vector<std::tuple<void*,version*,int,bool>> writeLog;                     // Each entry of the read log contains a pointer to a location.
     std::vector<const void*> readLog;
+
     // Alloc and delete logs keep pointers to functions that do deletes
     std::vector<std::function<void()>> allocLog;
     std::vector<std::function<void()>> deleteLog;
@@ -159,7 +138,7 @@ namespace ustm {
     
     void reset() {
       writeLog.clear(); readLog.clear();
-      deleteLog.clear(); allocLog.clear(); //writeTable.reset();
+      deleteLog.clear(); allocLog.clear();
       inConstructor = false;
       writeMap.clear(); writeFilter = 0;
     }
@@ -205,16 +184,15 @@ namespace ustm {
         for (auto& e : myd->writeLog) {
           auto [loc, ver, size, selfLocked] = e;
           char* tmp[size];
-          // swap loc and data in lnk
+          // swap loc and data in lnk, and add link to version list
           char* newVal = &(((link<char>*) ver)->value);
           std::memcpy(tmp, loc, size);
           std::memcpy(loc, newVal, size);
           std::memcpy(newVal, tmp, size);
           getLock(loc).addLink(ver);
+          std::atomic_thread_fence(std::memory_order_release);
         }
-        // fence required since writes are not individually fenced
-        std::atomic_thread_fence(std::memory_order_release);
-        for (auto& e : myd->writeLog)
+        for (auto& e : myd->writeLog) // unlock writes
           if (std::get<3>(e))
             getLock(std::get<0>(e)).unlock(endStamp, myd->tid);
       }
