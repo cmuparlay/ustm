@@ -30,25 +30,26 @@
 
 namespace ustm {
 
-  // hashmap used for searching the write log
+  // growable hashmap used for searching the write log
   template <typename K, typename V>
   struct hashMap {
   private:
     using KV = std::pair<K, V>;
     static constexpr K empty = (K) 0ul;
-    int bits = 5;
+    int logOfSize = 3; // start size = 2^3 = 8
     std::vector<KV> entries;
     size_t mask = 0;
-    long num_entries = 0;
+    long numEntries = 0;
     size_t hash(K const& k) const noexcept {
       return (uint64_t)(k) * UINT64_C(0xbf58476d1ce4e5b9);  }
-  
-    void insertFits(const K k, const V v) {
+
+    // insert without growing
+    void insertNoGrow(const K k, const V v) {
       int loc = hash(k) & mask;
       while (entries[loc].first != empty && entries[loc].first != k)
         loc = (loc + 1) & mask;
       entries[loc] = KV(k,v);
-      num_entries++;
+      numEntries++;
     }
 
   public:
@@ -62,19 +63,20 @@ namespace ustm {
     }
 
     void insert(const K k, const V v) {
-      if (num_entries >= entries.size()/2) { // grow
-        bits = bits + 1;
-        std::vector<KV> new_entries(1ul << bits, KV(empty,V{}));
-        mask = new_entries.size() - 1;
-        swap(entries, new_entries);
-        for (auto kv : new_entries)
-          if (kv.first != empty) insertFits(kv.first,kv.second);
+      // if too many entries, then double the size and copy into new table
+      if (numEntries >= entries.size()/2) {
+        logOfSize++;
+        std::vector<KV> newEntries(1ul << logOfSize, KV(empty,V{}));
+        mask = newEntries.size() - 1;
+        swap(entries, newEntries);
+        for (auto kv : newEntries)
+          if (kv.first != empty) insertNoGrow(kv.first,kv.second);
       }
-      insertFits(k,v);
+      insertNoGrow(k,v);
     }
   
-    void reset() {
-      num_entries = 0;
+    void reset() { // clear the table
+      numEntries = 0;
       for (auto &a : entries) a.first = empty;
     }
   };
@@ -98,7 +100,7 @@ namespace ustm {
     TS getStamp() const { return ts.load(); }
     TS nextStamp() {
       TS ts1 = ts.load(); // delay and try again to avoid fetch-and-increment
-      for(volatile int i = 1; i < 400; i++) {}
+      for (volatile int i = 1; i < 500; i++) {}
       TS ts2 = ts.load();
       if (ts1 == ts2) return ++ts; // fetch and increment
       else return ts2;
@@ -250,7 +252,7 @@ namespace ustm {
         // If here (i.e. locks and validates succeeded), transaction
         // succeeded.  Apply the writes and then unlock them.
         for (auto& e : myd->writeLog) {
-          auto [loc, ver, size, self_locked] = e;
+          auto [loc, ver, size, selfLocked] = e;
           char* tmp[size];
           // swap loc and data in lnk
           char* newVal = &(((link<char>*) ver)->value);
@@ -262,7 +264,8 @@ namespace ustm {
         // fence required since writes are not individually fenced
         std::atomic_thread_fence(std::memory_order_release);
         for (auto& e : myd->writeLog)
-          if (std::get<3>(e)) getLock(std::get<0>(e)).unlock(endStamp, myd->tid);
+          if (std::get<3>(e))
+            getLock(std::get<0>(e)).unlock(endStamp, myd->tid);
       }
       // Since successful, apply the deletes.
       for (auto& e : myd->deleteLog)
@@ -278,7 +281,7 @@ namespace ustm {
       for (auto& e : myd->allocLog)
         uepoch::delay(std::move(e));
       if (++myd->numRetries % 4000000 == 0) { 
-        std::cout << "ustm: too many retries: " << myd->readOnly << std::endl; abort();}
+        std::cout << "ustm: too many retries: " << std::endl; abort();}
       myd->reset();
       uepoch::get_epoch().unannounce();
       std::longjmp(myd->continuation, 1);
@@ -397,15 +400,15 @@ namespace ustm {
     template <typename T>
     inline void store(T& loc, const T& v) {
       Descriptor* myd = getDescriptor();
-      if (myd != nullptr && myd->inConstructor == 0) {                                                
-        link<T>* hp = New<link<T>>(&loc, v);                                                          
-        Delete(hp);                                                                                   
-        myd->writeTable.insert(&loc, myd->writeLog.size());                                           
-        myd->writeLog.push_back(std::tuple(&loc, (version*) hp, sizeof(T), false));                   
+      if (myd != nullptr && myd->inConstructor == 0) {
+        link<T>* hp = New<link<T>>(&loc, v);
+        Delete(hp);
+        myd->writeTable.insert(&loc, myd->writeLog.size());
+        myd->writeLog.push_back(std::tuple(&loc, (version*) hp,
+                                           sizeof(T), false));
       } else loc = v;
     }
   };
-  
 } // End namespace ustm
 
 #endif // USTM_H_
