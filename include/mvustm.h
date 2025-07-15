@@ -194,7 +194,7 @@ namespace ustm {
         }
         for (auto& e : myd->writeLog) // unlock writes
           if (std::get<3>(e))
-            getLock(std::get<0>(e)).unlock(endStamp, myd->tid);
+            getLock(std::get<0>(e)).unlock(endStamp);
       }
       // Since successful, apply the deletes.
       for (auto& e : myd->deleteLog)
@@ -206,7 +206,7 @@ namespace ustm {
     inline void abortTransaction(Descriptor* myd) {
       // Release locks and apply deletes to allocated objects.
       for (auto& e : myd->writeLog) 
-        if (std::get<3>(e)) getLock(std::get<0>(e)).unlock(0, myd->tid);
+        if (std::get<3>(e)) getLock(std::get<0>(e)).unlock(0);
       for (auto& e : myd->allocLog)
         uepoch::delay(std::move(e));
       if (++myd->numRetries % 4000000 == 0) { 
