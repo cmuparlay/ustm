@@ -2,17 +2,12 @@
 #include <mvustm.h>
 
 namespace stm {
-  
-  extern inline ustm::STM& getStm() {
-    static ustm::STM stm;
-    return stm;
-  }
 
   template <typename F>
-  auto atomic_region(F &&func) {return getStm().transaction(func); }
+  auto atomic_region(F &&func) {return ustm::transaction(func); }
   template <typename F>
 #ifdef MV
-  auto atomic_read_only(F &&func) { return getStm().transaction(func, true); }
+  auto atomic_read_only(F &&func) { return ustm::transaction(func, true); }
 #else
   auto atomic_read_only(F &&func) { return atomic_region(func); }
 #endif
@@ -20,14 +15,14 @@ namespace stm {
   auto atomic_read_only_singleton(F &&func) {
     return uepoch::protect(func); }
   template <typename T>
-  void Delete(T *ptr) { getStm().Delete(ptr); }
+  void Delete(T *ptr) { ustm::Delete(ptr); }
   template <typename T, typename... Args>
-  T *New(Args... args) { return getStm().New<T>(args...); }
+  T *New(Args... args) { return ustm::New<T>(args...); }
   template <typename T>
-  T load(T& val) { return getStm().load(val); }
+  T load(T& val) { return ustm::load(val); }
   template <typename T>
-  void store(T& val, T v) { getStm().store(val, v); }
-  
+  void store(T& val, T v) { ustm::store(val, v); }
+
   template <typename T>
   struct atomic {
   private:
@@ -35,10 +30,10 @@ namespace stm {
   public:
     atomic(const T& v) : val(v) { }
     atomic()  {}
-    void store(const T& v) { getStm().store(val, v); }
-    T load() const { return getStm().load(val); }
+    void store(const T& v) { ustm::store(val, v); }
+    T load() const { return ustm::load(val); }
 #ifdef UnprotectedLoad
-    T load_unprotected() const { return getStm().load(val, true); }
+    T load_unprotected() const { return ustm::load(val, true); }
     void validate() const { load(); }
 #else
     T load_unprotected() const { return load();}

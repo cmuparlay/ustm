@@ -70,7 +70,7 @@ namespace ustm {
   }
 
   // generic version link
-  struct  version {
+  struct version {
     version* next = nullptr;
     TS stamp = 0;
     void* addr;
@@ -147,15 +147,13 @@ namespace ustm {
     // Each entry of the write log contains the address, the pointer
     // to a link with the value, the size in bytes of the value, and a
     // flag used during validation.
-    std::vector<std::tuple<void*,version*,int,bool>> writeLog;                                        
-    // Each entry of the read log contains a pointer to a location.
+    std::vector<std::tuple<void*,version*,int,bool>> writeLog;                     // Each entry of the read log contains a pointer to a location.
     std::vector<const void*> readLog;
     // Alloc and delete logs keep pointers to functions that do deletes
     std::vector<std::function<void()>> allocLog;
     std::vector<std::function<void()>> deleteLog;
 
-    // A hash map to help reads find prior writes
-    //hashMap<const void*, int> writeTable;
+    // A hash map and filter to help reads find prior writes
     std::unordered_map<void*, int> writeMap;
     std::bitset<1024> writeFilter;
     
@@ -173,17 +171,16 @@ namespace ustm {
     return d;
   }
 
-  class STM {
-  private:
+  int hash(const void* addr) {
+    return ((uint64_t)(addr) >> 5) * UINT64_C(0xbf58476d1ce4e5b9); }
+
+  struct STM {
     // state consists of locks, descriptors, and timestamp
     static constexpr uint64_t numLocks = 1ul << 18; // 256K locks
-    lock writeLocks[numLocks];
     Descriptor opDesc[MAX_THREADS];
+    lock writeLocks[numLocks];
     timeStamp ts;
 
-    static int hash(const void* addr) {
-      return ((uint64_t)(addr) >> 5) * UINT64_C(0xbf58476d1ce4e5b9); }
-    
     // Returns a lock corresponding to a hash of the address
     inline lock& getLock(const void* addr) {
       return writeLocks[hash(addr) & (numLocks - 1)]; }
@@ -279,94 +276,101 @@ namespace ustm {
       return (found == nullptr) ? r : ((link<T>*) found)->value;
     }
 
-  public:
     STM() { for (int i=0; i < MAX_THREADS; i++) opDesc[i].tid = i; }
-    ~STM() {} 
-
-    template <typename T>
-    inline T load(T& v, bool unprotected=false) {
-      Descriptor* myd = getDescriptor();
-      lock& lck = getLock(&v);
-      auto status = lck.getStatus();
-      if (myd == nullptr) return safeLoad(v, lck, status);
-      if (myd->readOnly) return loadSnapshot(v, myd);
-
-      // check if in write buffer
-      if (myd->writeFilter[hash(&v) & 1023ul]) {
-        auto a = myd->writeMap.find((void*) &v);
-        if (a != myd->writeMap.end()) 
-          return ((link<T>*) std::get<1>(myd->writeLog[(*a).second]))->value;
-      }
-
-      if (unprotected) return safeLoad(v, lck, status);
-      char tmp[sizeof(T)];
-      std::memcpy(tmp, &v, sizeof(T));
-      std::atomic_thread_fence(std::memory_order_acquire);
-      if (!lck.isPrior(status, myd->startStamp) ||
-          lck.getStatus() != status)
-        abortTransaction(myd);
-      myd->readLog.push_back(&v); // to validate later
-      return *((T*) tmp);
-    }
-
-    // runs func in an transaction
-    // func takes no argument and must return a value
-    template<typename F>
-    auto transaction(F&& func, bool readOnly = false) {
-      Descriptor*& d = getDescriptor();
-      if (d != nullptr) return func(); // if nested then just run
-      const int tid = threadId();
-      Descriptor* myd = &opDesc[tid];
-      d = myd; // set the thread local (note d is a ref type)
-      myd->numRetries = 0;
-      myd->readOnly = readOnly;
-      setjmp(myd->continuation); // return to here if aborted
-      // Using lazy timestamps from verlib.  Only increments
-      // on second try avoiding too many increments.
-      if (myd->numRetries == 0) myd->startStamp = ts.getStamp();
-      else if (readOnly) ts.nextStamp();
-      else myd->startStamp = ts.nextStamp();
-      auto retval = uepoch::protect([&] {return func();});
-      commitTransaction(myd);
-      return retval;
-    } 
-
-    // adds to log so can delete if aborted
-    template <typename T, typename... Args>
-    static T* New(Args&&... args) {
-      Descriptor* myd = getDescriptor();
-      if (myd != nullptr) {
-        myd->inConstructor++;
-        T* ptr = new T(args...);
-        myd->inConstructor--;
-        myd->allocLog.push_back([=] {delete ptr;});
-        return ptr;
-      } else return new T(args...);
-    }
-
-    // adds to log and only applies deletes on success
-    template<typename T>
-    static void Delete(T* obj) {
-      if (obj == nullptr) return;
-      Descriptor* myd = getDescriptor();
-      if (myd == nullptr) delete obj;
-      else myd->deleteLog.push_back([=] {delete obj;});
-    }
-
-    template <typename T>
-    inline void store(T& loc, const T& v) {
-      Descriptor* myd = getDescriptor();
-      if (myd != nullptr && myd->inConstructor == 0) {
-        link<T>* hp = New<link<T>>(&loc, v);
-        Delete(hp);
-        // add to write map so reads can find it
-        myd->writeFilter[hash(&loc) & 1023ul] = 1;
-        myd->writeMap[&loc] = myd->writeLog.size();
-        myd->writeLog.push_back(std::tuple(&loc, (version*) hp,
-                                           sizeof(T), false));
-      } else loc = v;
-    }
+    ~STM() {}
   };
+
+  extern inline STM* getStm() {
+    static STM stm;
+    return &stm;
+  }
+
+  template <typename T>
+  inline T load(T& v, bool unprotected=false) {
+    STM* stm = getStm();
+    Descriptor* myd = getDescriptor();
+    lock& lck = stm->getLock(&v);
+    auto status = lck.getStatus();
+    if (myd == nullptr) return stm->safeLoad(v, lck, status);
+    if (myd->readOnly) return stm->loadSnapshot(v, myd);
+
+    // check if in write buffer
+    if (myd->writeFilter[hash(&v) & 1023ul]) {
+      auto a = myd->writeMap.find((void*) &v);
+      if (a != myd->writeMap.end()) 
+        return ((link<T>*) std::get<1>(myd->writeLog[(*a).second]))->value;
+    }
+
+    if (unprotected) return stm->safeLoad(v, lck, status);
+    char tmp[sizeof(T)];
+    std::memcpy(tmp, &v, sizeof(T));
+    std::atomic_thread_fence(std::memory_order_acquire);
+    if (!lck.isPrior(status, myd->startStamp) ||
+        lck.getStatus() != status)
+      stm->abortTransaction(myd);
+    myd->readLog.push_back(&v); // to validate later
+    return *((T*) tmp);
+  }
+
+  // runs func in an transaction
+  // func takes no argument and must return a value
+  template<typename F>
+  inline auto transaction(F&& func, bool readOnly = false) {
+    STM* stm = getStm();
+    Descriptor*& d = getDescriptor();
+    if (d != nullptr) return func(); // if nested then just run
+    const int tid = threadId();
+    Descriptor* myd = &(stm->opDesc[tid]);
+    d = myd; // set the thread local (note d is a ref type)
+    myd->numRetries = 0;
+    myd->readOnly = readOnly;
+    setjmp(myd->continuation); // return to here if aborted
+    // Using lazy timestamps from verlib.  Only increments
+    // on second try avoiding too many increments.
+    if (myd->numRetries == 0) myd->startStamp = stm->ts.getStamp();
+    else if (readOnly) stm->ts.nextStamp();
+    else myd->startStamp = stm->ts.nextStamp();
+    auto retval = uepoch::protect([&] {return func();});
+    stm->commitTransaction(myd);
+    return retval;
+  } 
+
+  // adds to log so can delete if aborted
+  template <typename T, typename... Args>
+  inline T* New(Args&&... args) {
+    Descriptor* myd = getDescriptor();
+    if (myd != nullptr) {
+      myd->inConstructor++;
+      T* ptr = new T(args...);
+      myd->inConstructor--;
+      myd->allocLog.push_back([=] {delete ptr;});
+      return ptr;
+    } else return new T(args...);
+  }
+
+  // adds to log and only applies deletes on success
+  template<typename T>
+  inline void Delete(T* obj) {
+    if (obj == nullptr) return;
+    Descriptor* myd = getDescriptor();
+    if (myd == nullptr) delete obj;
+    else myd->deleteLog.push_back([=] {delete obj;});
+  }
+
+  template <typename T>
+  inline void store(T& loc, const T& v) {
+    Descriptor* myd = getDescriptor();
+    if (myd != nullptr && myd->inConstructor == 0) {
+      // temporarily store value in new link
+      link<T>* hp = ustm::New<link<T>>(&loc, v);
+      ustm::Delete(hp); // delete is delayed
+      // add to write map so reads can find it
+      myd->writeFilter[hash(&loc) & 1023ul] = 1;
+      myd->writeMap[&loc] = myd->writeLog.size();
+      myd->writeLog.push_back(std::tuple(&loc, (version*) hp,
+                                         sizeof(T), false));
+    } else loc = v;
+  }
 } // End namespace ustm
 
 #endif // USTM_H_
