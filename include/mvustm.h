@@ -23,7 +23,7 @@
 #include <vector>
 #include "uepoch.h"
 
-#define MAX_THREADS 256
+#define MAX_THREADS 4096 // arbitrary, can be increased
 
 namespace ustm {
 
@@ -258,28 +258,29 @@ namespace ustm {
     ~STM() {}
   };
 
-  extern inline STM* getStm() {
+  extern inline STM* getStmState() {
     static STM stm;
     return &stm;
   }
 
   template <typename T>
   inline T load(T& v, bool unprotected=false) {
-    STM* stm = getStm();
+    STM* stm = getStmState();
     Descriptor* myd = getDescriptor();
     lock& lck = stm->getLock(&v);
     auto status = lck.getStatus();
     if (myd == nullptr) return stm->safeLoad(v, lck, status);
     if (myd->readOnly) return stm->loadSnapshot(v, myd);
 
-    // check if in write buffer
+    // check if valur is in the write buffer
     if (myd->writeFilter[hash(&v) & 1023ul]) {
       auto a = myd->writeMap.find((void*) &v);
       if (a != myd->writeMap.end()) 
         return ((link<T>*) std::get<1>(myd->writeLog[(*a).second]))->value;
     }
-
     if (unprotected) return stm->safeLoad(v, lck, status);
+
+    // if protected, for opacity we need to abort if stale
     char tmp[sizeof(T)];
     std::memcpy(tmp, &v, sizeof(T));
     std::atomic_thread_fence(std::memory_order_acquire);
@@ -294,7 +295,7 @@ namespace ustm {
   // func takes no argument and must return a value
   template<typename F>
   inline auto transaction(F&& func, bool readOnly = false) {
-    STM* stm = getStm();
+    STM* stm = getStmState();
     Descriptor*& d = getDescriptor();
     if (d != nullptr) return func(); // if nested then just run
     const int tid = threadId();
