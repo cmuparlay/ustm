@@ -16,75 +16,23 @@
 #define USTM_H_
 
 #include <atomic>
+#include <bitset>
 #include <cmath>
 #include <csetjmp>
 #include <functional>
 #include <iostream>
 #include <thread>
+#include <unordered_map>
 #include <vector>
 #include "uepoch.h"
 
 #define MAX_THREADS 256
-#define MO_acquire std::memory_order_acquire
-#define MO_release std::memory_order_release
 
 namespace ustm {
-
-  // growable hashmap used for searching the write log
-  template <typename K, typename V>
-  struct hashMap {
-  private:
-    using KV = std::pair<K, V>;
-    static constexpr K empty = (K) 0ul;
-    int logOfSize = 3; // start size = 2^3 = 8
-    std::vector<KV> entries;
-    size_t mask = 0;
-    long numEntries = 0;
-    size_t hash(K const& k) const noexcept {
-      return (uint64_t)(k) * UINT64_C(0xbf58476d1ce4e5b9);  }
-
-    // insert without growing
-    void insertNoGrow(const K k, const V v) {
-      int loc = hash(k) & mask;
-      while (entries[loc].first != empty && entries[loc].first != k)
-        loc = (loc + 1) & mask;
-      entries[loc] = KV(k,v);
-      numEntries++;
-    }
-
-  public:
-    std::optional<V> find(const K k) const {
-      int loc = hash(k) & mask;
-      if (entries.size() == 0) return {};
-      while (entries[loc].first != empty && entries[loc].first != k)
-        loc = (loc + 1) & mask;
-      if (entries[loc].first == k) return entries[loc].second;
-      else return {};
-    }
-
-    void insert(const K k, const V v) {
-      // if too many entries, then double the size and copy into new table
-      if (numEntries >= entries.size()/2) {
-        logOfSize++;
-        std::vector<KV> newEntries(1ul << logOfSize, KV(empty,V{}));
-        mask = newEntries.size() - 1;
-        swap(entries, newEntries);
-        for (auto kv : newEntries)
-          if (kv.first != empty) insertNoGrow(kv.first,kv.second);
-      }
-      insertNoGrow(k,v);
-    }
-  
-    void reset() { // clear the table
-      numEntries = 0;
-      for (auto &a : entries) a.first = empty;
-    }
-  };
-
   // getStamp() returns the current time stamp
   // nextStamp() returns incremented stamp
   using TS = uint64_t; // type for timestamps
-  #define HW_STAMP
+#define HW_STAMP
 #ifdef HW_STAMP // use hardware timestamp (works with intel x86)
   struct timeStamp {
     TS getStamp() {
@@ -148,14 +96,14 @@ namespace ustm {
     static bool isLocked(Status s) { return (s >> 63) & 1ul;}
     static bool isPrior(Status s, const TS timeStamp) {return s < timeStamp;}
     static Status setLock(int tid) {return Status((1ul << 63) | tid);}
-    Status getStatus() const { return v.load(MO_acquire);}
+    Status getStatus() const { return v.load(std::memory_order_acquire);}
     version* getVersionList() const { return verlist.load();}
     enum lckResult {Acquired, Self, Failed};
     
     // Returns whether acquired, self owned, or failed (i.e., locked
     // by another, or timestamp on lock is after startStamp).
     lckResult tryLock(int tid, const TS startStamp) {
-      Status s = v.load(MO_acquire);
+      Status s = v.load(std::memory_order_acquire);
       if (isLocked(s))
         if (getTID(s) == tid) return Self;
         else return Failed;
@@ -169,17 +117,18 @@ namespace ustm {
     // unlocks by setting status to timestamp
     // timeStamp == 0 indicates it aborted, so restore stamp
     void unlock(const TS timeStamp, int tid) {
-      v.store((timeStamp == 0) ? oldStamp : timeStamp, MO_release); }
+      v.store((timeStamp ==0 ) ? oldStamp :
+              timeStamp, std::memory_order_release); }
 
     // add to version list
     void addLink(version* l) {
       l->next = verlist.load();
       l->stamp = oldStamp;
-      verlist.store(l, MO_release); }
+      verlist.store(l, std::memory_order_release); }
 
     // checks that either self locked or timestamp has not changed
     bool validateRead(const TS startStamp, int tid) const {
-      Status s = v.load(MO_acquire);
+      Status s = v.load(std::memory_order_acquire);
       return ((isLocked(s) && getTID(s) == tid) ||
               isPrior(s, startStamp));
     }
@@ -206,12 +155,15 @@ namespace ustm {
     std::vector<std::function<void()>> deleteLog;
 
     // A hash map to help reads find prior writes
-    hashMap<const void*, int> writeTable;
-
+    //hashMap<const void*, int> writeTable;
+    std::unordered_map<void*, int> writeMap;
+    std::bitset<1024> writeFilter;
+    
     void reset() {
       writeLog.clear(); readLog.clear();
-      deleteLog.clear(); allocLog.clear(); writeTable.reset();
+      deleteLog.clear(); allocLog.clear(); //writeTable.reset();
       inConstructor = false;
+      writeMap.clear(); writeFilter = 0;
     }
   };
 
@@ -228,11 +180,13 @@ namespace ustm {
     lock writeLocks[numLocks];
     Descriptor opDesc[MAX_THREADS];
     timeStamp ts;
+
+    static int hash(const void* addr) {
+      return ((uint64_t)(addr) >> 5) * UINT64_C(0xbf58476d1ce4e5b9); }
     
     // Returns a lock corresponding to a hash of the address
     inline lock& getLock(const void* addr) {
-      uint64_t hash = ((uint64_t)(addr) >> 5) * UINT64_C(0xbf58476d1ce4e5b9);
-      return writeLocks[hash & (numLocks - 1)]; }
+      return writeLocks[hash(addr) & (numLocks - 1)]; }
 
     inline void commitTransaction(Descriptor* myd) {
       if (myd->writeLog.size() > 0) {
@@ -295,7 +249,7 @@ namespace ustm {
       while (true) {
         auto olds = s;
         std::memcpy(tmp, &val, sizeof(T));
-        std::atomic_thread_fence(MO_acquire);
+        std::atomic_thread_fence(std::memory_order_acquire);
         s = lck.getStatus();
         if (!lck.isLocked(s) && olds == s)
           return *((T*) tmp);
@@ -330,7 +284,7 @@ namespace ustm {
     ~STM() {} 
 
     template <typename T>
-    inline T load(const T& v, bool unprotected=false) {
+    inline T load(T& v, bool unprotected=false) {
       Descriptor* myd = getDescriptor();
       lock& lck = getLock(&v);
       auto status = lck.getStatus();
@@ -338,9 +292,11 @@ namespace ustm {
       if (myd->readOnly) return loadSnapshot(v, myd);
 
       // check if in write buffer
-      auto x = myd->writeTable.find(&v);
-      if (x.has_value())
-        return ((link<T>*) std::get<1>(myd->writeLog[*x]))->value;
+      if (myd->writeFilter[hash(&v) & 1023ul]) {
+        auto a = myd->writeMap.find((void*) &v);
+        if (a != myd->writeMap.end()) 
+          return ((link<T>*) std::get<1>(myd->writeLog[(*a).second]))->value;
+      }
 
       if (unprotected) return safeLoad(v, lck, status);
       char tmp[sizeof(T)];
@@ -403,7 +359,9 @@ namespace ustm {
       if (myd != nullptr && myd->inConstructor == 0) {
         link<T>* hp = New<link<T>>(&loc, v);
         Delete(hp);
-        myd->writeTable.insert(&loc, myd->writeLog.size());
+        // add to write map so reads can find it
+        myd->writeFilter[hash(&loc) & 1023ul] = 1;
+        myd->writeMap[&loc] = myd->writeLog.size();
         myd->writeLog.push_back(std::tuple(&loc, (version*) hp,
                                            sizeof(T), false));
       } else loc = v;
