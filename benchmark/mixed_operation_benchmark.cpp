@@ -351,7 +351,7 @@ double run_mixed_operations(parlay::sequence<K>& all,
 
 #ifdef UEPOCH_H_
     uepoch::clear();
-    parlay::internal::get_default_allocator().print_stats();
+    //parlay::internal::get_default_allocator().print_stats();
 #endif
   }  return throughput/rounds;
 }

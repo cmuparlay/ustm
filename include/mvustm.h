@@ -151,7 +151,7 @@ namespace ustm {
   }
 
   int hash(const void* addr) {
-    return ((uint64_t)(addr) >> 5) * UINT64_C(0xbf58476d1ce4e5b9); }
+    return ((uint64_t)(addr)) * UINT64_C(0xbf58476d1ce4e5b9); }
 
   struct STM {
     // state consists of locks, descriptors, and timestamp
@@ -209,49 +209,11 @@ namespace ustm {
         if (std::get<3>(e)) getLock(std::get<0>(e)).unlock(0);
       for (auto& e : myd->allocLog)
         uepoch::delay(std::move(e));
-      if (++myd->numRetries % 4000000 == 0) { 
+      if (++myd->numRetries % 40000 == 0) { 
         std::cout << "ustm: too many retries: " << std::endl; abort();}
       myd->reset();
       uepoch::get_epoch().unannounce();
       std::longjmp(myd->continuation, 1);
-    }
-
-    // Like a sequence lock.  Keeps trying until the status is not
-    // locked and does not change so bytes are properly copied.
-    template <typename T>
-    inline T safeLoad(const T& val, const lock& lck, lock::Status& s) {
-      char tmp[sizeof(T)];
-      while (true) {
-        auto olds = s;
-        std::memcpy(tmp, &val, sizeof(T));
-        std::atomic_thread_fence(std::memory_order_acquire);
-        s = lck.getStatus();
-        if (!lck.isLocked(s) && olds == s)
-          return *((T*) tmp);
-      }
-    }
-
-    // for read only transactions
-    template <typename T>
-    inline T loadSnapshot(const T& val, Descriptor* myd) {
-      auto& lck = getLock(&val);
-      lock::Status status;
-      T r = safeLoad(val, lck, status);
-      TS stamp = lck.getStamp(status);
-      if (stamp < myd->startStamp) return r;
-      // Because of lazy stamps, we need to abort if on the first try
-      // we see a timestamp equal to the startstamp.
-      if (stamp == myd->startStamp && myd->numRetries == 0)
-        abortTransaction(myd);
-      version* nxt = lck.getVersionList();
-      version* found = nullptr;
-      // Chase down the version list to the right one
-      while (stamp >= myd->startStamp && nxt != nullptr) {
-        if (nxt->addr == &val) found = nxt;
-        stamp = nxt->stamp;
-        nxt = nxt->next;
-      }
-      return (found == nullptr) ? r : ((link<T>*) found)->value;
     }
 
     STM() { for (int i=0; i < MAX_THREADS; i++) opDesc[i].tid = i; }
@@ -269,26 +231,50 @@ namespace ustm {
     Descriptor* myd = getDescriptor();
     lock& lck = stm->getLock(&v);
     auto status = lck.getStatus();
-    if (myd == nullptr) return stm->safeLoad(v, lck, status);
-    if (myd->readOnly) return stm->loadSnapshot(v, myd);
 
-    // check if valur is in the write buffer
-    if (myd->writeFilter[hash(&v) & 1023ul]) {
+    // check if value is in the write buffer
+    if (myd != nullptr && myd->writeFilter[hash(&v) & 1023ul]) {
       auto a = myd->writeMap.find((void*) &v);
       if (a != myd->writeMap.end()) 
         return ((link<T>*) std::get<1>(myd->writeLog[(*a).second]))->value;
     }
-    if (unprotected) return stm->safeLoad(v, lck, status);
-
-    // if protected, for opacity we need to abort if stale
     char tmp[sizeof(T)];
-    std::memcpy(tmp, &v, sizeof(T));
-    std::atomic_thread_fence(std::memory_order_acquire);
-    if (!lck.isPrior(status, myd->startStamp) ||
-        lck.getStatus() != status)
-      stm->abortTransaction(myd);
-    myd->readLog.push_back(&v); // to validate later
-    return *((T*) tmp);
+    int cnt_l = 0;
+    while (true) {
+      if (cnt_l++ > 10000) std::cout << "ouch" << std::endl;
+      auto olds = status;
+      std::memcpy(tmp, &v, sizeof(T));
+      std::atomic_thread_fence(std::memory_order_acquire);
+      status = lck.getStatus();
+      if (myd == nullptr || unprotected) {
+        if (!lck.isLocked(olds) && olds == status)
+          return *((T*) tmp);
+      } else if (myd->readOnly) {
+        if (!lck.isLocked(olds) && olds == status) {
+          if (lck.getStamp(status) < myd->startStamp)
+            return *((T*) tmp);
+          // Because of lazy stamps, we need to abort if on the first try
+          // we see a timestamp equal to the startstamp.
+          if (lck.getStamp(status) == myd->startStamp && myd->numRetries == 0)
+            stm->abortTransaction(myd);
+          version* nxt = lck.getVersionList();
+          version* found = nullptr;
+          int cnt = 0;
+          while (nxt != nullptr && nxt->stamp >= myd->startStamp) {
+            if (nxt->addr == &v) found = nxt;
+            nxt = nxt->next;
+            if (cnt++ > 10000) abort();
+          }
+          if (cnt > 1000) std::cout << "ouch: " << cnt << std::endl; //nxt->stamp << ", " << &v << ", " << nxt->addr << std::endl;
+          if (found == nullptr) return *((T*) tmp);
+          else return ((link<T>*) nxt)->value;
+        }
+      } else {
+        if (lck.isPrior(olds, myd->startStamp) && olds == status) {
+          myd->readLog.push_back(&v); // to validate later
+          return *((T*) tmp);
+        } else stm->abortTransaction(myd); }
+    }
   }
 
   // runs func in an transaction
