@@ -241,7 +241,7 @@ namespace ustm {
     char tmp[sizeof(T)];
     int cnt_l = 0;
     while (true) {
-      if (cnt_l++ > 10000) std::cout << "ouch" << std::endl;
+      if (++cnt_l % 100000 == 0) std::cout << "ouch" << std::endl;
       auto olds = status;
       std::memcpy(tmp, &v, sizeof(T));
       std::atomic_thread_fence(std::memory_order_acquire);
@@ -274,6 +274,7 @@ namespace ustm {
           myd->readLog.push_back(&v); // to validate later
           return *((T*) tmp);
         } else stm->abortTransaction(myd); }
+      for (volatile int i=0; i < 400; i++);
     }
   }
 
@@ -333,7 +334,7 @@ namespace ustm {
     if (myd != nullptr && myd->inConstructor == 0) {
       // temporarily store value in new link
       link<T>* hp = ustm::New<link<T>>(&loc, v);
-      ustm::Delete(hp); // delete is delayed
+      //ustm::Delete(hp); // delete is delayed
       // add to write map so reads can find it
       myd->writeFilter[hash(&loc) & 1023ul] = 1;
       myd->writeMap[&loc] = myd->writeLog.size();
