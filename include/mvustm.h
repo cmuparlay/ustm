@@ -320,11 +320,16 @@ namespace ustm {
     Descriptor* myd = getDescriptor();
     if (myd != nullptr) {
       myd->inConstructor++;
-      T* ptr = new T(args...);
+      T* ptr = (T*) parlay::p_malloc(sizeof(T));
+      myd->allocLog.push_back([=] {ptr->~T(); parlay::p_free(ptr);});
+      new (ptr) T(args...);
       myd->inConstructor--;
-      myd->allocLog.push_back([=] {delete ptr;});
       return ptr;
-    } else return new T(args...);
+    } else {
+      T* ptr = (T*) parlay::p_malloc(sizeof(T));
+      new (ptr) T(args...);
+      return ptr;
+    }
   }
 
   // adds to log and only applies deletes on success
@@ -332,8 +337,8 @@ namespace ustm {
   inline void Delete(T* obj) {
     if (obj == nullptr) return;
     Descriptor* myd = getDescriptor();
-    if (myd == nullptr) delete obj;
-    else myd->deleteLog.push_back([=] {delete obj;});
+    if (myd == nullptr) {obj->~T(); parlay::p_free(obj);}
+    else myd->deleteLog.push_back([=] {obj->~T(); parlay::p_free(obj);});
   }
 
   template <typename T>

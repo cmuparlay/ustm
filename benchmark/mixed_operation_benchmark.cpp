@@ -116,7 +116,7 @@ double run_mixed_operations(parlay::sequence<K>& all,
   int range_query_percent = P.getOptionIntValue("-rqp", 0);
   int range_query_threads = std::ceil((range_query_percent * p)/100.0);
   enum op_type : char {Find, Insert, Remove};
-
+    
   auto op_types = parlay::tabulate(m, [&] (size_t i) -> op_type {
       auto h = parlay::hash64(m+i)%2000;
       if (h < 10*update_percent) return Insert; 
@@ -351,6 +351,7 @@ double run_mixed_operations(parlay::sequence<K>& all,
 
 #ifdef UEPOCH_H_
     uepoch::clear();
+    parlay::internal::get_default_allocator().print_stats();
 #endif
   }  return throughput/rounds;
 }
