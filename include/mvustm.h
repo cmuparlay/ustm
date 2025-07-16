@@ -151,7 +151,7 @@ namespace ustm {
   }
 
   int hash(const void* addr) {
-    return ((uint64_t)(addr)) * UINT64_C(0xbf58476d1ce4e5b9); }
+    return ((uint64_t)(addr) >> 5) * UINT64_C(0xbf58476d1ce4e5b9); }
 
   struct STM {
     // state consists of locks, descriptors, and timestamp
@@ -209,7 +209,7 @@ namespace ustm {
         if (std::get<3>(e)) getLock(std::get<0>(e)).unlock(0);
       for (auto& e : myd->allocLog)
         uepoch::delay(std::move(e));
-      if (++myd->numRetries % 40000 == 0) { 
+      if (++myd->numRetries % 4000000 == 0) { 
         std::cout << "ustm: too many retries: " << std::endl; abort();}
       myd->reset();
       uepoch::get_epoch().unannounce();
@@ -239,9 +239,7 @@ namespace ustm {
         return ((link<T>*) std::get<1>(myd->writeLog[(*a).second]))->value;
     }
     char tmp[sizeof(T)];
-    int cnt_l = 0;
     while (true) {
-      if (++cnt_l % 100000 == 0) std::cout << "ouch" << std::endl;
       auto olds = status;
       std::memcpy(tmp, &v, sizeof(T));
       std::atomic_thread_fence(std::memory_order_acquire);
@@ -251,32 +249,30 @@ namespace ustm {
           return *((T*) tmp);
       } else if (myd->readOnly) {
         if (!lck.isLocked(olds) && olds == status) {
-          if (lck.getStamp(status) < myd->startStamp)
-            return *((T*) tmp);
+          TS stamp = lck.getStamp(status);
+          if (stamp < myd->startStamp) return *((T*) tmp);
           // Because of lazy stamps, we need to abort if on the first try
           // we see a timestamp equal to the startstamp.
-          if (lck.getStamp(status) == myd->startStamp && myd->numRetries == 0)
+          if (stamp == myd->startStamp && myd->numRetries == 0)
             stm->abortTransaction(myd);
           version* nxt = lck.getVersionList();
           version* found = nullptr;
-          int cnt = 0;
-          while (nxt != nullptr && nxt->stamp >= myd->startStamp) {
+          // Chase down the version list to the right one
+          while (nxt != nullptr && nxt->stamp >= myd->startStamp ) {
             if (nxt->addr == &v) found = nxt;
             nxt = nxt->next;
-            if (cnt++ > 10000) abort();
           }
-          if (cnt > 1000) std::cout << "ouch: " << cnt << std::endl; //nxt->stamp << ", " << &v << ", " << nxt->addr << std::endl;
-          if (found == nullptr) return *((T*) tmp);
-          else return ((link<T>*) nxt)->value;
+          if (nxt != nullptr && nxt->addr == &v) found = nxt;
+          return (found == nullptr) ? *((T*) tmp) : ((link<T>*) found)->value;
         }
       } else {
         if (lck.isPrior(olds, myd->startStamp) && olds == status) {
           myd->readLog.push_back(&v); // to validate later
           return *((T*) tmp);
         } else stm->abortTransaction(myd); }
-      for (volatile int i=0; i < 400; i++);
     }
   }
+
 
   // runs func in an transaction
   // func takes no argument and must return a value
@@ -307,13 +303,13 @@ namespace ustm {
     Descriptor* myd = getDescriptor();
     if (myd != nullptr) {
       myd->inConstructor++;
-      T* ptr = (T*) parlay::p_malloc(sizeof(T));
-      myd->allocLog.push_back([=] {ptr->~T(); parlay::p_free(ptr);});
+      T* ptr = (T*) std::malloc(sizeof(T));
+      myd->allocLog.push_back([=] { delete ptr; });
       new (ptr) T(args...);
       myd->inConstructor--;
       return ptr;
     } else {
-      T* ptr = (T*) parlay::p_malloc(sizeof(T));
+      T* ptr = (T*) std::malloc(sizeof(T));
       new (ptr) T(args...);
       return ptr;
     }
@@ -321,11 +317,11 @@ namespace ustm {
 
   // adds to log and only applies deletes on success
   template<typename T>
-  inline void Delete(T* obj) {
-    if (obj == nullptr) return;
+  inline void Delete(T* ptr) {
+    if (ptr == nullptr) return;
     Descriptor* myd = getDescriptor();
-    if (myd == nullptr) {obj->~T(); parlay::p_free(obj);}
-    else myd->deleteLog.push_back([=] {obj->~T(); parlay::p_free(obj);});
+    if (myd == nullptr) delete ptr;
+    else myd->deleteLog.push_back([=] { delete ptr; });
   }
 
   template <typename T>
@@ -334,7 +330,7 @@ namespace ustm {
     if (myd != nullptr && myd->inConstructor == 0) {
       // temporarily store value in new link
       link<T>* hp = ustm::New<link<T>>(&loc, v);
-      //ustm::Delete(hp); // delete is delayed
+      ustm::Delete(hp); // delete is delayed
       // add to write map so reads can find it
       myd->writeFilter[hash(&loc) & 1023ul] = 1;
       myd->writeMap[&loc] = myd->writeLog.size();
