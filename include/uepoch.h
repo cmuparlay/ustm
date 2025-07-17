@@ -43,6 +43,8 @@ namespace uepoch {
 
     // the main structure
     struct alignas(64) epoch_state {
+      std::vector<std::function<void()>> before_epoch_hooks;
+      std::vector<std::function<void()>> after_epoch_hooks;
 
       // announcements for each thread
       struct alignas(64) announce {
@@ -95,7 +97,9 @@ namespace uepoch {
                 announcements[i].last < current_e) return;
           if (num_threads() == threads) break;
         }
-        current_epoch.compare_exchange_strong(current_e, current_e+1);
+        for (const auto h : before_epoch_hooks) h();
+        if (current_epoch.compare_exchange_strong(current_e, current_e+1))
+          for (const auto h : after_epoch_hooks) h();
       }
 
       void advance_epoch(int i) {
@@ -159,9 +163,9 @@ namespace uepoch {
   }
 
   void delay(std::function<void(void)> f) {
-    get_epoch().delay(std::move(f));
-  }
-
+    get_epoch().delay(std::move(f)); }
+  void add_before_epoch_hook(std::function<void()> f) {
+    get_epoch().before_epoch_hooks.push_back(f); }
   void clear() {get_epoch().clear();}
 } // end namespace uepoch
 

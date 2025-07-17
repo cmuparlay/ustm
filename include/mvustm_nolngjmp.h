@@ -216,7 +216,9 @@ namespace ustm {
       myd->reset();
     }
 
-    STM() { for (int i=0; i < MAX_THREADS; i++) opDesc[i].tid = i; }
+    STM() {
+      for (int i=0; i < MAX_THREADS; i++) opDesc[i].tid = i;
+      uepoch::add_before_epoch_hook([&] { ts.nextStamp(); }); }
     ~STM() {}
   };
 
