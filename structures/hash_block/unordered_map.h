@@ -216,7 +216,7 @@ private:
   }
 
 public:
-  unordered_map(size_t n) : hash_table(Table(n)) {}
+  unordered_map(size_t n) : hash_table(Table(n)) { }
   ~unordered_map() {
     auto& table = hash_table.table;
     parlay::parallel_for (0, table.size(), [&] (size_t i) {

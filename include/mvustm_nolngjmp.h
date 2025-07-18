@@ -26,14 +26,16 @@
 
 namespace ustm {
 
+  bool checking = false;
+  
   using TS = uint64_t; // type for timestamps
   struct timeStamp {
     std::atomic<TS> ts = 1ul;
     // returns current stamp
     TS getStamp() const { return ts.load(); }
-    TS nextStamp() { // returns incremented stamp
+    TS nextStamp(long delay=500) { // returns incremented stamp
       TS ts1 = ts.load(); // delay and try again to avoid fetch-and-increment
-      for (volatile int i = 1; i < 500; i++) {}
+      for (volatile int i = 1; i < delay; i++) {}
       TS ts2 = ts.load();
       if (ts1 == ts2) return ++ts; // fetch and increment
       else return ts2;
@@ -53,7 +55,9 @@ namespace ustm {
     version* next = nullptr;
     TS stamp = 0;
     void* addr;
+    int check = 27;
     version(void* addr) : addr(addr) {}
+    ~version() {check = -1;}
   };
 
   // link including a type specific value
@@ -124,7 +128,7 @@ namespace ustm {
     // Each entry of the write log contains the address, the pointer
     // to a link with the value, the size in bytes of the value, and a
     // flag used during validation.
-    std::vector<std::tuple<void*,version*,int,bool>> writeLog;
+    std::vector<std::tuple<void*,version*,void*,int,bool>> writeLog;
     // Each entry of the read log contains a pointer to a location.
     std::vector<const void*> readLog;
 
@@ -172,7 +176,7 @@ namespace ustm {
           auto& lck = getLock(std::get<0>(e));
           auto r = getLock(std::get<0>(e)).tryLock(myd->tid, myd->startStamp);
           if (r == lock::Failed) return false;
-          std::get<3>(e) = (r == lock::Acquired);
+          std::get<4>(e) = (r == lock::Acquired);
         }
         // get stamp -- this is the serialization point
         TS endStamp = ts.getStamp();
@@ -183,18 +187,18 @@ namespace ustm {
         // If here (i.e. locks and validates succeeded), transaction
         // succeeded.  Apply the writes and then unlock them.
         for (auto& e : myd->writeLog) {
-          auto [loc, ver, size, selfLocked] = e;
+          auto [destLocation, ver, dataLocation, size, selfLocked] = e;
           char* tmp[size];
-          // swap loc and data in lnk, and add link to version list
-          char* newVal = &(((link<char>*) ver)->value);
-          std::memcpy(tmp, loc, size);
-          std::memcpy(loc, newVal, size);
-          std::memcpy(newVal, tmp, size);
-          getLock(loc).addLink(ver);
-          std::atomic_thread_fence(std::memory_order_release);
+          // swap destination and data (from the link)
+          std::memcpy(tmp, destLocation, size);
+          std::memcpy(destLocation, dataLocation, size);
+          std::memcpy(dataLocation, tmp, size);
+          // add link to version list
+          getLock(destLocation).addLink(ver);
         }
+        std::atomic_thread_fence(std::memory_order_release);
         for (auto& e : myd->writeLog) // unlock writes
-          if (std::get<3>(e))
+          if (std::get<4>(e))
             getLock(std::get<0>(e)).unlock(endStamp);
       }
       // Since successful, apply the deletes.
@@ -208,7 +212,7 @@ namespace ustm {
     inline void abortTransaction(Descriptor* myd) {
       // Release locks and apply deletes to allocated objects.
       for (auto& e : myd->writeLog) 
-        if (std::get<3>(e)) getLock(std::get<0>(e)).unlock(0);
+        if (std::get<4>(e)) getLock(std::get<0>(e)).unlock(0);
       for (auto& e : myd->allocLog)
         uepoch::delay(std::move(e));
       if (++myd->numRetries % 4000000 == 0) { 
@@ -247,10 +251,12 @@ namespace ustm {
       std::atomic_thread_fence(std::memory_order_acquire);
       status = lck.getStatus();
       if (!lck.isLocked(olds) && olds == status) {
-        if (myd == nullptr || unprotected) return *((T*) tmp);
+        if (myd == nullptr) return *((T*) tmp);
         if (!myd->readOnly) myd->readLog.push_back(&v); // to validate later
         TS stamp = lck.getStamp(status);
+        if (checking) std::cout << "(" << stamp << "," << myd->startStamp << ")";
         if (stamp < myd->startStamp) return *((T*) tmp);
+        if (checking) std::cout << "x ";
         // Because of lazy stamps, we need to abort if on the first try
         // we see a timestamp equal to the startstamp.
         if (!myd->readOnly ||
@@ -258,11 +264,23 @@ namespace ustm {
           myd->toAbort = true;
         version* nxt = lck.getVersionList();
         version* found = nullptr;
+        TS prev = 0;
         // Chase down the version list to the right one
-        while (nxt != nullptr && nxt->stamp >= myd->startStamp ) {
+        if (checking) std::cout << "[" << nxt->stamp << "," << myd->startStamp << "]";
+        while (nxt != nullptr && stamp >= myd->startStamp ) {
+          if (nxt->check != 27)
+            std::cout << "encountered deleted version link: "
+                      << nxt->check << ", " << myd->startStamp << ", "
+                      << nxt->stamp << ", " << stamp
+                      << ", " << stm->ts.getStamp()
+                      << ", " << prev << std::endl;
           if (nxt->addr == &v) found = nxt;
+          prev = nxt->stamp;
+          stamp = nxt->stamp;
           nxt = nxt->next;
         }
+        if (nxt != nullptr && nxt->check != 27)
+          std::cout << "encountered deleted version link" << std::endl;
         if (nxt != nullptr && nxt->addr == &v) found = nxt;
         return (found == nullptr) ? *((T*) tmp) : ((link<T>*) found)->value;
       }
@@ -284,10 +302,11 @@ namespace ustm {
     while (true) {
     // Using lazy timestamps from verlib.  Only increments
     // on second try avoiding too many increments.
-      if (myd->numRetries == 0) myd->startStamp = stm->ts.getStamp();
-      else if (readOnly) stm->ts.nextStamp();
-      else myd->startStamp = stm->ts.nextStamp();
-      auto retval = uepoch::protect([&] {return func();});
+      auto retval = uepoch::protect([&] {
+        if (myd->numRetries == 0) myd->startStamp = stm->ts.getStamp();
+        else if (readOnly) stm->ts.nextStamp();
+        else myd->startStamp = stm->ts.nextStamp();
+        return func();});
       if (!myd->toAbort && stm->commitTransaction(myd))
         return retval;
       stm->abortTransaction(myd);
@@ -328,10 +347,10 @@ namespace ustm {
       // temporarily store value in new link
       link<T>* hp = ustm::New<link<T>>(&loc, v);
       ustm::Delete(hp); // delete is delayed
-      // add to write map so reads can find it
+      // add to write map (and filter) so reads can find it
       myd->writeFilter[hash(&loc) & 1023ul] = 1;
       myd->writeMap[&loc] = myd->writeLog.size();
-      myd->writeLog.push_back(std::tuple(&loc, (version*) hp,
+      myd->writeLog.push_back(std::tuple(&loc, (version*) hp, &hp->value,
                                          sizeof(T), false));
     } else loc = v;
   }

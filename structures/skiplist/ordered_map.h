@@ -87,10 +87,14 @@ struct ordered_map {
     return std::make_pair(prev, nxt);
   }
 
-  bool is_found(node* x, int level, const K& k) {
-    auto [cur, nxt] = find_at_level(x, k, level, 0);
-    return (nxt != nullptr) && !less(k, nxt->key);
+  bool is_found(node* prev, node* next, const K& k) {
+    return (next != nullptr) && !less(k, next->key);
   }
+
+    //bool is_found(node* x, int level, const K& k) {
+    //auto [cur, nxt] = find_at_level(x, k, level, 0);
+    //return (nxt != nullptr) && !less(k, nxt->key);
+    //}
 
   void insert_at(node* x, node* new_node, int level) {
     if (level > 0) {
@@ -109,7 +113,7 @@ struct ordered_map {
   bool insert(const K& k, const V& v) {
     int ilevel = get_level(k);
     auto [cur, nxt] = find_at_level(root, k, max_levels - 1, ilevel);
-    if (is_found(cur, ilevel, k)) return false;
+    if (is_found(cur, nxt, k)) return false;
     insert_at(cur, new_node(k, v, ilevel), ilevel);
     return true;
   }
@@ -138,7 +142,7 @@ struct ordered_map {
   bool remove(const K& k) {
     int level = get_level(k);
     auto [prev, to_delete] = find_at_level(root, k, max_levels - 1, level);
-    if (!is_found(prev, level, k)) return false;
+    if (!is_found(prev, to_delete, k)) return false;
     prev->next[level] = to_delete->next[level].load();
     while (--level >= 0) {
       node* tmp;

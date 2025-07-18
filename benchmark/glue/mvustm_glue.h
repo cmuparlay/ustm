@@ -1,5 +1,9 @@
 #include <type_traits>
-#include <tmp.h>
+#ifdef NoJmp
+#include <mvustm_nolngjmp.h>
+#else
+#include <mvustm.h>
+#endif
 
 namespace stm {
 
@@ -26,8 +30,8 @@ namespace stm {
   template <typename T>
   struct atomic {
   private:
-    T val;
   public:
+    T val;
     atomic(const T& v) : val(v) { }
     atomic()  {}
     void store(const T& v) { ustm::store(val, v); }

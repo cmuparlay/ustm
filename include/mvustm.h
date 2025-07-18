@@ -125,7 +125,8 @@ namespace ustm {
     // Each entry of the write log contains the address, the pointer
     // to a link with the value, the size in bytes of the value, and a
     // flag used during validation.
-    std::vector<std::tuple<void*,version*,int,bool>> writeLog;                     // Each entry of the read log contains a pointer to a location.
+    std::vector<std::tuple<void*,version*,void*,int,bool>> writeLog;
+    // Each entry of the read log contains a pointer to a location.
     std::vector<const void*> readLog;
 
     // Alloc and delete logs keep pointers to functions that do deletes
@@ -171,7 +172,7 @@ namespace ustm {
           auto& lck = getLock(std::get<0>(e));
           auto r = getLock(std::get<0>(e)).tryLock(myd->tid, myd->startStamp);
           if (r == lock::Failed) abortTransaction(myd);
-          std::get<3>(e) = (r == lock::Acquired);
+          std::get<4>(e) = (r == lock::Acquired);
         }
         // get stamp -- this is the serialization point
         TS endStamp = ts.getStamp();
@@ -182,18 +183,17 @@ namespace ustm {
         // If here (i.e. locks and validates succeeded), transaction
         // succeeded.  Apply the writes and then unlock them.
         for (auto& e : myd->writeLog) {
-          auto [loc, ver, size, selfLocked] = e;
+          auto [loc, ver, valloc, size, selfLocked] = e;
           char* tmp[size];
           // swap loc and data in lnk, and add link to version list
-          char* newVal = &(((link<char>*) ver)->value);
           std::memcpy(tmp, loc, size);
-          std::memcpy(loc, newVal, size);
-          std::memcpy(newVal, tmp, size);
+          std::memcpy(loc, valloc, size);
+          std::memcpy(valloc, tmp, size);
           getLock(loc).addLink(ver);
           std::atomic_thread_fence(std::memory_order_release);
         }
         for (auto& e : myd->writeLog) // unlock writes
-          if (std::get<3>(e))
+          if (std::get<4>(e))
             getLock(std::get<0>(e)).unlock(endStamp);
       }
       // Since successful, apply the deletes.
@@ -206,7 +206,7 @@ namespace ustm {
     inline void abortTransaction(Descriptor* myd) {
       // Release locks and apply deletes to allocated objects.
       for (auto& e : myd->writeLog) 
-        if (std::get<3>(e)) getLock(std::get<0>(e)).unlock(0);
+        if (std::get<4>(e)) getLock(std::get<0>(e)).unlock(0);
       for (auto& e : myd->allocLog)
         uepoch::delay(std::move(e));
       if (++myd->numRetries % 4000000 == 0) { 
@@ -289,10 +289,11 @@ namespace ustm {
     setjmp(myd->continuation); // return to here if aborted
     // Using lazy timestamps from verlib.  Only increments
     // on second try avoiding too many increments.
-    if (myd->numRetries == 0) myd->startStamp = stm->ts.getStamp();
-    else if (readOnly) stm->ts.nextStamp();
-    else myd->startStamp = stm->ts.nextStamp();
-    auto retval = uepoch::protect([&] {return func();});
+    auto retval = uepoch::protect([&] {
+      if (myd->numRetries == 0) myd->startStamp = stm->ts.getStamp();
+      else if (readOnly) stm->ts.nextStamp();
+      else myd->startStamp = stm->ts.nextStamp();
+      return func();});
     stm->commitTransaction(myd);
     return retval;
   } 
@@ -334,7 +335,7 @@ namespace ustm {
       // add to write map so reads can find it
       myd->writeFilter[hash(&loc) & 1023ul] = 1;
       myd->writeMap[&loc] = myd->writeLog.size();
-      myd->writeLog.push_back(std::tuple(&loc, (version*) hp,
+      myd->writeLog.push_back(std::tuple(&loc, (version*) hp, &hp->value,
                                          sizeof(T), false));
     } else loc = v;
   }

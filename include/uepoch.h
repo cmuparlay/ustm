@@ -109,7 +109,7 @@ namespace uepoch {
           pid.old.swap(pid.current);
           pid.epoch = current_epoch.load();
         }
-        long heuristic_threshold = 5 * num_threads();
+        long heuristic_threshold = 10 * num_threads();
         if (++pid.count == heuristic_threshold) { 
           pid.count = 0;
           update_epoch();
