@@ -264,7 +264,6 @@ namespace ustm {
           myd->toAbort = true;
         version* nxt = lck.getVersionList();
         version* found = nullptr;
-        TS prev = 0;
         // Chase down the version list to the right one
         if (checking) std::cout << "[" << nxt->stamp << "," << myd->startStamp << "]";
         while (nxt != nullptr && stamp >= myd->startStamp ) {
@@ -275,7 +274,6 @@ namespace ustm {
                       << ", " << stm->ts.getStamp()
                       << ", " << prev << std::endl;
           if (nxt->addr == &v) found = nxt;
-          prev = nxt->stamp;
           stamp = nxt->stamp;
           nxt = nxt->next;
         }
