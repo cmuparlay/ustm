@@ -15,7 +15,7 @@
 #include <atomic>
 #include <bitset>
 #include <cmath>
-#include <csetjmp>
+//#include <csetjmp>
 #include <functional>
 #include <iostream>
 #include <thread>
@@ -114,7 +114,7 @@ namespace ustm {
 
   // Transaction descriptor, includes the logs, stats, and other state
   struct alignas(128) Descriptor {
-    std::jmp_buf continuation;
+    //std::jmp_buf continuation;
     bool readOnly {false};
     int inConstructor {0};
     uint64_t tid; // thread identifier
@@ -213,7 +213,7 @@ namespace ustm {
         std::cout << "ustm: too many retries: " << std::endl; abort();}
       myd->reset();
       uepoch::get_epoch().unannounce();
-      std::longjmp(myd->continuation, 1);
+      throw 0; //std::longjmp(myd->continuation, 1);
     }
 
     STM() { for (int i=0; i < MAX_THREADS; i++) opDesc[i].tid = i; }
@@ -286,16 +286,19 @@ namespace ustm {
     d = myd; // set the thread local (note d is a ref type)
     myd->numRetries = 0;
     myd->readOnly = readOnly;
-    setjmp(myd->continuation); // return to here if aborted
-    // Using lazy timestamps from verlib.  Only increments
-    // on second try avoiding too many increments.
-    auto retval = uepoch::protect([&] {
-      if (myd->numRetries == 0) myd->startStamp = stm->ts.getStamp();
-      else if (readOnly) stm->ts.nextStamp();
-      else myd->startStamp = stm->ts.nextStamp();
-      return func();});
-    stm->commitTransaction(myd);
-    return retval;
+    while (true) {
+      try {
+        // Using lazy timestamps from verlib.  Only increments
+        // on second try avoiding too many increments.
+        auto retval = uepoch::protect([&] {
+                                        if (myd->numRetries == 0) myd->startStamp = stm->ts.getStamp();
+                                        else if (readOnly) stm->ts.nextStamp();
+                                        else myd->startStamp = stm->ts.nextStamp();
+                                        return func();});
+        stm->commitTransaction(myd);
+        return retval;
+      } catch (int x) {}
+    }
   } 
 
   // adds to log so can delete if aborted
