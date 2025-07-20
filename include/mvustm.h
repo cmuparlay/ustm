@@ -15,13 +15,17 @@
 #include <atomic>
 #include <bitset>
 #include <cmath>
-//#include <csetjmp>
 #include <functional>
 #include <iostream>
 #include <thread>
 #include <unordered_map>
 #include <vector>
 #include "uepoch.h"
+
+#define LongJmp
+#ifdef LongJmp
+#include <csetjmp>
+#endif
 
 #define MAX_THREADS 4096 // arbitrary, can be increased
 
@@ -114,7 +118,9 @@ namespace ustm {
 
   // Transaction descriptor, includes the logs, stats, and other state
   struct alignas(128) Descriptor {
-    //std::jmp_buf continuation;
+#ifdef LongJmp
+    std::jmp_buf continuation;
+#endif
     bool readOnly {false};
     int inConstructor {0};
     uint64_t tid; // thread identifier
@@ -213,7 +219,11 @@ namespace ustm {
         std::cout << "ustm: too many retries: " << std::endl; abort();}
       myd->reset();
       uepoch::get_epoch().unannounce();
-      throw 0; //std::longjmp(myd->continuation, 1);
+#ifdef LongJmp
+      std::longjmp(myd->continuation, 1);
+#else
+      throw abort();
+#endif
     }
 
     STM() { for (int i=0; i < MAX_THREADS; i++) opDesc[i].tid = i; }
@@ -286,8 +296,12 @@ namespace ustm {
     d = myd; // set the thread local (note d is a ref type)
     myd->numRetries = 0;
     myd->readOnly = readOnly;
+#ifdef LongJmp
+    setjmp(myd->continuation); // return to here if aborted
+#else
     while (true) {
       try {
+#endif
         // Using lazy timestamps from verlib.  Only increments
         // on second try avoiding too many increments.
         auto retval = uepoch::protect([&] {
@@ -297,8 +311,10 @@ namespace ustm {
                                         return func();});
         stm->commitTransaction(myd);
         return retval;
+#ifndef LongJmp
       } catch (int x) {}
     }
+#endif
   } 
 
   // adds to log so can delete if aborted
