@@ -26,8 +26,6 @@
 
 namespace ustm {
 
-  bool checking = false;
-  
   using TS = uint64_t; // type for timestamps
   struct timeStamp {
     std::atomic<TS> ts = 1ul;
@@ -72,7 +70,7 @@ namespace ustm {
     // If locked (high bit set) keeps tid of owner, otherwise keeps timestamp
     std::atomic<Status> v = 1; 
     std::atomic<version*> verlist = nullptr; // the version list
-    TS oldStamp; // used to temporarily stash old stamp when locked
+    TS previousStamp = 0; // stamp of previous update
     lock() {}
     static int getTID(Status s) { return ~(1ul << 63) & s;}
     static TS getStamp(Status s) { return s;}
@@ -81,6 +79,7 @@ namespace ustm {
     static Status setLock(int tid) {return Status((1ul << 63) | tid);}
     Status getStatus() const { return v.load(std::memory_order_acquire);}
     version* getVersionList() const { return verlist.load();}
+    void setStamp(TS stamp) { v.store(stamp, std::memory_order_release); }
     enum lckResult {Acquired, Self, Failed};
     
     // Returns whether acquired, self owned, or failed (i.e., locked
@@ -92,7 +91,7 @@ namespace ustm {
         else return Failed;
       if (isPrior(s, startStamp) &&
           v.compare_exchange_strong(s, setLock(tid))) {
-        oldStamp = getStamp(s);
+        previousStamp = getStamp(s);
         return Acquired;
       } else return Failed;
     }
@@ -100,12 +99,13 @@ namespace ustm {
     // unlocks by setting status to timestamp
     // timeStamp == 0 indicates it aborted, so restore stamp
     void unlock(const TS ts) {
-      v.store((ts == 0) ? oldStamp : ts, std::memory_order_release); }
+      v.store((ts == 0) ? previousStamp : ts, std::memory_order_release); }
 
     // add to version list
-    void addLink(version* l) {
+    void addLink(version* l, TS endStamp) {
       l->next = verlist.load();
-      l->stamp = oldStamp;
+      l->stamp = previousStamp;
+      previousStamp = endStamp;
       verlist.store(l, std::memory_order_release); }
 
     // checks that either self locked or timestamp has not changed
@@ -194,7 +194,7 @@ namespace ustm {
           std::memcpy(destLocation, dataLocation, size);
           std::memcpy(dataLocation, tmp, size);
           // add link to version list
-          getLock(destLocation).addLink(ver);
+          getLock(destLocation).addLink(ver, endStamp);
         }
         std::atomic_thread_fence(std::memory_order_release);
         for (auto& e : myd->writeLog) // unlock writes
@@ -248,39 +248,27 @@ namespace ustm {
       char tmp[sizeof(T)];
       auto olds = status;
       std::memcpy(tmp, &v, sizeof(T));
+      version* nxt = lck.getVersionList();
       std::atomic_thread_fence(std::memory_order_acquire);
       status = lck.getStatus();
       if (!lck.isLocked(olds) && olds == status) {
-        if (myd == nullptr) return *((T*) tmp);
+        if (myd == nullptr || unprotected) return *((T*) tmp);
         if (!myd->readOnly) myd->readLog.push_back(&v); // to validate later
         TS stamp = lck.getStamp(status);
-        if (checking) std::cout << "(" << stamp << "," << myd->startStamp << ")";
         if (stamp < myd->startStamp) return *((T*) tmp);
-        if (checking) std::cout << "x ";
-        // Because of lazy stamps, we need to abort if on the first try
-        // we see a timestamp equal to the startstamp.
-        if (!myd->readOnly ||
+        if (!myd->readOnly || // always abort if updating
+            // For read we need to abort if on the first try
+            // we see a timestamp equal to the startstamp.
             (stamp == myd->startStamp && myd->numRetries == 0))
           myd->toAbort = true;
-        version* nxt = lck.getVersionList();
-        version* found = nullptr;
+        T* location = (T*) tmp;
         // Chase down the version list to the right one
-        if (checking) std::cout << "[" << nxt->stamp << "," << myd->startStamp << "]";
-        while (nxt != nullptr && stamp >= myd->startStamp ) {
-          if (nxt->check != 27)
-            std::cout << "encountered deleted version link: "
-                      << nxt->check << ", " << myd->startStamp << ", "
-                      << nxt->stamp << ", " << stamp
-                      << ", " << stm->ts.getStamp()
-                      << ", " << prev << std::endl;
-          if (nxt->addr == &v) found = nxt;
+        while (stamp >= myd->startStamp && nxt != nullptr) {
+          if (nxt->addr == &v) location = &((link<T>*) nxt)->value;
           stamp = nxt->stamp;
           nxt = nxt->next;
         }
-        if (nxt != nullptr && nxt->check != 27)
-          std::cout << "encountered deleted version link" << std::endl;
-        if (nxt != nullptr && nxt->addr == &v) found = nxt;
-        return (found == nullptr) ? *((T*) tmp) : ((link<T>*) found)->value;
+        return *location;
       }
     }
   }
@@ -350,7 +338,9 @@ namespace ustm {
       myd->writeMap[&loc] = myd->writeLog.size();
       myd->writeLog.push_back(std::tuple(&loc, (version*) hp, &hp->value,
                                          sizeof(T), false));
-    } else loc = v;
+    } else {
+      loc = v;
+    }
   }
 } // End namespace ustm
 

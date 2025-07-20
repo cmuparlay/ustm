@@ -145,9 +145,11 @@ struct ordered_map {
     if (!is_found(prev, to_delete, k)) return false;
     prev->next[level] = to_delete->next[level].load();
     while (--level >= 0) {
-      node* tmp;
-      while ((tmp = prev->next[level].load()) != to_delete) // find where to splice out
+      while (true)  {
+        node* tmp = prev->next[level].load();
+        if (tmp == to_delete) break;
         prev = tmp;
+      }
       prev->next[level] = to_delete->next[level].load();
     }
     to_delete->removed = true;
