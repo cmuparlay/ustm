@@ -68,12 +68,12 @@ namespace ustm {
     link(T* addr, T value) : version{addr}, value(value) {}
   };
 
-  struct alignas(32) lock {
+    struct alignas(32) lock {
     using Status = uint64_t;
     // If locked (high bit set) keeps tid of owner, otherwise keeps timestamp
     std::atomic<Status> v = 1; 
     std::atomic<version*> verlist = nullptr; // the version list
-    TS oldStamp; // used to temporarily stash old stamp when locked
+    TS previousStamp = 0; // stamp of previous update
     lock() {}
     static int getTID(Status s) { return ~(1ul << 63) & s;}
     static TS getStamp(Status s) { return s;}
@@ -82,6 +82,7 @@ namespace ustm {
     static Status setLock(int tid) {return Status((1ul << 63) | tid);}
     Status getStatus() const { return v.load(std::memory_order_acquire);}
     version* getVersionList() const { return verlist.load();}
+    void setStamp(TS stamp) { v.store(stamp, std::memory_order_release); }
     enum lckResult {Acquired, Self, Failed};
     
     // Returns whether acquired, self owned, or failed (i.e., locked
@@ -93,7 +94,7 @@ namespace ustm {
         else return Failed;
       if (isPrior(s, startStamp) &&
           v.compare_exchange_strong(s, setLock(tid))) {
-        oldStamp = getStamp(s);
+        previousStamp = getStamp(s);
         return Acquired;
       } else return Failed;
     }
@@ -101,12 +102,13 @@ namespace ustm {
     // unlocks by setting status to timestamp
     // timeStamp == 0 indicates it aborted, so restore stamp
     void unlock(const TS ts) {
-      v.store((ts == 0) ? oldStamp : ts, std::memory_order_release); }
+      v.store((ts == 0) ? previousStamp : ts, std::memory_order_release); }
 
     // add to version list
-    void addLink(version* l) {
+    void addLink(version* l, TS endStamp) {
       l->next = verlist.load();
-      l->stamp = oldStamp;
+      l->stamp = previousStamp;
+      previousStamp = endStamp;
       verlist.store(l, std::memory_order_release); }
 
     // checks that either self locked or timestamp has not changed
@@ -189,15 +191,16 @@ namespace ustm {
         // If here (i.e. locks and validates succeeded), transaction
         // succeeded.  Apply the writes and then unlock them.
         for (auto& e : myd->writeLog) {
-          auto [loc, ver, valloc, size, selfLocked] = e;
+          auto [destLocation, ver, dataLocation, size, selfLocked] = e;
           char* tmp[size];
-          // swap loc and data in lnk, and add link to version list
-          std::memcpy(tmp, loc, size);
-          std::memcpy(loc, valloc, size);
-          std::memcpy(valloc, tmp, size);
-          getLock(loc).addLink(ver);
-          std::atomic_thread_fence(std::memory_order_release);
+          // swap destination and data (from the link)
+          std::memcpy(tmp, destLocation, size);
+          std::memcpy(destLocation, dataLocation, size);
+          std::memcpy(dataLocation, tmp, size);
+          // add link to version list
+          getLock(destLocation).addLink(ver, endStamp);
         }
+        std::atomic_thread_fence(std::memory_order_release);
         for (auto& e : myd->writeLog) // unlock writes
           if (std::get<4>(e))
             getLock(std::get<0>(e)).unlock(endStamp);
@@ -248,41 +251,36 @@ namespace ustm {
       if (a != myd->writeMap.end()) 
         return ((link<T>*) std::get<1>(myd->writeLog[(*a).second]))->value;
     }
+    version* nxt;
     char tmp[sizeof(T)];
     while (true) {
       auto olds = status;
       std::memcpy(tmp, &v, sizeof(T));
+      nxt = lck.getVersionList();
       std::atomic_thread_fence(std::memory_order_acquire);
       status = lck.getStatus();
-      if (myd == nullptr || unprotected) {
-        if (!lck.isLocked(olds) && olds == status)
-          return *((T*) tmp);
-      } else if (myd->readOnly) {
-        if (!lck.isLocked(olds) && olds == status) {
-          TS stamp = lck.getStamp(status);
-          if (stamp < myd->startStamp) return *((T*) tmp);
-          // Because of lazy stamps, we need to abort if on the first try
-          // we see a timestamp equal to the startstamp.
-          if (stamp == myd->startStamp && myd->numRetries == 0)
-            stm->abortTransaction(myd);
-          version* nxt = lck.getVersionList();
-          version* found = nullptr;
-          // Chase down the version list to the right one
-          while (nxt != nullptr && nxt->stamp >= myd->startStamp ) {
-            if (nxt->addr == &v) found = nxt;
-            nxt = nxt->next;
-          }
-          if (nxt != nullptr && nxt->addr == &v) found = nxt;
-          return (found == nullptr) ? *((T*) tmp) : ((link<T>*) found)->value;
-        }
-      } else {
-        if (lck.isPrior(olds, myd->startStamp) && olds == status) {
-          myd->readLog.push_back(&v); // to validate later
-          return *((T*) tmp);
-        } else stm->abortTransaction(myd); }
+      if (!lck.isLocked(olds) && olds == status) break;
     }
+    if (myd == nullptr || unprotected) return *((T*) tmp);
+    TS stamp = lck.getStamp(status);
+    if (!myd->readOnly) {
+      if (stamp < myd->startStamp) {
+        myd->readLog.push_back(&v);
+        return *((T*) tmp);
+      } else stm->abortTransaction(myd);
+    } else {
+      if (stamp == myd->startStamp && myd->numRetries == 0)
+        stm->abortTransaction(myd);
+    }
+    T* location = (T*) tmp;
+    // Chase down the version list to the right one
+    while (stamp >= myd->startStamp && nxt != nullptr) {
+      if (nxt->addr == &v) location = &((link<T>*) nxt)->value;
+      stamp = nxt->stamp;
+      nxt = nxt->next;
+    }
+    return *location;
   }
-
 
   // runs func in an transaction
   // func takes no argument and must return a value

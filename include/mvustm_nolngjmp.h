@@ -22,6 +22,11 @@
 #include <vector>
 #include "uepoch.h"
 
+#define TryThrow
+#ifdef LongJmp
+#include <csetjmp>
+#endif
+
 #define MAX_THREADS 4096 // arbitrary, can be increased
 
 namespace ustm {
@@ -31,12 +36,12 @@ namespace ustm {
     std::atomic<TS> ts = 1ul;
     // returns current stamp
     TS getStamp() const { return ts.load(); }
-    TS nextStamp(long delay=500) { // returns incremented stamp
-      TS ts1 = ts.load(); // delay and try again to avoid fetch-and-increment
-      for (volatile int i = 1; i < delay; i++) {}
-      TS ts2 = ts.load();
-      if (ts1 == ts2) return ++ts; // fetch and increment
-      else return ts2;
+    TS nextStamp() { // returns incremented stamp
+      TS stamp1 = ts.load(); // delay and try again to avoid fetch-and-increment
+      for (volatile int i = 1; i < 500; i++) {}
+      TS stamp2 = ts.load();
+      if (stamp1 == stamp2) return ++ts; // fetch and increment
+      else return stamp2;
     }
   };
 
@@ -53,9 +58,7 @@ namespace ustm {
     version* next = nullptr;
     TS stamp = 0;
     void* addr;
-    int check = 27;
     version(void* addr) : addr(addr) {}
-    ~version() {check = -1;}
   };
 
   // link including a type specific value
@@ -117,6 +120,9 @@ namespace ustm {
 
   // Transaction descriptor, includes the logs, stats, and other state
   struct alignas(128) Descriptor {
+#ifdef LongJmp
+    std::jmp_buf continuation;
+#endif
     bool readOnly {false};
     bool toAbort {false};
     int inConstructor {0};
@@ -209,6 +215,14 @@ namespace ustm {
       return true;
     }
 
+    void abortTx(Descriptor* myd) {
+#if defined(LongJmp) || defined(TryThrow)
+      abortTransaction(myd);
+#elif defined(TryThrow)
+      myd->toAbort = true;      
+#endif
+    }
+      
     inline void abortTransaction(Descriptor* myd) {
       // Release locks and apply deletes to allocated objects.
       for (auto& e : myd->writeLog) 
@@ -218,6 +232,11 @@ namespace ustm {
       if (++myd->numRetries % 4000000 == 0) { 
         std::cout << "ustm: too many retries: " << std::endl; abort();}
       myd->reset();
+#ifdef LongJmp
+      std::longjmp(myd->continuation, 1);
+#elifdef TryThrow
+      throw 0;
+#endif      
     }
 
     STM() {
@@ -244,33 +263,84 @@ namespace ustm {
       if (a != myd->writeMap.end()) 
         return ((link<T>*) std::get<1>(myd->writeLog[(*a).second]))->value;
     }
-    while (true) {
-      char tmp[sizeof(T)];
+
+    version* nxt;
+    char tmp[sizeof(T)];
+    while (true) { 
       auto olds = status;
       std::memcpy(tmp, &v, sizeof(T));
-      version* nxt = lck.getVersionList();
+      nxt = lck.getVersionList();
       std::atomic_thread_fence(std::memory_order_acquire);
       status = lck.getStatus();
-      if (!lck.isLocked(olds) && olds == status) {
-        if (myd == nullptr || unprotected) return *((T*) tmp);
-        if (!myd->readOnly) myd->readLog.push_back(&v); // to validate later
-        TS stamp = lck.getStamp(status);
-        if (stamp < myd->startStamp) return *((T*) tmp);
-        if (!myd->readOnly || // always abort if updating
-            // For read we need to abort if on the first try
-            // we see a timestamp equal to the startstamp.
-            (stamp == myd->startStamp && myd->numRetries == 0))
-          myd->toAbort = true;
-        T* location = (T*) tmp;
-        // Chase down the version list to the right one
-        while (stamp >= myd->startStamp && nxt != nullptr) {
-          if (nxt->addr == &v) location = &((link<T>*) nxt)->value;
-          stamp = nxt->stamp;
-          nxt = nxt->next;
-        }
-        return *location;
-      }
+      if (!lck.isLocked(olds) && olds == status) break;
     }
+    if (myd == nullptr || unprotected) return *((T*) tmp);
+    if (!myd->readOnly) myd->readLog.push_back(&v); // to validate later
+    TS stamp = lck.getStamp(status);
+    if (stamp < myd->startStamp) return *((T*) tmp);
+    if (!myd->readOnly || // always abort if updating
+        // For read we need to abort if on the first try
+        // we see a timestamp equal to the startstamp.
+        (stamp == myd->startStamp && myd->numRetries == 0))
+      myd->toAbort = true;
+    T* location = (T*) tmp;
+    // Chase down the version list to the right one
+    while (stamp >= myd->startStamp && nxt != nullptr) {
+      if (nxt->addr == &v) location = &((link<T>*) nxt)->value;
+      stamp = nxt->stamp;
+      nxt = nxt->next;
+    }
+    return *location;
+  }
+
+  template <typename T>
+  inline T load_(T& v, bool unprotected=false) {
+    STM* stm = getStmState();
+    Descriptor* myd = getDescriptor();
+    lock& lck = stm->getLock(&v);
+    auto status = lck.getStatus();
+
+    // check if value is in the write buffer
+    if (myd != nullptr && myd->writeFilter[hash(&v) & 1023ul]) {
+      auto a = myd->writeMap.find((void*) &v);
+      if (a != myd->writeMap.end()) 
+        return ((link<T>*) std::get<1>(myd->writeLog[(*a).second]))->value;
+    }
+
+    // get a snapshot of the value (tmp) and head of the verion list (nxt)
+    version* nxt;
+    char tmp[sizeof(T)];
+    while (true) { 
+      auto olds = status;
+      std::memcpy(tmp, &v, sizeof(T));
+      nxt = lck.getVersionList();
+      std::atomic_thread_fence(std::memory_order_acquire);
+      status = lck.getStatus();
+      if (!lck.isLocked(olds) && olds == status) break;
+    }
+    // if not in transaction or unprotected then retun
+    if (myd == nullptr || unprotected) return *((T*) tmp);
+
+    TS stamp = lck.getStamp(status);
+    if (myd->readOnly) {
+      // if read only, due to lazy timestamps we have to abort
+      // if first try and we see our start stamp.
+      if (stamp == myd->startStamp && myd->numRetries == 0)
+        stm->abortTx(myd);
+    } else {
+      if (stamp < myd->startStamp) {
+        myd->readLog.push_back(&v);
+        return *((T*) tmp);
+      } else stm->abortTx(myd);
+    }
+    // Now chase down the version list to the right value
+    T* location = (T*) tmp;
+    while (stamp >= myd->startStamp && nxt != nullptr) {
+      if (nxt->addr == &v) location = &((link<T>*) nxt)->value;
+      stamp = nxt->stamp;
+      nxt = nxt->next;
+    }
+    return *location;
   }
 
   // runs func in an transaction
@@ -285,7 +355,14 @@ namespace ustm {
     d = myd; // set the thread local (note d is a ref type)
     myd->numRetries = 0;
     myd->readOnly = readOnly;
+#ifdef LongJmp
+    setjmp(myd->continuation); // return to here if aborted
+#elifdef TryThrow
     while (true) {
+      try {
+#else
+    while (true) {
+#endif
     // Using lazy timestamps from verlib.  Only increments
     // on second try avoiding too many increments.
       auto retval = uepoch::protect([&] {
@@ -293,10 +370,20 @@ namespace ustm {
         else if (readOnly) stm->ts.nextStamp();
         else myd->startStamp = stm->ts.nextStamp();
         return func();});
+#ifdef LongJmp
+      stm->commitTransaction(myd);
+      return retval;
+#elifdef TryThrow
+      stm->commitTransaction(myd);
+      return retval;
+    } catch (int x) {}
+  }
+#else
       if (!myd->toAbort && stm->commitTransaction(myd))
         return retval;
       stm->abortTransaction(myd);
     }
+#endif
   } 
 
   // adds to log so can delete if aborted
