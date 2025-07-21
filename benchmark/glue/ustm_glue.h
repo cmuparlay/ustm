@@ -6,9 +6,9 @@ namespace stm {
   auto atomic_region(F &&func) {return ustm::atomic_region(func); }
   template <typename F>
 #ifdef MV
-  auto atomic_read_only(F &&func) { return ustm::atomic_read_only(func); }
+  auto atomic_read_only(F &&func, bool large = false) { return ustm::transaction(func); }
 #else
-  auto atomic_read_only(F &&func) { return ustm::atomic_region(func); }
+  auto atomic_read_only(F &&func, bool large = false) { return atomic_region(func); }
 #endif
   template <typename F>
   auto atomic_read_only_singleton(F &&func) {

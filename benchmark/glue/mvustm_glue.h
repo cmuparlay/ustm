@@ -1,19 +1,14 @@
 #include <type_traits>
-#ifdef NoJmp
 #include <mvustm_nolngjmp.h>
-#else
-#include <mvustm.h>
-#endif
-
 namespace stm {
 
   template <typename F>
   auto atomic_region(F &&func) {return ustm::transaction(func); }
   template <typename F>
 #ifdef MV
-  auto atomic_read_only(F &&func) { return ustm::transaction(func, true); }
+  auto atomic_read_only(F &&func, bool large = false) { return ustm::transaction(func, true, large); }
 #else
-  auto atomic_read_only(F &&func) { return atomic_region(func); }
+  auto atomic_read_only(F &&func, bool large = false) { return atomic_region(func, false, large); }
 #endif
   template <typename F>
   auto atomic_read_only_singleton(F &&func) {

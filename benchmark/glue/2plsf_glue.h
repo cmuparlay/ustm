@@ -15,7 +15,7 @@ namespace stm {
   }
 
   template <typename F>
-  auto atomic_read_only(F &&func) {
+  auto atomic_read_only(F &&func, bool large = false) {
     if constexpr (std::is_void_v<std::invoke_result_t<F>>) {
      ext_stm::readTx(func);
   } else {

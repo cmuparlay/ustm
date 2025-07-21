@@ -207,7 +207,7 @@ double run_mixed_operations(parlay::sequence<K>& all,
             long cnt = 0;
             auto addf = [&] (K k, V v) { cnt++; };
             tr.range(addf, begin, end);
-            return cnt;});
+            return cnt;}, range_size > 1000);
           j += trans_size;
           jj += trans_size;
           continue;

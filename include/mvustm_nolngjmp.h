@@ -22,7 +22,6 @@
 #include <vector>
 #include "uepoch.h"
 
-#define TryThrow
 #ifdef LongJmp
 #include <csetjmp>
 #endif
@@ -125,6 +124,7 @@ namespace ustm {
 #endif
     bool readOnly {false};
     bool toAbort {false};
+    bool large {false};
     int inConstructor {0};
     uint64_t tid; // thread identifier
     uint64_t numRetries {0};    
@@ -218,7 +218,7 @@ namespace ustm {
     void abortTx(Descriptor* myd) {
 #if defined(LongJmp) || defined(TryThrow)
       abortTransaction(myd);
-#elif defined(TryThrow)
+#else
       myd->toAbort = true;      
 #endif
     }
@@ -325,7 +325,8 @@ namespace ustm {
     if (myd->readOnly) {
       // if read only, due to lazy timestamps we have to abort
       // if first try and we see our start stamp.
-      if (stamp == myd->startStamp && myd->numRetries == 0)
+      //if (!myd->large && stamp == myd->startStamp && myd->numRetries == 0)
+      if (!myd->large && stamp == myd->startStamp && myd->numRetries == 0)
         stm->abortTx(myd);
     } else {
       if (stamp < myd->startStamp) {
@@ -346,7 +347,7 @@ namespace ustm {
   // runs func in an transaction
   // func takes no argument and must return a value
   template<typename F>
-  inline auto transaction(F&& func, bool readOnly = false) {
+  inline auto transaction(F&& func, bool readOnly = false, bool large = false) {
     STM* stm = getStmState();
     Descriptor*& d = getDescriptor();
     if (d != nullptr) return func(); // if nested then just run
@@ -355,6 +356,7 @@ namespace ustm {
     d = myd; // set the thread local (note d is a ref type)
     myd->numRetries = 0;
     myd->readOnly = readOnly;
+    myd->large = large;
 #ifdef LongJmp
     setjmp(myd->continuation); // return to here if aborted
 #elifdef TryThrow
@@ -366,15 +368,18 @@ namespace ustm {
     // Using lazy timestamps from verlib.  Only increments
     // on second try avoiding too many increments.
       auto retval = uepoch::protect([&] {
-        if (myd->numRetries == 0) myd->startStamp = stm->ts.getStamp();
+        if (large) myd->startStamp = stm->ts.nextStamp();
+        else if (myd->numRetries == 0) myd->startStamp = stm->ts.getStamp();
         else if (readOnly) stm->ts.nextStamp();
         else myd->startStamp = stm->ts.nextStamp();
         return func();});
 #ifdef LongJmp
-      stm->commitTransaction(myd);
+      if (!stm->commitTransaction(myd))
+        stm->abortTransaction(myd);
       return retval;
 #elifdef TryThrow
-      stm->commitTransaction(myd);
+      if (!stm->commitTransaction(myd))
+        stm->abortTransaction(myd);
       return retval;
     } catch (int x) {}
   }
@@ -392,9 +397,14 @@ namespace ustm {
     Descriptor* myd = getDescriptor();
     if (myd != nullptr) {
       myd->inConstructor++;
+#ifdef LongJmp
       T* ptr = (T*) std::malloc(sizeof(T));
       myd->allocLog.push_back([=] {delete ptr;});
       new (ptr) T(args...);
+#else
+      T* ptr = new T(args...);
+      myd->allocLog.push_back([=] {delete ptr;});
+#endif      
       myd->inConstructor--;
       return ptr;
     } else {
