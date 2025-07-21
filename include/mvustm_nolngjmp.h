@@ -11,22 +11,22 @@
 
 #ifndef USTM_H_
 #define USTM_H_
-
+#include <array>
 #include <atomic>
 #include <bitset>
 #include <cmath>
 #include <functional>
 #include <iostream>
 #include <thread>
+#include <tuple>
 #include <unordered_map>
 #include <vector>
 #include "uepoch.h"
-
 #ifdef LongJmp
 #include <csetjmp>
 #endif
 
-#define MAX_THREADS 4096 // arbitrary, can be increased
+constexpr int MaxThreads=4096; // arbitrary, can be increased
 
 namespace ustm {
 
@@ -166,8 +166,8 @@ namespace ustm {
   struct STM {
     // state consists of locks, descriptors, and timestamp
     static constexpr uint64_t numLocks = 1ul << 18; // 256K locks
-    Descriptor opDesc[MAX_THREADS];
-    lock writeLocks[numLocks];
+    std::array<Descriptor,MaxThreads> opDesc;
+    std::array<lock,numLocks> writeLocks;
     timeStamp ts;
 
     // Returns a lock corresponding to a hash of the address
@@ -226,13 +226,13 @@ namespace ustm {
       myd->reset();
 #ifdef LongJmp
       std::longjmp(myd->continuation, 1);
-#elifdef TryThrow
+#elif defined(TryThrow)
       throw 0;
 #endif      
     }
 
     STM() {
-      for (int i=0; i < MAX_THREADS; i++) opDesc[i].tid = i;
+      for (int i=0; i < MaxThreads; i++) opDesc[i].tid = i;
       uepoch::add_before_epoch_hook([&] { ts.nextStamp(); }); }
     ~STM() {}
   };
@@ -305,7 +305,7 @@ namespace ustm {
     myd->large = large;
 #ifdef LongJmp
     setjmp(myd->continuation); // return to here if aborted
-#elifdef TryThrow
+#elif defined(TryThrow)
     while (true) {
       try {
 #else
@@ -323,7 +323,7 @@ namespace ustm {
       if (!stm->commitTransaction(myd))
         stm->abortTransaction(myd);
       return retval;
-#elifdef TryThrow
+#elif defined(TryThrow)
       if (!stm->commitTransaction(myd))
         stm->abortTransaction(myd);
       return retval;
