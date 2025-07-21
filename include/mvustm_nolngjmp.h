@@ -215,14 +215,6 @@ namespace ustm {
       return true;
     }
 
-    void abortTx(Descriptor* myd) {
-#if defined(LongJmp) || defined(TryThrow)
-      abortTransaction(myd);
-#else
-      myd->toAbort = true;      
-#endif
-    }
-      
     inline void abortTransaction(Descriptor* myd) {
       // Release locks and apply deletes to allocated objects.
       for (auto& e : myd->writeLog) 
@@ -281,61 +273,15 @@ namespace ustm {
     if (!myd->readOnly || // always abort if updating
         // For read we need to abort if on the first try
         // we see a timestamp equal to the startstamp.
-        (stamp == myd->startStamp && myd->numRetries == 0))
-      myd->toAbort = true;
+        (!myd->large && stamp == myd->startStamp && myd->numRetries == 0)) {
+#if defined(LongJmp) || defined(TryThrow)
+      stm->abortTransaction(myd);
+#else
+      myd->toAbort = true;      
+#endif
+    }
     T* location = (T*) tmp;
     // Chase down the version list to the right one
-    while (stamp >= myd->startStamp && nxt != nullptr) {
-      if (nxt->addr == &v) location = &((link<T>*) nxt)->value;
-      stamp = nxt->stamp;
-      nxt = nxt->next;
-    }
-    return *location;
-  }
-
-  template <typename T>
-  inline T load_(T& v, bool unprotected=false) {
-    STM* stm = getStmState();
-    Descriptor* myd = getDescriptor();
-    lock& lck = stm->getLock(&v);
-    auto status = lck.getStatus();
-
-    // check if value is in the write buffer
-    if (myd != nullptr && myd->writeFilter[hash(&v) & 1023ul]) {
-      auto a = myd->writeMap.find((void*) &v);
-      if (a != myd->writeMap.end()) 
-        return ((link<T>*) std::get<1>(myd->writeLog[(*a).second]))->value;
-    }
-
-    // get a snapshot of the value (tmp) and head of the verion list (nxt)
-    version* nxt;
-    char tmp[sizeof(T)];
-    while (true) { 
-      auto olds = status;
-      std::memcpy(tmp, &v, sizeof(T));
-      nxt = lck.getVersionList();
-      std::atomic_thread_fence(std::memory_order_acquire);
-      status = lck.getStatus();
-      if (!lck.isLocked(olds) && olds == status) break;
-    }
-    // if not in transaction or unprotected then retun
-    if (myd == nullptr || unprotected) return *((T*) tmp);
-
-    TS stamp = lck.getStamp(status);
-    if (myd->readOnly) {
-      // if read only, due to lazy timestamps we have to abort
-      // if first try and we see our start stamp.
-      //if (!myd->large && stamp == myd->startStamp && myd->numRetries == 0)
-      if (!myd->large && stamp == myd->startStamp && myd->numRetries == 0)
-        stm->abortTx(myd);
-    } else {
-      if (stamp < myd->startStamp) {
-        myd->readLog.push_back(&v);
-        return *((T*) tmp);
-      } else stm->abortTx(myd);
-    }
-    // Now chase down the version list to the right value
-    T* location = (T*) tmp;
     while (stamp >= myd->startStamp && nxt != nullptr) {
       if (nxt->addr == &v) location = &((link<T>*) nxt)->value;
       stamp = nxt->stamp;
@@ -435,9 +381,7 @@ namespace ustm {
       myd->writeMap[&loc] = myd->writeLog.size();
       myd->writeLog.push_back(std::tuple(&loc, (version*) hp, &hp->value,
                                          sizeof(T), false));
-    } else {
-      loc = v;
-    }
+    } else loc = v;
   }
 } // End namespace ustm
 

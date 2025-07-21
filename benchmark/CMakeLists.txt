@@ -1,6 +1,7 @@
 set(SOURCES mixed_operation_benchmark.cpp)
 set(STRUCT_DIR ${PROJECT_SOURCE_DIR}/structures)
 set(OTHER_DIR ${PROJECT_SOURCE_DIR}/other)
+set(BENCH_FILES "runtests.py")
 
 set(STRUCTS "treap" "leaftree" "btree" "arttree" "hash_block" "list" "skiplist")
 
