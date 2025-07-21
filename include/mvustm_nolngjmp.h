@@ -29,20 +29,31 @@
 constexpr int MaxThreads=4096; // arbitrary, can be increased
 
 namespace ustm {
-
   using TS = uint64_t; // type for timestamps
+
+#ifdef HWStamp
+  struct timeStamp {
+    TS getStamp() {
+      unsigned int lo,hi;
+      __asm__ __volatile__ ("rdtsc" : "=a" (lo), "=d" (hi));
+      return (TS) (((uint64_t)(hi & ~(1<<31)) << 32) | lo);
+    }
+    TS nextStamp() { return getStamp(); }
+  };
+#else
   struct timeStamp {
     std::atomic<TS> ts = 1ul;
     // returns current stamp
     TS getStamp() const { return ts.load(); }
     TS nextStamp() { // returns incremented stamp
-      TS stamp1 = ts.load(); // delay and try again to avoid fetch-and-increment
+      TS stamp1 = ts.load(); // delay to avoid fetch-and-increment
       for (volatile int i = 1; i < 500; i++) {}
       TS stamp2 = ts.load();
       if (stamp1 == stamp2) return ++ts; // fetch and increment
       else return stamp2;
     }
   };
+#endif
 
   // Returns a unique thread id for each thread.
   // Increments numThreads first time it is called.
@@ -161,11 +172,11 @@ namespace ustm {
   }
 
   int hash(const void* addr) {
-    return ((uint64_t)(addr) >> 5) * UINT64_C(0xbf58476d1ce4e5b9); }
+    return (reinterpret_cast<size_t>(addr)>>6)*UINT64_C(0xbf58476d1ce4e5b9); }
 
   struct STM {
     // state consists of locks, descriptors, and timestamp
-    static constexpr uint64_t numLocks = 1ul << 18; // 256K locks
+    static constexpr uint64_t numLocks = 1ul << 21; 
     std::array<Descriptor,MaxThreads> opDesc;
     std::array<lock,numLocks> writeLocks;
     timeStamp ts;
@@ -225,15 +236,18 @@ namespace ustm {
         std::cout << "ustm: too many retries: " << std::endl; abort();}
       myd->reset();
 #ifdef LongJmp
+      uepoch::get_epoch().unannounce();
       std::longjmp(myd->continuation, 1);
 #elif defined(TryThrow)
+      uepoch::get_epoch().unannounce();
       throw 0;
 #endif      
     }
 
     STM() {
       for (int i=0; i < MaxThreads; i++) opDesc[i].tid = i;
-      uepoch::add_before_epoch_hook([&] { ts.nextStamp(); }); }
+      uepoch::add_before_epoch_hook([&] { ts.nextStamp(); });
+    }
     ~STM() {}
   };
 
@@ -252,8 +266,10 @@ namespace ustm {
     // check if value is in the write buffer
     if (myd != nullptr && myd->writeFilter[hash(&v) & 1023ul]) {
       auto a = myd->writeMap.find((void*) &v);
-      if (a != myd->writeMap.end()) 
-        return ((link<T>*) std::get<1>(myd->writeLog[(*a).second]))->value;
+      if (a != myd->writeMap.end()) {
+        version* ptr = std::get<1>(myd->writeLog[(*a).second]);
+        return (reinterpret_cast<link<T>*>(ptr))->value;
+      }
     }
 
     version* nxt;
@@ -379,7 +395,7 @@ namespace ustm {
       // add to write map (and filter) so reads can find it
       myd->writeFilter[hash(&loc) & 1023ul] = 1;
       myd->writeMap[&loc] = myd->writeLog.size();
-      myd->writeLog.push_back(std::tuple(&loc, (version*) hp, &hp->value,
+      myd->writeLog.push_back(std::tuple(&loc, hp, &hp->value,
                                          sizeof(T), false));
     } else loc = v;
   }

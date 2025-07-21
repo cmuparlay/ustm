@@ -1,5 +1,9 @@
 #include <type_traits>
+#ifdef OldSTM
+#include <mvustm.h>
+#else
 #include <mvustm_nolngjmp.h>
+#endif
 namespace stm {
 
   template <typename F>

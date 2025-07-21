@@ -66,7 +66,6 @@ namespace ustm {
   // getStamp() returns the current time stamp
   // nextStamp() returns incremented stamp
   using TS = uint64_t; // type for timestamps
-#define HW_STAMP
 #ifdef HW_STAMP // use hardware timestamp (works with intel x86)
   struct timeStamp {
     TS getStamp() {
@@ -76,7 +75,7 @@ namespace ustm {
     }
     TS nextStamp() { return getStamp(); }
   };
-#else // use software timestamp 
+#else // use software timestamp
   struct timeStamp {
     std::atomic<TS> ts = 1ul;
     TS getStamp() { return ts.load(); }

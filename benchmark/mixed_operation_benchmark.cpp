@@ -350,7 +350,8 @@ double run_mixed_operations(parlay::sequence<K>& all,
     delete map_ptr; 
 
 #ifdef UEPOCH_H_
-    uepoch::clear();
+    long cnt = uepoch::clear();
+    //std::cout << "Epoch memory cleared: " << cnt << std::endl;
     //parlay::internal::get_default_allocator().print_stats();
 #endif
   }  return throughput/rounds;

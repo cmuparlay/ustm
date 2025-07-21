@@ -273,7 +273,7 @@ namespace ustm {
   // runs func in an transaction
   // func takes no argument and must return a value
   template<typename F>
-  inline auto transaction(F&& func, bool readOnly = false) {
+  inline auto transaction(F&& func, bool readOnly = false, bool large = false) {
     STM* stm = getStmState();
     Descriptor*& d = getDescriptor();
     if (d != nullptr) return func(); // if nested then just run

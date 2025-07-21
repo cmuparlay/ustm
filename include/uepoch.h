@@ -166,7 +166,7 @@ namespace uepoch {
     get_epoch().delay(std::move(f)); }
   void add_before_epoch_hook(std::function<void()> f) {
     get_epoch().before_epoch_hooks.push_back(f); }
-  void clear() {get_epoch().clear();}
+  long clear() {return get_epoch().clear();}
 } // end namespace uepoch
 
 #endif // UEPOCH_H_
