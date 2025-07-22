@@ -14,17 +14,13 @@
 //     - void store(T)
 //     - T operator=(T)
 
-#ifdef USTM
-#ifdef MV
+#if defined(USTM)
 #include "glue/mvustm_glue.h"
-#else
+#elif defined(USTM_)
 #include "glue/ustm_glue.h"
-#endif
-#else
-#ifdef TWOPLSF
+#elif defined(TWOPLSF)
 #include "glue/2plsf_glue.h"
 namespace stm { struct versioned {}; }
-#endif
 #endif
 
 namespace stm {

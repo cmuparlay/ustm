@@ -171,12 +171,14 @@ namespace ustm {
     return d;
   }
 
-  int hash(const void* addr) {
-    return (reinterpret_cast<size_t>(addr)>>6)*UINT64_C(0xbf58476d1ce4e5b9); }
-
+  size_t hash(const void* addr) {
+    auto x = (reinterpret_cast<size_t>(addr)>>6) * UINT64_C(0xbf58476d1ce4e5b9);
+    return (x ^ (x >> 31));  // non-linear transform
+  }
+  
   struct STM {
     // state consists of locks, descriptors, and timestamp
-    static constexpr uint64_t numLocks = 1ul << 21; 
+    static constexpr uint64_t numLocks = 1ul << 18; 
     std::array<Descriptor,MaxThreads> opDesc;
     std::array<lock,numLocks> writeLocks;
     timeStamp ts;

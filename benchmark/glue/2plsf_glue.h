@@ -44,7 +44,7 @@ namespace stm {
     ext_stm::tmtype<T> val;
   public:
     atomic(T v) : val(v) {}
-    atomic() : val(nullptr) {}
+    atomic() {}
     void store(T v) { val = v; }
     T load() const { return val.pload(); }
     T load_unprotected() const { return val.pload();}

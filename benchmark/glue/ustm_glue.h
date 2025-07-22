@@ -1,8 +1,6 @@
 #include <type_traits>
 #include <ustm.h>
 
-#define MV
-
 namespace stm {
   template <typename F>
   auto atomic_region(F &&func) {return ustm::atomic_region(func); }
