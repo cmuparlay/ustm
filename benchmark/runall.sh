@@ -1,7 +1,7 @@
 structs="hash_block btree arttree leaftree skiplist treap"
 lstructs="list"
 rstructs="btree arttree"
-impls="mvustm mvustm_longjmp mvustm_trythrow mvustm_unprotected ustm"
+impls="ustm ustmmv mvustm mvustm_longjmp mvustm_trythrow mvustm_unprotected"
 sizes="-n 100000,10000000"
 lsizes="-n 100,1000"
 
