@@ -1,0 +1,20 @@
+set(SOURCES test.cpp)
+set(OTHER_DIR ${PROJECT_SOURCE_DIR}/other)
+
+function(add_benchmark NAME DEFS)
+  add_executable(${NAME} ${SOURCES})
+  target_compile_definitions(${NAME} PRIVATE ${DEFS})
+  target_include_directories(${NAME} PRIVATE ${PROJECT_SOURCE_DIR}/benchmark)
+  target_link_libraries(${NAME} PRIVATE ustm)
+  target_include_directories(${NAME} PRIVATE ${OTHER_DIR})
+endfunction()
+
+add_benchmark(test_ustm "USTM_")
+add_benchmark(test_mvustm "USTM;MV")
+add_benchmark(test_mvustm_hwstamp "USTM;MV;HWStamp")
+add_benchmark(test_mvustm_longjmp "USTM;MV;LongJmp")
+add_benchmark(test_mvustm_trythrow "USTM;MV;TryThrow")
+add_benchmark(test_mvustm_unprotected "USTM;MV;UnprotectedLoad")
+add_benchmark(test_ustm_unprotected "USTM;MV;UnprotectedLoad")
+add_benchmark(test_2plsf "TWOPLSF")
+
