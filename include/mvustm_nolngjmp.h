@@ -178,7 +178,7 @@ namespace ustm {
   
   struct STM {
     // state consists of locks, descriptors, and timestamp
-    static constexpr uint64_t numLocks = 1ul << 29; 
+    static constexpr uint64_t numLocks = 1ul << 19; 
     std::array<Descriptor,MaxThreads> opDesc;
     std::array<lock,numLocks> writeLocks;
     timeStamp ts;
