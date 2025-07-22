@@ -47,7 +47,10 @@ namespace ustm {
     
     // Returns a lock corresponding to a hash of the address
     inline lock& getLock(const void* addr) {
-      uint64_t hash = ((uint64_t)(addr) >> 5) * UINT64_C(0xbf58476d1ce4e5b9);
+      //auto x = (reinterpret_cast<size_t>(addr)>>6) * UINT64_C(0xbf58476d1ce4e5b9);
+      //uint64_t hash = (x ^ (x >> 31));  // non-linear transform
+      //uint64_t hash = ((uint64_t)(addr) >> 5) * UINT64_C(0xbf58476d1ce4e5b9);
+      uint64_t hash = parlay::hash<uint64_t>{}(((uint64_t) addr) >> 5);
       return writeLocks[hash & (numLocks - 1)]; }
 
     void multiVersionWrite(version** loc, std::function<void(void*)>& write_f,

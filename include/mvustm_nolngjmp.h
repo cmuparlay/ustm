@@ -170,11 +170,14 @@ namespace ustm {
     static thread_local Descriptor* d = nullptr;
     return d;
   }
+  
+  // size_t hash(const void* addr) {
+  //   auto x = (reinterpret_cast<size_t>(addr)>>6) * UINT64_C(0xbf58476d1ce4e5b9);
+  //   return (x ^ (x >> 31));  // non-linear transform
+  // }
 
   size_t hash(const void* addr) {
-    auto x = (reinterpret_cast<size_t>(addr)>>6) * UINT64_C(0xbf58476d1ce4e5b9);
-    return (x ^ (x >> 31));  // non-linear transform
-  }
+    return parlay::hash<uint64_t>{}(reinterpret_cast<uint64_t>(addr)>>6); }
   
   struct STM {
     // state consists of locks, descriptors, and timestamp
