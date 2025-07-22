@@ -15,6 +15,5 @@ add_benchmark(test_mvustm_hwstamp "USTM;MV;HWStamp")
 add_benchmark(test_mvustm_longjmp "USTM;MV;LongJmp")
 add_benchmark(test_mvustm_trythrow "USTM;MV;TryThrow")
 add_benchmark(test_mvustm_unprotected "USTM;MV;UnprotectedLoad")
-add_benchmark(test_ustm_unprotected "USTM;MV;UnprotectedLoad")
 add_benchmark(test_2plsf "TWOPLSF")
 

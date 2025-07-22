@@ -25,7 +25,8 @@ std::string command_string = R"(
 
 int main(int argc, char* argv[]) {
   commandLine P(argc,argv,command_string);
-  long p = P.getOptionIntValue("-p", parlay::num_workers());  
+  long p = P.getOptionIntValue("-p", parlay::num_workers());
+  long s = P.getOptionIntValue("-s", .9 * p);  
   long n = P.getOptionIntValue("-n", 1000);
   long trial_time = P.getOptionDoubleValue("-t", 1.0);
 
@@ -41,42 +42,45 @@ int main(int argc, char* argv[]) {
                      return std::chrono::duration_cast<std::chrono::seconds>(current - start_time).count();
                    };
 
+  std::atomic<bool> finished = false;
+  
   parlay::parallel_for(0, p, [&] (size_t i) {
     auto start_time = get_time();
     long round = 0;
     while (true) {
       round++;
-      if (time_diff(start_time) > trial_time) {
+      if (finished.load() || time_diff(start_time) > trial_time) {
         counts[i] = round;
+        finished = true;
         return;
       }
-      if (i < p/2) {
-        long sum = stm::atomic_read_only([&] {
-                     long sum = 0;
-                     for (int j=0; j < a.size(); j++)
-                       sum += a[j].load();
-                     return sum;});
-        if (sum != expected) {
-          std::cout << "bad sum, expected " << expected << " got " << sum << std::endl;
+      if (i < s) {
+        long total = stm::atomic_read_only([&] {
+                       long sum = 0;
+                       for (int j=0; j < a.size(); j++)
+                         sum += a[j].load();
+                       return sum;}, true);
+        if (total != expected) {
+          std::cout << "bad sum, expected " << expected << " got " << total << std::endl;
           abort();
       }
       } else {
         long l1 = parlay::hash<unsigned long>{}(i + p * (2*round)) % n;
         long l2 = parlay::hash<unsigned long>{}(i + p * (2*round+1)) % n;
-        std::atomic([&] {
+        stm::atomic_region([&] {
           long tmp = a[l1].load();
           a[l1].store(a[l2].load());
           a[l2].store(tmp);
-          return;});
+          return true;});
       }
     }}, 1);
   long total_scans = 0;
   long total_swaps = 0;
-  for (int i = 0; i < p/2; i++) total_scans += counts[i];
-  for (int i = p/2; i < p; i++) total_swaps += counts[i];
+  for (int i = 0; i < s; i++) total_scans += counts[i];
+  for (int i = s; i < p; i++) total_swaps += counts[i];
   
   std::cout << P.commandName() << " completed successfully: swaps = " << std::setprecision(3)
-            << total_swaps/1e9 << "B, scans = " << total_scans/1e3 << "K" << std::endl;
+            << total_swaps/1e6 << "M, scans = " << total_scans/1e3 << "K" << std::endl;
 }
 
     

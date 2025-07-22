@@ -141,6 +141,7 @@ namespace ustm {
         return ((hold<T>*) std::get<1>(myd->writeLog[*x]))->value;
 
       if (!validate) {
+        std::cout << "here" << std::endl;
         while (getLock(&v).isLocked())
          for (volatile int i = 0; i < 400; i++);
         return v;
