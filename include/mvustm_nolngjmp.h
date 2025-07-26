@@ -283,6 +283,7 @@ namespace ustm {
       std::atomic_thread_fence(std::memory_order_acquire);
       status = lck.getStatus();
       if (!lck.isLocked(olds) && olds == status) break;
+      for (volatile int i=0; i < 200; i++);
     }
     if (myd == nullptr || unprotected) return *((T*) tmp);
     if (!myd->readOnly) myd->readLog.push_back(&v); // to validate later
