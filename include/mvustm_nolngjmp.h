@@ -172,20 +172,20 @@ namespace ustm {
   }
 
   size_t hash(const void* addr) {
-    auto x = (reinterpret_cast<size_t>(addr)>>6) * UINT64_C(0xbf58476d1ce4e5b9);
-    return (x ^ (x >> 31));  // non-linear transform
+    return (reinterpret_cast<size_t>(addr)>>6) * UINT64_C(0xbf58476d1ce4e5b9);
   }
   
   struct STM {
     // state consists of locks, descriptors, and timestamp
-    static constexpr uint64_t numLocks = 1ul << 19; 
+    static constexpr int logLocks = 19;
+    static constexpr uint64_t numLocks = 1ul << logLocks;
     std::array<Descriptor,MaxThreads> opDesc;
     std::array<lock,numLocks> writeLocks;
     timeStamp ts;
 
     // Returns a lock corresponding to a hash of the address
     inline lock& getLock(const void* addr) {
-      return writeLocks[hash(addr) & (numLocks - 1)]; }
+      return writeLocks[hash(addr) >> (64 - logLocks)];} 
 
     // returns true if successful
     inline bool commitTransaction(Descriptor* myd) {
@@ -266,7 +266,7 @@ namespace ustm {
     auto status = lck.getStatus();
 
     // check if value is in the write buffer
-    if (myd != nullptr && myd->writeFilter[hash(&v) & 1023ul]) {
+    if (myd != nullptr && myd->writeFilter[hash(&v) >> (64 - 10)]) {
       auto a = myd->writeMap.find((void*) &v);
       if (a != myd->writeMap.end()) {
         version* ptr = std::get<1>(myd->writeLog[(*a).second]);
@@ -396,7 +396,7 @@ namespace ustm {
       link<T>* hp = ustm::New<link<T>>(&loc, v);
       ustm::Delete(hp); // delete is delayed
       // add to write map (and filter) so reads can find it
-      myd->writeFilter[hash(&loc) & 1023ul] = 1;
+      myd->writeFilter[hash(&loc) >> (64 - 10)] = 1;
       myd->writeMap[&loc] = myd->writeLog.size();
       myd->writeLog.push_back(std::tuple(&loc, hp, &hp->value,
                                          sizeof(T), false));
