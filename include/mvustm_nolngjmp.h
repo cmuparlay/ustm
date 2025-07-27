@@ -128,6 +128,8 @@ namespace ustm {
               isPrior(s, startStamp));  }
   };
 
+  static constexpr int filterBits = 10;
+
   // Transaction descriptor, includes the logs, stats, and other state
   struct alignas(128) Descriptor {
 #ifdef LongJmp
@@ -155,7 +157,7 @@ namespace ustm {
 
     // A hash map and filter to help reads find prior writes
     std::unordered_map<void*, int> writeMap;
-    std::bitset<1024> writeFilter;
+    std::bitset<filterBits> writeFilter;
     
     void reset() {
       writeLog.clear(); readLog.clear();
@@ -171,8 +173,10 @@ namespace ustm {
     return d;
   }
 
+  template <int bits>
   size_t hash(const void* addr) {
-    return (reinterpret_cast<size_t>(addr)>>6) * UINT64_C(0xbf58476d1ce4e5b9);
+    size_t x = (reinterpret_cast<size_t>(addr)>>6) * UINT64_C(0xbf58476d1ce4e5b9);
+    return x >> (64 - bits);
   }
   
   struct STM {
@@ -185,7 +189,7 @@ namespace ustm {
 
     // Returns a lock corresponding to a hash of the address
     inline lock& getLock(const void* addr) {
-      return writeLocks[hash(addr) >> (64 - logLocks)];} 
+      return writeLocks[hash<logLocks>(addr)];} 
 
     // returns true if successful
     inline bool commitTransaction(Descriptor* myd) {
@@ -266,7 +270,7 @@ namespace ustm {
     auto status = lck.getStatus();
 
     // check if value is in the write buffer
-    if (myd != nullptr && myd->writeFilter[hash(&v) >> (64 - 10)]) {
+    if (myd != nullptr && myd->writeFilter[hash<filterBits>(&v)]) {
       auto a = myd->writeMap.find((void*) &v);
       if (a != myd->writeMap.end()) {
         version* ptr = std::get<1>(myd->writeLog[(*a).second]);
@@ -396,7 +400,7 @@ namespace ustm {
       link<T>* hp = ustm::New<link<T>>(&loc, v);
       ustm::Delete(hp); // delete is delayed
       // add to write map (and filter) so reads can find it
-      myd->writeFilter[hash(&loc) >> (64 - 10)] = 1;
+      myd->writeFilter[hash<filterBits>(&loc)] = 1;
       myd->writeMap[&loc] = myd->writeLog.size();
       myd->writeLog.push_back(std::tuple(&loc, hp, &hp->value,
                                          sizeof(T), false));
