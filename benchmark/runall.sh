@@ -1,7 +1,7 @@
 structs="hash_block btree arttree leaftree skiplist treap"
 lstructs="list"
 rstructs="btree arttree"
-impls="ustm ustmmv mvustm mvustm_longjmp mvustm_trythrow mvustm_unprotected"
+impls="ustm mvustm mvustm_hwstamp mvustm_longjmp mvustm_trythrow mvustm_unprotected 2plsf"
 sizes="-n 100000,10000000"
 lsizes="-n 100,1000"
 
@@ -16,7 +16,10 @@ filename=../../timings/${procs}-${machine}_${today}
 
 echo ${filename}
 > ${filename}
-
+echo ${today} >> ${filename}
+echo `lscpu | grep 'Model name'` >> ${filename}
+echo "git branch: " `git rev-parse --short HEAD` >> ${filename}
+echo `g++ --version | head -1` >> ${filename}
 for struct in ${structs}
 do
     echo ${struct}
@@ -25,7 +28,7 @@ do
         ${head} ./${struct}_${impl} ${sizes} ${geomean_args} >> ${filename}
     done
 done
-
+echo "Done 1"
 for struct in ${lstructs}
 do
     echo ${struct}

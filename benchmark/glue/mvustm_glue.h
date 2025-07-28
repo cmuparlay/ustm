@@ -2,7 +2,7 @@
 #ifdef OldSTM
 #include <mvustm.h>
 #else
-#include <mvustm_nolngjmp.h>
+#include <ustm_swiss.h>
 #endif
 namespace stm {
 
@@ -12,7 +12,6 @@ namespace stm {
 #ifdef MV
   auto atomic_read_only(F &&func, bool large = false) { return ustm::transaction(func, true, large); }
 #else
-  kdjk
   auto atomic_read_only(F &&func, bool large = false) { return atomic_region(func); }
 #endif
   template <typename F>
