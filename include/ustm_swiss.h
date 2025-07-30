@@ -30,6 +30,7 @@ constexpr int MaxThreads=4096; // arbitrary, can be increased
 
 namespace ustm {
   using TS = size_t; // type for timestamps
+  constexpr TS maxStamp = 0ul - 1;
 
 #ifdef HWStamp
   struct timeStamp {
@@ -145,7 +146,7 @@ namespace ustm {
     int inConstructor {0};
     size_t tid; // thread identifier
     size_t numRetries {0};    
-    TS startStamp;
+    TS startStamp = maxStamp;
     STM* stmState;
 
 #ifdef SimpleSTM
@@ -238,6 +239,8 @@ namespace ustm {
         uepoch::delay(std::move(e));
       myd->reset();
       myd->inTransaction = false;
+      myd->startStamp = maxStamp;
+      myd->readOnly = true;
       return true;
     }
 
@@ -283,13 +286,12 @@ namespace ustm {
   template <typename T>
   inline T load(T& v, bool unprotected=false) {
     Descriptor* myd = getDescriptor();
-    if (!myd->inTransaction) return v;
     STM* stm = myd->stmState;
     lock& lck = stm->getLock(&v);
     auto status = lck.getStatus();
 
     // check if value is in the write buffer
-    if (myd != nullptr && myd->writeFilter[hash<filterBits>(&v)]) {
+    if (myd->writeFilter[hash<filterBits>(&v)]) {
       auto a = myd->writeMap.find((void*) &v);
       if (a != myd->writeMap.end()) {
 #ifdef SimpleSTM
@@ -317,10 +319,9 @@ namespace ustm {
       std::atomic_thread_fence(std::memory_order_acquire);
       status = lck.getStatus();
       if (!lck.isLocked(olds) && olds == status) break;
-      for (volatile int i=0; i < 200; i++);
     }
-    if (myd == nullptr || unprotected) return *((T*) tmp);
-    if (!myd->readOnly) myd->readLog.push_back(&v); // to validate later
+    if (!myd->inTransaction || unprotected) return *((T*) tmp);
+    if (!myd->readOnly) myd->readLog.push_back(&v);
     TS stamp = lck.getStamp(status);
     if (stamp < myd->startStamp) return *((T*) tmp);
 #ifdef SimpleSTM
