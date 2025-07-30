@@ -131,11 +131,14 @@ namespace ustm {
 
   static constexpr int filterBits = 10;
 
+  struct STM;
+  
   // Transaction descriptor, includes the logs, stats, and other state
   struct alignas(128) Descriptor {
 #ifdef LongJmp
     std::jmp_buf continuation;
 #endif
+    bool inTransaction {false};
     bool readOnly {false};
     bool toAbort {false};
     bool large {false};
@@ -143,6 +146,7 @@ namespace ustm {
     size_t tid; // thread identifier
     size_t numRetries {0};    
     TS startStamp;
+    STM* stmState;
 
 #ifdef SimpleSTM
     struct logEntry { void* loc; TS oldStamp; size_t data; int size; };
@@ -174,12 +178,6 @@ namespace ustm {
       writeMap.clear(); writeFilter = 0;
     }
   };
-
-  // thread local copy of descriptor.  Should be null when no transaction.
-  extern inline Descriptor*& getDescriptor() {
-    static thread_local Descriptor* d = nullptr;
-    return d;
-  }
 
   template <int bits>
   size_t hash(const void* addr) {
@@ -239,7 +237,7 @@ namespace ustm {
       for (auto& e : myd->deleteLog)
         uepoch::delay(std::move(e));
       myd->reset();
-      getDescriptor() = nullptr;
+      myd->inTransaction = false;
       return true;
     }
 
@@ -262,7 +260,10 @@ namespace ustm {
     }
 
     STM() {
-      for (int i=0; i < MaxThreads; i++) opDesc[i].tid = i;
+      for (int i=0; i < MaxThreads; i++) {
+        opDesc[i].tid = i;
+        opDesc[i].stmState = this;
+      }
       uepoch::add_before_epoch_hook([&] { ts.nextStamp(); });
     }
     ~STM() {}
@@ -273,10 +274,17 @@ namespace ustm {
     return &stm;
   }
 
+  // thread local copy of descriptor.  Should be null when no transaction.
+  extern inline Descriptor* getDescriptor() {
+    static thread_local Descriptor* d = &(getStmState()->opDesc[threadId()]);
+    return d;
+  }
+
   template <typename T>
   inline T load(T& v, bool unprotected=false) {
-    STM* stm = getStmState();
     Descriptor* myd = getDescriptor();
+    if (!myd->inTransaction) return v;
+    STM* stm = myd->stmState;
     lock& lck = stm->getLock(&v);
     auto status = lck.getStatus();
 
@@ -348,12 +356,10 @@ namespace ustm {
   // func takes no argument and must return a value
   template<typename F>
   inline auto transaction(F&& func, bool readOnly = false, bool large = false) {
-    STM* stm = getStmState();
-    Descriptor*& d = getDescriptor();
-    if (d != nullptr) return func(); // if nested then just run
-    const int tid = threadId();
-    Descriptor* myd = &(stm->opDesc[tid]);
-    d = myd; // set the thread local (note d is a ref type)
+    Descriptor* myd = getDescriptor();
+    STM* stm = myd->stmState;
+    if (myd->inTransaction) return func(); // if nested then just run
+    myd->inTransaction = true;
     myd->numRetries = 0;
     myd->readOnly = readOnly;
     myd->large = large;
@@ -384,8 +390,9 @@ namespace ustm {
     } catch (int x) {}
   }
 #else
-      if (!myd->toAbort && stm->commitTransaction(myd))
+      if (!myd->toAbort && stm->commitTransaction(myd)) {
         return retval;
+      }
       stm->abortTransaction(myd);
     }
 #endif
@@ -395,7 +402,7 @@ namespace ustm {
   template <typename T, typename... Args>
   inline T* New(Args&&... args) {
     Descriptor* myd = getDescriptor();
-    if (myd != nullptr) {
+    if (myd->inTransaction) {
       myd->inConstructor++;
 #ifdef LongJmp
       T* ptr = (T*) std::malloc(sizeof(T));
@@ -419,14 +426,14 @@ namespace ustm {
   inline void Delete(T* obj) {
     if (obj == nullptr) return;
     Descriptor* myd = getDescriptor();
-    if (myd == nullptr) delete obj;
+    if (!myd->inTransaction) delete obj;
     else myd->deleteLog.push_back([=] { delete obj;});
   }
 
   template <typename T>
   inline void store(T& loc, const T& v) {
     Descriptor* myd = getDescriptor();
-    if (myd != nullptr && myd->inConstructor == 0) {
+    if (myd->inTransaction && myd->inConstructor == 0) {
       myd->writeFilter[hash<filterBits>(&loc)] = 1;
       myd->writeMap[&loc] = myd->writeLog.size();
 #ifdef SimpleSTM
