@@ -15,6 +15,9 @@
 #include <atomic>
 #include <bitset>
 #include <cmath>
+#ifdef LongJmp
+#include <csetjmp>
+#endif
 #include <functional>
 #include <iostream>
 #include <thread>
@@ -22,15 +25,14 @@
 #include <unordered_map>
 #include <vector>
 #include "uepoch.h"
-#ifdef LongJmp
-#include <csetjmp>
-#endif
-
-constexpr int MaxThreads=4096; // arbitrary, can be increased
 
 namespace ustm {
-  using TS = size_t; // type for timestamps
+  // some constants
+  constexpr int MaxThreads = 4096; // arbitrary, can be increased
+  constexpr int logLocks = 19; // log_2 of number of locks
+  static constexpr int filterBits = 10; // used for the writelog hash filter
 
+  using TS = size_t; // type for timestamps
 #ifdef HWStamp
   struct timeStamp {
     TS getStamp() {
@@ -45,7 +47,8 @@ namespace ustm {
     std::atomic<TS> ts = 1ul;
     // returns current stamp
     TS getStamp() const { return ts.load(); }
-    TS nextStamp() { // returns incremented stamp
+    // returns incremented stamp
+    TS nextStamp() { 
       TS stamp1 = ts.load(); // delay to avoid fetch-and-increment
       for (volatile int i = 1; i < 500; i++) {}
       TS stamp2 = ts.load();
@@ -55,15 +58,6 @@ namespace ustm {
   };
 #endif
 
-  // Returns a unique thread id for each thread.
-  // Increments numThreads first time it is called.
-  extern inline int threadId() {
-    static std::atomic<int> numThreads{0};
-    static thread_local int id{numThreads.fetch_add(1)};
-    return id;
-  }
-
-  //#define SimpleSTM
 #ifndef SimpleSTM
   // generic version link
   struct version {
@@ -81,6 +75,8 @@ namespace ustm {
   };
 #endif
 
+  // The lock structure.   Contains the status of the lock and if using versioning
+  // a version list.
   struct alignas(16) lock {
     using Status = size_t;
     // If locked (high bit set) keeps tid of owner, otherwise keeps timestamp
@@ -89,7 +85,6 @@ namespace ustm {
     static int getTID(Status s) { return ~(1ul << 63) & s;}
     static TS getStamp(Status s) { return s;}
     static bool isLocked(Status s) { return (s >> 63) & 1ul;}
-    static bool isPrior(Status s, const TS timeStamp) {return s < timeStamp;}
     static Status setLock(int tid) {return Status((1ul << 63) | tid);}
     Status getStatus() const { return v.load(std::memory_order_acquire);}
     void setStamp(TS stamp) { v.store(stamp, std::memory_order_release); }
@@ -97,6 +92,7 @@ namespace ustm {
 #ifndef SimpleSTM
     std::atomic<version*> verlist = nullptr; // the version list
     version* getVersionList() const { return verlist.load();}
+    
     // add to version list
     void addLink(version* l, TS prevStamp) {
       l->next = verlist.load();
@@ -104,34 +100,30 @@ namespace ustm {
       verlist.store(l, std::memory_order_release); }
 #endif
 
-    // Returns whether acquired, self owned, or failed (i.e., locked
-    // by another, or timestamp on lock is after startStamp).
+    // Returns whether succeeded or not, and if succeeded a 0 stamp
+    // if was self locked, and the swapped out timestamp otherwise
     std::pair<bool,TS> tryLock(int tid, const TS startStamp) {
-      Status s = v.load(std::memory_order_acquire);
+      Status s = getStatus();
       if (isLocked(s))
         if (getTID(s) == tid) return std::pair(true, 0);
         else return std::pair(false, 0);;
-      if (isPrior(s, startStamp) &&
+      if (s < startStamp &&
           v.compare_exchange_strong(s, setLock(tid))) {
         return std::pair(true, getStamp(s));
       } else return std::pair(false, 0);
     }
 
     // unlocks by setting status to timestamp
-    // timeStamp == 0 indicates it aborted, so restore stamp
-    void unlock(const TS ts) {
-      v.store(ts, std::memory_order_release); }
+    void unlock(const TS ts) { v.store(ts, std::memory_order_release); }
 
-    // checks that either self locked or timestamp has not changed
+    // checks that either self locked or timestamp before startStamp
     bool validateRead(const TS startStamp, int tid) const {
-      Status s = v.load(std::memory_order_acquire);
+      Status s = getStatus();
       return ((isLocked(s) && getTID(s) == tid) ||
-              isPrior(s, startStamp));  }
+              s < startStamp);  }
   };
 
-  static constexpr int filterBits = 10;
-
-  struct STM;
+  struct STMState;
   
   // Transaction descriptor, includes the logs, stats, and other state
   struct alignas(128) Descriptor {
@@ -141,24 +133,28 @@ namespace ustm {
     bool inTransaction {false};
     bool readOnly {false};
     bool toAbort {false};
-    bool large {false};
+    bool equalStampOK {false};
     int inConstructor {0};
     size_t tid; // thread identifier
     size_t numRetries {0};    
     TS startStamp;
-    STM* stmState;
-
+    STMState* stmState;
+    
 #ifdef SimpleSTM
+    // Entry for the write log.  Contains the location, an oldStamp used
+    // when locked, the value, and the size in bytes of the value.
     struct logEntry { void* loc; TS oldStamp; size_t data; int size; };
 #else
+    // Entry for the write log.  Contains the location, an oldStamp used
+    // when locked, a pointer to the link containing the value, a pointer
+    // to the data within the link and the size in bytes of the value.
     struct logEntry {
       void* loc; TS oldStamp;
-      version* link; void* data; int size; };
+      version* link; void* data; int size;
+    };
 #endif
-    // The following four entries are the logs.
-    // Each entry of the write log contains the address, the pointer
-    // to a link with the value, the size in bytes of the value, and a
-    // flag used during validation.
+    
+    // The following four members are the logs.
     std::vector<logEntry> writeLog;
     // Each entry of the read log contains a pointer to a location.
     std::vector<const void*> readLog;
@@ -167,10 +163,11 @@ namespace ustm {
     std::vector<std::function<void()>> allocLog;
     std::vector<std::function<void()>> deleteLog;
 
-    // A hash map and filter to help reads find prior writes
+    // A hash map and filter to let reads find prior writes
     std::unordered_map<void*, int> writeMap;
     std::bitset<filterBits> writeFilter;
-    
+
+    // used to reset between each attempt
     void reset() {
       writeLog.clear(); readLog.clear();
       deleteLog.clear(); allocLog.clear();
@@ -185,9 +182,8 @@ namespace ustm {
     return x >> (64 - bits);
   }
   
-  struct STM {
+  struct STMState {
     // state consists of locks, descriptors, and timestamp
-    static constexpr int logLocks = 19;
     static constexpr size_t numLocks = 1ul << logLocks;
     std::array<Descriptor,MaxThreads> opDesc;
     std::array<lock,numLocks> writeLocks;
@@ -259,32 +255,33 @@ namespace ustm {
 #endif      
     }
 
-    STM() {
+    STMState() {
       for (int i=0; i < MaxThreads; i++) {
         opDesc[i].tid = i;
         opDesc[i].stmState = this;
       }
+      // ensures stamp is incremented whenever epoch is
       uepoch::add_before_epoch_hook([&] { ts.nextStamp(); });
     }
-    ~STM() {}
+    ~STMState() {}
   };
 
-  extern inline STM* getStmState() {
-    static STM stm;
-    return &stm;
+  extern inline Descriptor* initDescriptor() {
+    static std::atomic<int> numThreads{0};
+    static STMState stm;
+    return &stm.opDesc[numThreads.fetch_add(1)];
   }
 
-  // thread local copy of descriptor.  Should be null when no transaction.
+  // thread local copy of descriptor.
   extern inline Descriptor* getDescriptor() {
-    static thread_local Descriptor* d = &(getStmState()->opDesc[threadId()]);
+    static thread_local Descriptor* d = initDescriptor();
     return d;
   }
 
   template <typename T>
   inline T load(T& v, bool unprotected=false) {
     Descriptor* myd = getDescriptor();
-    STM* stm = myd->stmState;
-    lock& lck = stm->getLock(&v);
+    lock& lck = myd->stmState->getLock(&v);
     auto status = lck.getStatus();
 
     // check if value is in the write buffer
@@ -304,43 +301,44 @@ namespace ustm {
     }
 
 #ifndef SimpleSTM
-    version* nxt;
+    version* nxt; 
 #endif
     bool regular = (myd->inTransaction && !myd->readOnly && !unprotected);
     if (regular) myd->readLog.push_back(&v);
     char tmp[sizeof(T)];
+    T* location = reinterpret_cast<T*>(tmp);
     while (true) { 
-      auto olds = status;
+      auto prevStatus = status;
       std::memcpy(tmp, &v, sizeof(T));
 #ifndef SimpleSTM
       nxt = lck.getVersionList();
 #endif
       std::atomic_thread_fence(std::memory_order_acquire);
       status = lck.getStatus();
-      if (olds == status) {
+      if (prevStatus == status) {
         if (status < myd->startStamp ||
-            (status == myd->startStamp && myd->large))
-          return *((T*) tmp);
+            (status == myd->startStamp && myd->equalStampOK))
+          return *location;
         if (!lck.isLocked(status))
-          if (!myd->inTransaction) return *((T*) tmp);
+          if (!myd->inTransaction) return *location;
           else break;
       }
     }
     if (regular || status == myd->startStamp) {
 #if defined(LongJmp) || defined(TryThrow)
-      stm->abortTransaction(myd);
+      myd->stmState->abortTransaction(myd);
 #else
       myd->toAbort = true;
 #endif
     }
 #ifdef SimpleSTM
-    return *((T*) tmp);
+    return *location;
 #else
-    T* location = (T*) tmp;
     TS stamp = lck.getStamp(status);
     // Chase down the version list to the right one
     while (stamp >= myd->startStamp && nxt != nullptr) {
-      if (nxt->addr == &v) location = &((link<T>*) nxt)->value;
+      if (nxt->addr == &v)
+        location = &(reinterpret_cast<link<T>*>(nxt)->value);
       stamp = nxt->stamp;
       nxt = nxt->next;
     }
@@ -353,12 +351,12 @@ namespace ustm {
   template<typename F>
   inline auto transaction(F&& func, bool readOnly = false, bool large = false) {
     Descriptor* myd = getDescriptor();
-    STM* stm = myd->stmState;
+    STMState* stm = myd->stmState;
     if (myd->inTransaction) return func(); // if nested then just run
     myd->inTransaction = true;
     myd->numRetries = 0;
     myd->readOnly = readOnly;
-    myd->large = large;
+    myd->equalStampOK = large;
 #ifdef LongJmp
     setjmp(myd->continuation); // return to here if aborted
 #elif defined(TryThrow)
@@ -370,9 +368,13 @@ namespace ustm {
     // Using lazy timestamps from verlib.  Only increments
     // on second try avoiding too many increments.
       auto retval = uepoch::protect([&] {
+        // don't use lazy stamps if large
         if (large) myd->startStamp = stm->ts.nextStamp();
+        // use lazy stamp on first try
         else if (myd->numRetries == 0) myd->startStamp = stm->ts.getStamp();
-        else if (readOnly) {myd->large = true; stm->ts.nextStamp();}
+        // increment on second try of readOnly
+        else if (readOnly) {myd->equalStampOK = true; stm->ts.nextStamp();}
+        // increment on second+ try of updating transaction
         else myd->startStamp = stm->ts.nextStamp();
         return func();});
 #ifdef LongJmp
@@ -400,21 +402,11 @@ namespace ustm {
     Descriptor* myd = getDescriptor();
     if (myd->inTransaction) {
       myd->inConstructor++;
-#ifdef LongJmp
-      T* ptr = (T*) std::malloc(sizeof(T));
-      myd->allocLog.push_back([=] {delete ptr;});
-      new (ptr) T(args...);
-#else
       T* ptr = new T(args...);
       myd->allocLog.push_back([=] {delete ptr;});
-#endif      
       myd->inConstructor--;
       return ptr;
-    } else {
-      T* ptr = (T*) std::malloc(sizeof(T));
-      new (ptr) T(args...);
-      return ptr;
-    }
+    } else return new T(args...);
   }
 
   // adds to log and only applies deletes on success
