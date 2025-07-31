@@ -17,7 +17,7 @@ function(add_benchmark NAME STRUCT_NAME DEFS)
 endfunction()
 
 foreach(bench ${STRUCTS})
-  add_benchmark(${bench}_ustm ${STRUCT_DIR}/${bench} "USTM;SimpleSTM")
+  add_benchmark(${bench}_ustm_longjmp ${STRUCT_DIR}/${bench} "USTM;SimpleSTM;LongJmp")
   add_benchmark(${bench}_mvustm ${STRUCT_DIR}/${bench} "USTM;MV")
   add_benchmark(${bench}_mvustm_hwstamp ${STRUCT_DIR}/${bench} "USTM;MV;HWStamp")
   add_benchmark(${bench}_mvustm_longjmp ${STRUCT_DIR}/${bench} "USTM;MV;LongJmp")
