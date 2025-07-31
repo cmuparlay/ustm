@@ -106,10 +106,10 @@ namespace ustm {
     // if was self locked, and the swapped out timestamp otherwise
     std::pair<bool,TS> tryLock(int tid, const TS startStamp) {
       Status s = getStatus();
-      if (isLocked(s))
+      if (isLocked(s)) 
         if (getTID(s) == tid) return std::pair(true, 0);
-        else return std::pair(false, 0);;
-      if (s < startStamp &&
+        else return std::pair(false, 0);
+      if ((s < startStamp || (s == startStamp && tid == proc)) &&
           v.compare_exchange_strong(s, setLock(tid))) {
         return std::pair(true, getStamp(s));
       } else return std::pair(false, 0);
@@ -124,7 +124,8 @@ namespace ustm {
     bool validateRead(const TS startStamp, int tid) const {
       Status s = getStatus();
       return ((isLocked(s) && getTID(s) == tid) ||
-              s < startStamp);  }
+              s < startStamp || (s == startStamp && proc == tid));
+    }
   };
 
   struct STMState;
@@ -306,8 +307,8 @@ namespace ustm {
 
 #ifndef SimpleSTM
     version* nxt;
-    int proc = -1;
 #endif
+    int proc = -1;
     bool regular = (myd->inTransaction && !myd->readOnly && !unprotected);
     if (regular) myd->readLog.push_back(&v);
     char tmp[sizeof(T)];
@@ -323,7 +324,7 @@ namespace ustm {
       status = lck.getStatus();
       if (prevStatus == status) {
         if (status < myd->startStamp ||
-            (status == myd->startStamp && (myd->equalStampOK))) // || proc == myd->tid)))
+            (status == myd->startStamp && (myd->equalStampOK || proc == myd->tid)))
           return *location;
         if (!lck.isLocked(status))
           if (!myd->inTransaction) return *location;
