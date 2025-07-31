@@ -306,6 +306,8 @@ namespace ustm {
 #ifndef SimpleSTM
     version* nxt;
 #endif
+    bool regular = (myd->inTransaction && !myd->readOnly && !unprotected);
+    if (regular) myd->readLog.push_back(&v);
     char tmp[sizeof(T)];
     while (true) { 
       auto olds = status;
@@ -315,31 +317,27 @@ namespace ustm {
 #endif
       std::atomic_thread_fence(std::memory_order_acquire);
       status = lck.getStatus();
-      if (!lck.isLocked(olds) && olds == status) break;
+      if (olds == status) {
+        if (status < myd->startStamp ||
+            (status == myd->startStamp && myd->large))
+          return *((T*) tmp);
+        if (!lck.isLocked(status))
+          if (!myd->inTransaction) return *((T*) tmp);
+          else break;
+      }
     }
-    if (!myd->inTransaction || unprotected) return *((T*) tmp);
-    if (!myd->readOnly) myd->readLog.push_back(&v);
-    TS stamp = lck.getStamp(status);
-    if (stamp < myd->startStamp) return *((T*) tmp);
-#ifdef SimpleSTM
-#if defined(LongJmp) || defined(TryThrow)
-    stm->abortTransaction(myd);
-#else
-    myd->toAbort = true;
-#endif
-    return *((T*) tmp);
-#else
-    if (!myd->readOnly || // always abort if updating
-        // For read we need to abort if on the first try
-        // we see a timestamp equal to the startstamp.
-        (!myd->large && stamp == myd->startStamp && myd->numRetries == 0)) {
+    if (regular || status == myd->startStamp) {
 #if defined(LongJmp) || defined(TryThrow)
       stm->abortTransaction(myd);
 #else
-      myd->toAbort = true;      
+      myd->toAbort = true;
 #endif
     }
+#ifdef SimpleSTM
+    return *((T*) tmp);
+#else
     T* location = (T*) tmp;
+    TS stamp = lck.getStamp(status);
     // Chase down the version list to the right one
     while (stamp >= myd->startStamp && nxt != nullptr) {
       if (nxt->addr == &v) location = &((link<T>*) nxt)->value;
@@ -374,7 +372,7 @@ namespace ustm {
       auto retval = uepoch::protect([&] {
         if (large) myd->startStamp = stm->ts.nextStamp();
         else if (myd->numRetries == 0) myd->startStamp = stm->ts.getStamp();
-        else if (readOnly) stm->ts.nextStamp();
+        else if (readOnly) {myd->large = true; stm->ts.nextStamp();}
         else myd->startStamp = stm->ts.nextStamp();
         return func();});
 #ifdef LongJmp

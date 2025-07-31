@@ -16,10 +16,10 @@ filename=../../timings/${procs}-${machine}_${today}
 
 echo ${filename}
 > ${filename}
-echo ${today} >> ${filename}
+echo "Date:" ${today} >> ${filename}
 echo `lscpu | grep 'Model name'` >> ${filename}
-echo "git branch: " `git rev-parse --short HEAD` >> ${filename}
-echo `g++ --version | head -1` >> ${filename}
+echo "Git branch:" `git rev-parse --short HEAD` >> ${filename}
+echo "Compiler:" `g++ --version | head -1` >> ${filename}
 for struct in ${structs}
 do
     echo ${struct}
