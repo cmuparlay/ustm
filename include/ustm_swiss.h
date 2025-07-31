@@ -77,10 +77,11 @@ namespace ustm {
 
   // The lock structure.   Contains the status of the lock and if using versioning
   // a version list.
-  struct alignas(16) lock {
+  struct alignas(32) lock {
     using Status = size_t;
     // If locked (high bit set) keeps tid of owner, otherwise keeps timestamp
     std::atomic<Status> v = 1; // time starts at 1
+    int proc = -1;
     lock() {}
     static int getTID(Status s) { return ~(1ul << 63) & s;}
     static TS getStamp(Status s) { return s;}
@@ -88,6 +89,7 @@ namespace ustm {
     static Status setLock(int tid) {return Status((1ul << 63) | tid);}
     Status getStatus() const { return v.load(std::memory_order_acquire);}
     void setStamp(TS stamp) { v.store(stamp, std::memory_order_release); }
+    int getProc() const {return proc;}
 
 #ifndef SimpleSTM
     std::atomic<version*> verlist = nullptr; // the version list
@@ -114,7 +116,9 @@ namespace ustm {
     }
 
     // unlocks by setting status to timestamp
-    void unlock(const TS ts) { v.store(ts, std::memory_order_release); }
+    void unlock(const TS ts) {
+      proc = getTID(getStatus());
+      v.store(ts, std::memory_order_release); }
 
     // checks that either self locked or timestamp before startStamp
     bool validateRead(const TS startStamp, int tid) const {
@@ -301,7 +305,8 @@ namespace ustm {
     }
 
 #ifndef SimpleSTM
-    version* nxt; 
+    version* nxt;
+    int proc = -1;
 #endif
     bool regular = (myd->inTransaction && !myd->readOnly && !unprotected);
     if (regular) myd->readLog.push_back(&v);
@@ -310,6 +315,7 @@ namespace ustm {
     while (true) { 
       auto prevStatus = status;
       std::memcpy(tmp, &v, sizeof(T));
+      proc = lck.getProc();
 #ifndef SimpleSTM
       nxt = lck.getVersionList();
 #endif
@@ -317,7 +323,7 @@ namespace ustm {
       status = lck.getStatus();
       if (prevStatus == status) {
         if (status < myd->startStamp ||
-            (status == myd->startStamp && myd->equalStampOK))
+            (status == myd->startStamp && (myd->equalStampOK))) // || proc == myd->tid)))
           return *location;
         if (!lck.isLocked(status))
           if (!myd->inTransaction) return *location;
