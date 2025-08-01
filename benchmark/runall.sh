@@ -1,3 +1,4 @@
+# bash
 structs="hash_block btree arttree leaftree skiplist treap"
 lstructs="list"
 rstructs="btree arttree"
@@ -12,6 +13,7 @@ head="numactl -i all"
 procs=`nproc`
 today=`date +"%m-%d-%Y"`
 machine=`lscpu | grep 'Model name' | rev | cut -c 1-5 | rev`
+machine_nowhite=${machine//[[:space:]]/}
 filename=../../timings/${procs}-${machine}_${today}
 
 echo ${filename}
@@ -20,6 +22,7 @@ echo "Date:" ${today} >> ${filename}
 echo `lscpu | grep 'Model name'` >> ${filename}
 echo "Git branch:" `git rev-parse --short HEAD` >> ${filename}
 echo "Compiler:" `g++ --version | head -1` >> ${filename}
+echo "Hugepage:" `cat /sys/kernel/mm/transparent_hugepage/enabled` >> ${filename}
 for struct in ${structs}
 do
     echo ${struct}

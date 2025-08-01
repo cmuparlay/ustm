@@ -81,7 +81,7 @@ namespace ustm {
     using Status = size_t;
     // If locked (high bit set) keeps tid of owner, otherwise keeps timestamp
     std::atomic<Status> v = 1; // time starts at 1
-    int proc = -1;
+    int prevTID = -1;
     lock() {}
     static int getTID(Status s) { return ~(1ul << 63) & s;}
     static TS getStamp(Status s) { return s;}
@@ -89,7 +89,7 @@ namespace ustm {
     static Status setLock(int tid) {return Status((1ul << 63) | tid);}
     Status getStatus() const { return v.load(std::memory_order_acquire);}
     void setStamp(TS stamp) { v.store(stamp, std::memory_order_release); }
-    int getProc() const {return proc;}
+    int getPrevTID() const {return prevTID;}
 
 #ifndef SimpleSTM
     std::atomic<version*> verlist = nullptr; // the version list
@@ -109,7 +109,7 @@ namespace ustm {
       if (isLocked(s)) 
         if (getTID(s) == tid) return std::pair(true, 0);
         else return std::pair(false, 0);
-      if ((s < startStamp || (s == startStamp && tid == proc)) &&
+      if ((s < startStamp || (s == startStamp && prevTID == tid)) &&
           v.compare_exchange_strong(s, setLock(tid))) {
         return std::pair(true, getStamp(s));
       } else return std::pair(false, 0);
@@ -117,14 +117,14 @@ namespace ustm {
 
     // unlocks by setting status to timestamp
     void unlock(const TS ts) {
-      proc = getTID(getStatus());
+      prevTID = getTID(getStatus());
       v.store(ts, std::memory_order_release); }
 
     // checks that either self locked or timestamp before startStamp
     bool validateRead(const TS startStamp, int tid) const {
       Status s = getStatus();
       return ((isLocked(s) && getTID(s) == tid) ||
-              s < startStamp || (s == startStamp && proc == tid));
+              s < startStamp || (s == startStamp && prevTID == tid));
     }
   };
 
@@ -308,7 +308,7 @@ namespace ustm {
 #ifndef SimpleSTM
     version* nxt;
 #endif
-    int proc = -1;
+    //int prevTID = -1;
     bool regular = (myd->inTransaction && !myd->readOnly && !unprotected);
     if (regular) myd->readLog.push_back(&v);
     char tmp[sizeof(T)];
@@ -316,19 +316,22 @@ namespace ustm {
     while (true) { 
       auto prevStatus = status;
       std::memcpy(tmp, &v, sizeof(T));
-      proc = lck.getProc();
+      //prevTID = lck.getPrevTID();
 #ifndef SimpleSTM
       nxt = lck.getVersionList();
 #endif
       std::atomic_thread_fence(std::memory_order_acquire);
       status = lck.getStatus();
       if (prevStatus == status) {
-        if (status < myd->startStamp ||
-            (status == myd->startStamp && (myd->equalStampOK || proc == myd->tid)))
-          return *location;
-        if (!lck.isLocked(status))
+        if (status < myd->startStamp) return *location;
+
+        if (!lck.isLocked(status)) {
+          if (status == myd->startStamp && myd->equalStampOK)
+            return *location;
+          //if (prevTID == myd->tid) return *location;
           if (!myd->inTransaction) return *location;
-          else break;
+          break;
+        }
       }
     }
     if (regular || status == myd->startStamp) {
