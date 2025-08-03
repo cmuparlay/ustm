@@ -169,7 +169,9 @@ double run_mixed_operations(parlay::sequence<K>& all,
     K range_gap = (max_key/n)*range_size;
 
     std::atomic<bool> finished = false;
-    
+
+    stm::statistics(); // reset stm statistics
+
     // loop across the processors
     parlay::parallel_for(0, p, [&] (size_t proc_id) {
       long start = proc_id * m/p;
@@ -275,7 +277,9 @@ double run_mixed_operations(parlay::sequence<K>& all,
       std::cout << "long duration: " << duration << std::endl;
     
     statistics overall_stats = parlay::reduce(processor_stats, parlay::binary_op(adds, statistics()));
-
+    auto [aborts, commits] = stm::statistics();
+    double percent_aborts = commits == 0 ? 0.0 : 100 * aborts / (double) commits;
+      
     if (i >= warmup) { // don't report zeroth round -- warmup
       size_t num_ops = overall_stats.total;
       throughput += num_ops / (duration * 1e6);
@@ -285,7 +289,8 @@ double run_mixed_operations(parlay::sequence<K>& all,
                 << "trans=" << trans_size << ","
                 << "n=" << n << ","
                 << "p=" << p << ","
-                << "z=" << zipfian_param << ",";
+                << "z=" << zipfian_param << ","
+                << "pa=" << percent_aborts << ",";
       if (range_query_threads > 0)
         std::cout << "rs=" << range_size << ","
                   << "rqp=" << range_query_percent << ","
@@ -293,7 +298,6 @@ double run_mixed_operations(parlay::sequence<K>& all,
       std::cout << "mops=" << num_ops / (duration * 1e6)
                 << std::endl;
     }
-
     // now we do various consistency checks
     size_t final_cnt = check();
     long total_added = overall_stats.added_count;

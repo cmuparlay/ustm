@@ -4,7 +4,7 @@ set(OTHER_DIR ${PROJECT_SOURCE_DIR}/other)
 
 set(STRUCTS "treap" "leaftree" "btree" "arttree" "hash_block" "list" "skiplist")
 
-set(YCSB_COMMON_DEFS "")
+set(YCSB_COMMON_DEFS "STMStats")
 
 function(add_benchmark NAME STRUCT_NAME DEFS)
   add_executable(${NAME} ${SOURCES})
@@ -23,6 +23,7 @@ foreach(bench ${STRUCTS})
   add_benchmark(${bench}_mvustm_longjmp ${STRUCT_DIR}/${bench} "USTM;MV;LongJmp")
   add_benchmark(${bench}_mvustm_trythrow ${STRUCT_DIR}/${bench} "USTM;MV;TryThrow")
   add_benchmark(${bench}_mvustm_unprotected ${STRUCT_DIR}/${bench} "USTM;MV;UnprotectedLoad")
+  add_benchmark(${bench}_mvustm_hwstamp_unprotected ${STRUCT_DIR}/${bench} "USTM;MV;UnprotectedLoad;HWStamp")
   add_benchmark(${bench}_2plsf ${STRUCT_DIR}/${bench} "TWOPLSF")
 endforeach()
 

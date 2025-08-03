@@ -12,7 +12,7 @@ struct ordered_map {
   using V = V_;
   static constexpr auto less = Compare{};
 
-  struct alignas(32) node : stm::versioned {
+  struct alignas(64) node : stm::versioned {
     K key;
     stm::atomic<node*> next;
     bool is_end = false;

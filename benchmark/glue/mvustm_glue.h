@@ -46,4 +46,12 @@ namespace stm {
   };
 
   struct versioned {};
+
+  std::pair<long,long> statistics() {
+#ifdef STMStats
+    return ustm::statistics();
+#else
+    return std::pair(0ul,0ul);
+#endif
+  }
 }

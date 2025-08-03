@@ -144,6 +144,10 @@ namespace ustm {
     size_t numRetries {0};    
     TS startStamp;
     STMState* stmState;
+#ifdef STMStats
+    long numAborts = 0;
+    long numCommits = 0;
+#endif
     
 #ifdef SimpleSTM
     // Entry for the write log.  Contains the location, an oldStamp used
@@ -190,7 +194,7 @@ namespace ustm {
   struct STMState {
     // state consists of locks, descriptors, and timestamp
     static constexpr size_t numLocks = 1ul << logLocks;
-    std::array<Descriptor,MaxThreads> opDesc;
+    std::array<Descriptor,MaxThreads> descriptors;
     std::array<lock,numLocks> writeLocks;
     timeStamp ts;
 
@@ -239,6 +243,9 @@ namespace ustm {
         uepoch::delay(std::move(e));
       myd->reset();
       myd->inTransaction = false;
+#ifdef STMStats
+      myd->numCommits++;
+#endif
       return true;
     }
 
@@ -250,6 +257,9 @@ namespace ustm {
         uepoch::delay(std::move(e));
       if (++myd->numRetries % 4000000 == 0) { 
         std::cout << "ustm: too many retries: " << std::endl; abort();}
+#ifdef STMStats
+      myd->numAborts++;
+#endif
       myd->reset();
 #ifdef LongJmp
       uepoch::get_epoch().unannounce();
@@ -262,8 +272,8 @@ namespace ustm {
 
     STMState() {
       for (int i=0; i < MaxThreads; i++) {
-        opDesc[i].tid = i;
-        opDesc[i].stmState = this;
+        descriptors[i].tid = i;
+        descriptors[i].stmState = this;
       }
       // ensures stamp is incremented whenever epoch is
       uepoch::add_before_epoch_hook([&] { ts.nextStamp(); });
@@ -271,10 +281,15 @@ namespace ustm {
     ~STMState() {}
   };
 
+  // keep track of number of active threads
+  extern inline std::atomic<int>& numThreads() {
+    static std::atomic<int> numThreads;
+    return numThreads;
+  }
+      
   extern inline Descriptor* initDescriptor() {
-    static std::atomic<int> numThreads{0};
     static STMState stm;
-    return &stm.opDesc[numThreads.fetch_add(1)];
+    return &stm.descriptors[numThreads().fetch_add(1)];
   }
 
   // thread local copy of descriptor.
@@ -334,7 +349,7 @@ namespace ustm {
         }
       }
     }
-    if (regular || status == myd->startStamp) {
+    if (regular || (status == myd->startStamp && myd->numRetries == 0)) {
 #if defined(LongJmp) || defined(TryThrow)
       myd->stmState->abortTransaction(myd);
 #else
@@ -448,6 +463,22 @@ namespace ustm {
 #endif
     } else loc = v;
   }
+
+#ifdef STMStats
+  std::pair<long,long> statistics() {
+    STMState* stm = getDescriptor()->stmState;
+    uint64_t totalAborts = 0;
+    uint64_t totalCommits = 0;
+    for (int i=0; i < numThreads().load(); i++) {
+      auto& d = stm->descriptors[i];
+      totalAborts += d.numAborts;
+      totalCommits += d.numCommits;
+      d.numAborts = d.numCommits = 0;
+    }
+    return std::pair(totalAborts, totalCommits);
+  }
+#endif
+
 } // End namespace ustm
 
 #endif // USTM_H_

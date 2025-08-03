@@ -53,4 +53,21 @@ namespace stm {
     T operator=(T b) { store(b); return b; }
   };
 
+  std::pair<long,long> statistics() {
+#ifdef STMStats
+    auto& stm = twoplsf::gSTM;
+    uint64_t totalAborts = 0;
+    uint64_t totalCommits = 0;
+    for (int i=0; i < twoplsf::REGISTRY_MAX_THREADS; i++) {
+      auto& d = stm.opDesc[i];
+      totalAborts += d.numAborts;
+      totalCommits += d.numCommits;
+      d.numAborts = d.numCommits = 0;
+    }
+    return std::pair(totalAborts, totalCommits);
+  }
+#else
+    return std::pair(0ul,0ul);
+#endif
+
 }
