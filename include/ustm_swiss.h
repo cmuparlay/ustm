@@ -75,13 +75,12 @@ namespace ustm {
   };
 #endif
 
-  // The lock structure.   Contains the status of the lock and if using versioning
-  // a version list.
+  // The lock structure.  Contains the status of the lock and if using
+  // versioning a version list.
   struct alignas(32) lock {
     using Status = size_t;
     // If locked (high bit set) keeps tid of owner, otherwise keeps timestamp
     std::atomic<Status> v = 1; // time starts at 1
-    int prevTID = -1;
     lock() {}
     static int getTID(Status s) { return ~(1ul << 63) & s;}
     static TS getStamp(Status s) { return s;}
@@ -89,7 +88,6 @@ namespace ustm {
     static Status setLock(int tid) {return Status((1ul << 63) | tid);}
     Status getStatus() const { return v.load(std::memory_order_acquire);}
     void setStamp(TS stamp) { v.store(stamp, std::memory_order_release); }
-    int getPrevTID() const {return prevTID;}
 
 #ifndef SimpleSTM
     std::atomic<version*> verlist = nullptr; // the version list
@@ -109,7 +107,7 @@ namespace ustm {
       if (isLocked(s)) 
         if (getTID(s) == tid) return std::pair(true, 0);
         else return std::pair(false, 0);
-      if ((s < startStamp || (s == startStamp && prevTID == tid)) &&
+      if (s < startStamp &&
           v.compare_exchange_strong(s, setLock(tid))) {
         return std::pair(true, getStamp(s));
       } else return std::pair(false, 0);
@@ -117,14 +115,12 @@ namespace ustm {
 
     // unlocks by setting status to timestamp
     void unlock(const TS ts) {
-      prevTID = getTID(getStatus());
       v.store(ts, std::memory_order_release); }
 
     // checks that either self locked or timestamp before startStamp
     bool validateRead(const TS startStamp, int tid) const {
       Status s = getStatus();
-      return ((isLocked(s) && getTID(s) == tid) ||
-              s < startStamp || (s == startStamp && prevTID == tid));
+      return ((isLocked(s) && getTID(s) == tid) || s < startStamp); 
     }
   };
 
@@ -187,7 +183,7 @@ namespace ustm {
 
   template <int bits>
   size_t hash(const void* addr) {
-    size_t x = (reinterpret_cast<size_t>(addr)>>6) * UINT64_C(0xbf58476d1ce4e5b9);
+    size_t x = (reinterpret_cast<size_t>(addr)>>6)*UINT64_C(0xbf58476d1ce4e5b9);
     return x >> (64 - bits);
   }
   
@@ -230,7 +226,8 @@ namespace ustm {
           std::memcpy(e.loc, e.data, e.size);
           std::memcpy(e.data, tmp, e.size);
           // add link to version list
-          getLock(e.loc).addLink(e.link, (e.oldStamp == 0) ? endStamp : e.oldStamp);
+          ST writeStamp = (e.oldStamp == 0) ? endStamp : e.oldStamp;
+          getLock(e.loc).addLink(e.link, writeStamp);
 #endif
         }
         std::atomic_thread_fence(std::memory_order_release);
@@ -323,7 +320,6 @@ namespace ustm {
 #ifndef SimpleSTM
     version* nxt;
 #endif
-    //int prevTID = -1;
     bool regular = (myd->inTransaction && !myd->readOnly && !unprotected);
     if (regular) myd->readLog.push_back(&v);
     char tmp[sizeof(T)];
@@ -331,7 +327,6 @@ namespace ustm {
     while (true) { 
       auto prevStatus = status;
       std::memcpy(tmp, &v, sizeof(T));
-      //prevTID = lck.getPrevTID();
 #ifndef SimpleSTM
       nxt = lck.getVersionList();
 #endif
@@ -339,11 +334,9 @@ namespace ustm {
       status = lck.getStatus();
       if (prevStatus == status) {
         if (status < myd->startStamp) return *location;
-
         if (!lck.isLocked(status)) {
           if (status == myd->startStamp && myd->equalStampOK)
             return *location;
-          //if (prevTID == myd->tid) return *location;
           if (!myd->inTransaction) return *location;
           break;
         }
@@ -392,7 +385,7 @@ namespace ustm {
 #endif
     // Using lazy timestamps from verlib.  Only increments
     // on second try avoiding too many increments.
-      auto retval = uepoch::protect([&] {
+      auto returnValue = uepoch::protect([&] {
         // don't use lazy stamps if large
         if (large) myd->startStamp = stm->ts.nextStamp();
         // use lazy stamp on first try
@@ -405,16 +398,16 @@ namespace ustm {
 #ifdef LongJmp
       if (!stm->commitTransaction(myd))
         stm->abortTransaction(myd);
-      return retval;
+      return returnValue;
 #elif defined(TryThrow)
       if (!stm->commitTransaction(myd))
         stm->abortTransaction(myd);
-      return retval;
+      return returnValue;
     } catch (int x) {}
   }
 #else
       if (!myd->toAbort && stm->commitTransaction(myd)) {
-        return retval;
+        return returnValue;
       }
       stm->abortTransaction(myd);
     }
@@ -463,8 +456,8 @@ namespace ustm {
 #endif
     } else loc = v;
   }
-
 #ifdef STMStats
+
   std::pair<long,long> statistics() {
     STMState* stm = getDescriptor()->stmState;
     uint64_t totalAborts = 0;
@@ -478,7 +471,6 @@ namespace ustm {
     return std::pair(totalAborts, totalCommits);
   }
 #endif
-
 } // End namespace ustm
 
 #endif // USTM_H_

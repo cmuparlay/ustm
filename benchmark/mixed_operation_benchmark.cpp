@@ -279,6 +279,7 @@ double run_mixed_operations(parlay::sequence<K>& all,
     statistics overall_stats = parlay::reduce(processor_stats, parlay::binary_op(adds, statistics()));
     auto [aborts, commits] = stm::statistics();
     double percent_aborts = commits == 0 ? 0.0 : 100 * aborts / (double) commits;
+    if (percent_aborts < .1) percent_aborts = 0.0;
       
     if (i >= warmup) { // don't report zeroth round -- warmup
       size_t num_ops = overall_stats.total;
