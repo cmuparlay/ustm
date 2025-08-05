@@ -18,7 +18,10 @@
 //     auto r = uepoch::with_epoch([&] { ... x = y->left; ... return z;});
 // If the delay is called concurrently with the with_epoch the deletion
 // of y is delayed until the with_epoch finishes.
-// ***************************
+//
+// It also supports adding functions to run just before and after an
+// epoch is incremented using add_{before,after}_epoch_hook
+//***************************
 
 #ifndef UEPOCH_H_
 #define UEPOCH_H_
@@ -26,12 +29,15 @@
 #include <atomic>
 #include <forward_list>
 #include <functional>
+#include <iostream>
+#include <vector>
+#include <type_traits>
 #define UEPOCH
 
 namespace uepoch {
   
   namespace internal {
-    constexpr int max_threads = 1024;
+    constexpr int max_threads = 4096; // can be increased
 
     extern inline std::atomic<int>& num_threads() {
       static std::atomic<int> num_threads;
@@ -117,6 +123,7 @@ namespace uepoch {
       }
 
     public:
+      // clears all the pools and returns number of entries cleared
       long clear() {
         update_epoch();
         long cnt = 0;
@@ -130,6 +137,8 @@ namespace uepoch {
         return cnt;
       }
 
+      // Delays running the function f until there are no longer any
+      // announced threads active at the time of the call.
       void delay(std::function<void(void)> f) {
         auto i = thread_id();
         advance_epoch(i);
@@ -143,11 +152,16 @@ namespace uepoch {
   
   } // end namespace internal
 
+  // Creates an epoch state on first call by a thread and then uses it
+  // on future calls
   extern inline internal::epoch_state& get_epoch() {
     static internal::epoch_state epoch;
     return epoch;
   }
 
+  // Ensures any delayed functions called by other threads while
+  // running the function f are not executed until after f finishes.
+  // The function f can either return a value or void.
   template <typename Thunk>
   auto protect(const Thunk& f) {
     auto& epoch = get_epoch();
@@ -162,10 +176,12 @@ namespace uepoch {
     }
   }
 
-  void delay(std::function<void(void)> f) {
+  void delay(const std::function<void(void)>& f) {
     get_epoch().delay(std::move(f)); }
   void add_before_epoch_hook(std::function<void()> f) {
     get_epoch().before_epoch_hooks.push_back(f); }
+  void add_after_epoch_hook(std::function<void()> f) {
+    get_epoch().after_epoch_hooks.push_back(f); }
   long clear() {return get_epoch().clear();}
 } // end namespace uepoch
 

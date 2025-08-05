@@ -196,6 +196,7 @@ struct ordered_map {
     };
     auto l = (root->left).load();
     auto [minv, maxv, cnt] = crec(l, true);
+    //std::cout << "average height = " << ((double) total_height() / cnt) << std::endl;
     return cnt;
   }
   

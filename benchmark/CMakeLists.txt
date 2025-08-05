@@ -2,7 +2,7 @@ set(SOURCES mixed_operation_benchmark.cpp)
 set(STRUCT_DIR ${PROJECT_SOURCE_DIR}/structures)
 set(OTHER_DIR ${PROJECT_SOURCE_DIR}/other)
 
-set(STRUCTS "treap" "leaftree" "btree" "arttree" "hash_block" "list" "skiplist")
+set(STRUCTS "avltree" "treap" "leaftree" "btree" "arttree" "hash_block" "list" "skiplist")
 
 set(YCSB_COMMON_DEFS "STMStats")
 
@@ -27,4 +27,15 @@ foreach(bench ${STRUCTS})
   add_benchmark(${bench}_2plsf ${STRUCT_DIR}/${bench} "TWOPLSF")
 endforeach()
 
-add_benchmark(hash_probe_mvustm ${STRUCT_DIR}/hash_probe "USTM;MV")
+set(NSTRUCTS "hash_probe")
+
+foreach(bench ${NSTRUCTS})
+  add_benchmark(${bench}_mvustm ${STRUCT_DIR}/${bench} "USTM;MV")
+  add_benchmark(${bench}_mvustm_hwstamp ${STRUCT_DIR}/${bench} "USTM;MV;HWStamp")
+  add_benchmark(${bench}_mvustm_longjmp ${STRUCT_DIR}/${bench} "USTM;MV;LongJmp")
+  add_benchmark(${bench}_mvustm_trythrow ${STRUCT_DIR}/${bench} "USTM;MV;TryThrow")
+  add_benchmark(${bench}_mvustm_unprotected ${STRUCT_DIR}/${bench} "USTM;MV;UnprotectedLoad")
+  add_benchmark(${bench}_mvustm_hwstamp_unprotected ${STRUCT_DIR}/${bench} "USTM;MV;UnprotectedLoad;HWStamp")
+endforeach()
+
+

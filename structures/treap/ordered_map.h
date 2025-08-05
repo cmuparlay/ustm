@@ -14,11 +14,9 @@ template <typename K_,
 struct ordered_map {
   using K = K_;
   using V = V_;
-  using Balance = Rebalance<ordered_map<K,V,Compare>>;
+  //using Balance = Rebalance<ordered_map<K,V,Compare>>;
   
   static constexpr auto less = Compare{};
-  static unsigned long hash(const K& k) {
-    return parlay::hash<K>{}(k); }
   static bool equal(const K& a, const K& b) {
     return !less(a,b) && !less(b,a); }
 
@@ -47,11 +45,16 @@ struct ordered_map {
     K key;
     stm::atomic<node*> left;
     stm::atomic<node*> right;
-    node(K k, node* left, node* right)
-      : key(k), head{false,false}, left(left), right(right) {};
+    stm::atomic<node*> parent;
+    void set_parent(node* p) { if (!head::is_leaf) parent = p;}
+    node(K k, node* left, node* right, node* parent)
+      : key(k), head{false,false}, left(left), right(right), parent(parent) {};
     node(node* left) // root node
-      : head{false,true}, left(left), right(nullptr) {};
+      : head{false,true}, left(left), right(nullptr), parent(nullptr) {};
   };
+
+  static size_t priority(node* v) {
+    return parlay::hash<K>{}(v->key); }
 
   static bool Less(const K& k, node* a) {
     return a->is_sentinal || Compare{}(k, a->key);
@@ -101,7 +104,7 @@ struct ordered_map {
   };
 
   enum direction {left, right};
-  
+      
   static auto find_location(node* root, const K& k) {
     node* gp = nullptr;
     bool gp_left = false;
@@ -125,6 +128,47 @@ struct ordered_map {
     return std::make_tuple(gp, gp_left, p, p_left, l);
   }
 
+  // If priority of c (child) is less than p (parent), then it rotates c
+  // above p to ensure priorities are in heap order.  Two new nodes are
+  // created and gp (grandparent) is updated to point to the new copy of c.
+  // The key k is needed to decide the side of p from gp, and c from p.
+  static node* fix_priority(node* gp, node* p, node* c) {
+    auto gptr = Less(c->key, gp) ? &(gp->left) : &(gp->right);
+    bool on_left = less(c->key, p->key);
+    node *cl, *cr, *pl, *pr, *nc;
+    if (on_left) {  // rotate right to bring left child up
+      cl = c->right.load();
+      cr = p->right.load();
+      nc = stm::New<node>(p->key, cl, cr, nullptr);
+      pl = c->left.load();
+      pr = nc;
+    } else { // rotate left to bring right child up
+      cl = p->left.load();
+      cr = c->left.load();
+      nc = stm::New<node>(p->key, cl, cr, nullptr);
+      pl = nc;
+      pr = c->right.load();
+    }
+    node* np = stm::New<node>(c->key, pl, pr, gp);
+    (*gptr) = np;
+    pl->set_parent(np);
+    pr->set_parent(np);
+    cl->set_parent(nc);
+    cr->set_parent(nc);
+    // retire the old copies, which have been replaced
+    p->removed = true; stm::Delete(p);
+    c->removed = true; stm::Delete(c);
+    return np; 
+  }
+
+  void check_and_fix(node* c) {
+    node* p = c->parent.load();
+    if (p != root && priority(p) < priority(c)) {
+      p = fix_priority(p->parent.load(), p, c);
+      check_and_fix(p);
+    }
+  }
+
   // inserts a key into a leaf.  If a leaf overflows (> block_size) then
   // the leaf is split in the middle and parent internal node is created
   // to point to the two leaves.  
@@ -138,7 +182,7 @@ struct ordered_map {
     // if the leaf is the left sentinal then create new node
     if (old_l->is_sentinal) {
       leaf* new_l = stm::New<leaf>(KV(k,v));
-      (*ptr) = stm::New<node>(k, l, (node*) new_l);
+      (*ptr) = stm::New<node>(k, l, (node*) new_l, p);
       return true;
     }
 
@@ -152,14 +196,16 @@ struct ordered_map {
       int size_r = new_l->size - size_l;
       leaf* new_ll = stm::New<leaf>(new_l->keyvals, size_l);
       leaf* new_lr = stm::New<leaf>(new_l->keyvals + size_l, size_r);
-      (*ptr) = stm::New<node>(new_l->keyvals[size_l].key,
-                              (node*) new_ll, (node*) new_lr);
+      node* newp = stm::New<node>(new_l->keyvals[size_l].key,
+                              (node*) new_ll, (node*) new_lr, p);
+      (*ptr) = newp;
       stm::Delete(new_l);
+      //std::cout << "inserting: " << k << ", " << ((bool) p->is_leaf) << std::endl;
+      //check_and_fix(newp);
     } else (*ptr) = (node*) new_l;
 
     // retire the old block
     stm::Delete(old_l);
-    Balance::rebalance(p, root, k);
     return !present;
   }
 
@@ -181,7 +227,6 @@ struct ordered_map {
       // The leaf has 1 key. We need to delete the leaf (l) and
       // its parent (p), and point the granparent (gp) to the
       // other child of p.
-
       auto gptr = gp_left ? &(gp->left) : &(gp->right);
       node* ll = (p->left).load();
       node* lr = (p->right).load();
@@ -189,6 +234,7 @@ struct ordered_map {
       if (lr != l) return false; // if l has changed then exit
       p->removed = true;
       (*gptr) = ll; // shortcut
+      ll->set_parent(gp);
       stm::Delete(p);
       stm::Delete((leaf*) l);
       return true;
@@ -233,9 +279,9 @@ struct ordered_map {
   
   long check() {
     using rtup = std::tuple<K,K,long>;
-    std::function<rtup(node*)> crec;
+    std::function<rtup(node*,node*)> crec;
     bool bad_val = false;
-    crec = [&] (node* p) {
+    crec = [&] (node* p, node* gp) {
 	     if (p->is_leaf) {
 	       leaf* l = (leaf*) p;
 	       K minv = l->keyvals[0].key;
@@ -246,23 +292,26 @@ struct ordered_map {
 	       }
 	       return rtup(minv, maxv, l->size);
 	     }
+             if (p->parent.load() != gp) {
+               std::cout << "bad parent: " << p << ", " << p->parent.load() << ", " << gp << ", " << gp->left.load() << ", " << gp->right.load() << std::endl;
+               bad_val = true;
+             }
 	     node* l = p->left.load();
 	     node* r = p->right.load();
 	     K lmin,lmax,rmin,rmax;
 	     long lsum,rsum;
-	     parlay::par_do([&] () { std::tie(lmin,lmax,lsum) = crec(l);},
-			    [&] () { std::tie(rmin,rmax,rsum) = crec(r);});
+	     parlay::par_do([&] () { std::tie(lmin,lmax,lsum) = crec(l,p);},
+			    [&] () { std::tie(rmin,rmax,rsum) = crec(r,p);});
 	     if ((lsum > 0 && !less(lmax, p->key)) || less(rmin, p->key)) {
 	       std::cout << "bad value: " << std::endl;
                //lmax << ", " << p->key << ", " << rmin << std::endl;
 	       bad_val = true;
 	     }
-             //Balance::check_balance(p, l, r);
 	     if (lsum == 0) return rtup(p->key, rmax, rsum);
 	     else return rtup(lmin, rmax, lsum + rsum);
 	   };
-    auto [minv, maxv, cnt] = crec(root->left.load());
-    // std::cout << "average height = " << ((double) total_height(p) / cnt) << std::endl;
+    auto [minv, maxv, cnt] = crec(root->left.load(), root);
+    //std::cout << "average height = " << ((double) total_height() / cnt) << std::endl;
     return bad_val ? -1 : cnt;
   }
 

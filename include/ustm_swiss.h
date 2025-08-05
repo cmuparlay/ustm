@@ -73,8 +73,8 @@ namespace ustm {
     T value;
     link(T* addr, T value) : version{addr}, value(value) {}
   };
+  
 #endif
-
   // The lock structure.  Contains the status of the lock and if using
   // versioning a version list.
   struct alignas(32) lock {
@@ -88,8 +88,8 @@ namespace ustm {
     static Status setLock(int tid) {return Status((1ul << 63) | tid);}
     Status getStatus() const { return v.load(std::memory_order_acquire);}
     void setStamp(TS stamp) { v.store(stamp, std::memory_order_release); }
-
 #ifndef SimpleSTM
+
     std::atomic<version*> verlist = nullptr; // the version list
     version* getVersionList() const { return verlist.load();}
     
@@ -132,7 +132,9 @@ namespace ustm {
     std::jmp_buf continuation;
 #endif
     bool inTransaction {false};
+#ifndef SimpleSTM
     bool readOnly {false};
+#endif
     bool toAbort {false};
     bool equalStampOK {false};
     int inConstructor {0};
@@ -203,7 +205,6 @@ namespace ustm {
       if (myd->writeLog.size() > 0) {
         // Take locks (abort if any fail)
         for (auto& e : myd->writeLog) {
-          auto& lck = getLock(e.loc);
           auto [r, s] = getLock(e.loc).tryLock(myd->tid, myd->startStamp);
           if (!r) return false;
           e.oldStamp = s;
@@ -226,7 +227,7 @@ namespace ustm {
           std::memcpy(e.loc, e.data, e.size);
           std::memcpy(e.data, tmp, e.size);
           // add link to version list
-          ST writeStamp = (e.oldStamp == 0) ? endStamp : e.oldStamp;
+          TS writeStamp = (e.oldStamp == 0) ? endStamp : e.oldStamp;
           getLock(e.loc).addLink(e.link, writeStamp);
 #endif
         }
@@ -272,8 +273,10 @@ namespace ustm {
         descriptors[i].tid = i;
         descriptors[i].stmState = this;
       }
+#ifndef SimpleSTM
       // ensures stamp is incremented whenever epoch is
       uepoch::add_before_epoch_hook([&] { ts.nextStamp(); });
+#endif
     }
     ~STMState() {}
   };
@@ -317,10 +320,12 @@ namespace ustm {
       }
     }
 
-#ifndef SimpleSTM
+#ifdef SimpleSTM
+    bool regular = (myd->inTransaction && !unprotected);
+#else
     version* nxt;
-#endif
     bool regular = (myd->inTransaction && !myd->readOnly && !unprotected);
+#endif
     if (regular) myd->readLog.push_back(&v);
     char tmp[sizeof(T)];
     T* location = reinterpret_cast<T*>(tmp);
@@ -373,7 +378,9 @@ namespace ustm {
     if (myd->inTransaction) return func(); // if nested then just run
     myd->inTransaction = true;
     myd->numRetries = 0;
+#ifndef SimpleSTM
     myd->readOnly = readOnly;
+#endif
     myd->equalStampOK = large;
 #ifdef LongJmp
     setjmp(myd->continuation); // return to here if aborted
@@ -383,9 +390,15 @@ namespace ustm {
 #else
     while (true) {
 #endif
-    // Using lazy timestamps from verlib.  Only increments
-    // on second try avoiding too many increments.
       auto returnValue = uepoch::protect([&] {
+#ifdef SimpleSTM
+        // Using lazy timestamps from verlib.  Only increments
+        // on second try avoiding too many increments.
+        if (myd->numRetries == 0) myd->startStamp = stm->ts.getStamp();
+        else myd->startStamp = stm->ts.nextStamp();
+#else
+        // Using lazy timestamps from verlib.  Only increments
+        // on second try avoiding too many increments.
         // don't use lazy stamps if large
         if (large) myd->startStamp = stm->ts.nextStamp();
         // use lazy stamp on first try
@@ -394,6 +407,7 @@ namespace ustm {
         else if (readOnly) {myd->equalStampOK = true; stm->ts.nextStamp();}
         // increment on second+ try of updating transaction
         else myd->startStamp = stm->ts.nextStamp();
+#endif
         return func();});
 #ifdef LongJmp
       if (!stm->commitTransaction(myd))
@@ -406,9 +420,8 @@ namespace ustm {
     } catch (int x) {}
   }
 #else
-      if (!myd->toAbort && stm->commitTransaction(myd)) {
+      if (!myd->toAbort && stm->commitTransaction(myd)) 
         return returnValue;
-      }
       stm->abortTransaction(myd);
     }
 #endif
@@ -440,10 +453,12 @@ namespace ustm {
   inline void store(T& loc, const T& v) {
     Descriptor* myd = getDescriptor();
     if (myd->inTransaction && myd->inConstructor == 0) {
+      // insert into hash filter and map so reads can find it
       myd->writeFilter[hash<filterBits>(&loc)] = 1;
       myd->writeMap[&loc] = myd->writeLog.size();
 #ifdef SimpleSTM
       Descriptor::logEntry e{&loc, 0, 0, sizeof(T)};
+      // store value in data field (at most 8 bytes)
       std::memcpy(&e.data, &v, sizeof(T));
       myd->writeLog.push_back(e);
 #else
