@@ -15,7 +15,7 @@ rstructs="btree arttree"
 xstructs="hash_probe"
 
 # implementations that support trivial types (8-byte, trivially copyable)
-impls="mvustm mvustm_hwstamp ustm_longjmp mvustm_longjmp mvustm_trythrow mvustm_unprotected 2plsf"
+impls="mvustm mvustm_hwstamp ustm_longjmp mvustm_longjmp mvustm_trythrow mvustm_unprotected 2plsf tiny"
 
 # implementations that support general relocatable types (subset of above)
 general_impls="mvustm mvustm_hwstamp mvustm_longjmp mvustm_trythrow mvustm_unprotected"
