@@ -29,7 +29,7 @@ geomean_args="-u 0,5,50 -z 0,.99 -r 1 -trans 16"
 range_args="-n 1000000 -u 100 -z 0 -trans 16 -rs 1,10,100,1000,10000,100000,1000000 -rqp 50"
 
 # common header (useful on multinode numa machines)
-head="numactl -i all"
+head="timelimit -t 100 numactl -i all"
 
 # print various imformation about the machine/compiler/date at head of file
 procs=`nproc`

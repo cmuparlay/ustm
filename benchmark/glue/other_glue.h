@@ -1,35 +1,61 @@
 #pragma once
 
+#ifdef TL2O
+#include "TL2Orig.hpp"
+namespace ext_stm = tl2orig;
+namespace stm { struct versioned {}; }
+#define LimitedSTM
+
+#elif defined(Tiny)
+#include "TinySTM.hpp"
+namespace ext_stm = tinystm;
+namespace stm { struct versioned {}; }
+#define LimitedSTM
+
+#elif defined(OneFile)
+#include "OneFileWF.hpp"
+namespace ext_stm = ofwf;
+namespace stm { using versioned = ofwf::tmbase; }
+
+#elif defined(TWOPLSF)
 #include "2PLSF.hpp"
+namespace stm { struct versioned {}; }
 namespace ext_stm = twoplsf;
+#else
+No STM Specified
+#endif
 
 namespace stm {
 
+#ifdef OneFile
   template <typename F>
   auto atomic_region(F &&func) {
-    if constexpr (std::is_void_v<std::invoke_result_t<F>>) {
-      ext_stm::updateTx(func);
-    } else  {
-      return ext_stm::updateTx<decltype(func())>(func);
-    }
+    using T = decltype(func());
+    T result;
+    ext_stm::updateTx<bool>([&] {result = func(); return true;});
+    return result;
   }
 
   template <typename F>
   auto atomic_read_only(F &&func, bool large = false) {
-    if constexpr (std::is_void_v<std::invoke_result_t<F>>) {
-     ext_stm::readTx(func);
-  } else {
-      return ext_stm::readTx<decltype(func())>(func);
-    }
+    using T = decltype(func());
+    T result;
+    ext_stm::readTx<bool>([&] {result = func(); return true;});
+    return result;
   }
+#else
+  template <typename F>
+  auto atomic_region(F &&func) {
+    return ext_stm::updateTx<decltype(func())>(func);  }
 
   template <typename F>
+  auto atomic_read_only(F &&func, bool large = false) {
+    return ext_stm::readTx<decltype(func())>(func);  }
+#endif
+  
+  template <typename F>
   auto atomic_read_only_singleton(F f) {
-    if constexpr (std::is_void_v<std::invoke_result_t<F>>) {
-      atomic_read_only(f);
-    } else {
-      return atomic_read_only(f);
-    }
+      return atomic_region(f);
   }
 
   template <typename T>
@@ -54,7 +80,7 @@ namespace stm {
   };
 
   std::pair<long,long> statistics() {
-#ifdef STMStats
+#if defined(STMStats) && defined(TWOPLSF)
     auto& stm = twoplsf::gSTM;
     uint64_t totalAborts = 0;
     uint64_t totalCommits = 0;
@@ -65,9 +91,8 @@ namespace stm {
       d.numAborts = d.numCommits = 0;
     }
     return std::pair(totalAborts, totalCommits);
-  }
 #else
     return std::pair(0ul,0ul);
 #endif
-
+  }
 }

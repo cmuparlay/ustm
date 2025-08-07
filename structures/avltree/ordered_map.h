@@ -16,7 +16,7 @@ struct ordered_map {
   using K = K_;
   using V = V_;
 private:
-  struct node {
+  struct node : stm::versioned {
     const K key;
     const V value;
     stm::atomic<node*> left;

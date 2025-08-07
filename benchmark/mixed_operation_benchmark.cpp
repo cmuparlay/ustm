@@ -116,7 +116,11 @@ double run_mixed_operations(parlay::sequence<K>& all,
   int range_query_percent = P.getOptionIntValue("-rqp", 0);
   int range_query_threads = std::ceil((range_query_percent * p)/100.0);
   enum op_type : char {Find, Insert, Remove};
-    
+#ifdef LimitedSTM
+  bool do_check = false;
+#else
+  bool do_check = true;
+#endif
   auto op_types = parlay::tabulate(m, [&] (size_t i) -> op_type {
       auto h = parlay::hash64(m+i)%2000;
       if (h < 10*update_percent) return Insert; 
@@ -127,9 +131,14 @@ double run_mixed_operations(parlay::sequence<K>& all,
 
   // loop over rounds
   for (int i = 0; i < rounds + warmup; i++) {
-    auto *map_ptr = stm::atomic_region([=]() { return new SetType(n); });
+#ifdef LimitedSTM
+    auto *map_ptr = stm::atomic_region([=]() { return stm::New<SetType>(n); });
+#else
+    auto *map_ptr = new SetType(n);
+#endif
+    
     auto &tr = *map_ptr;
-    auto check = [&]() {return tr.check();};
+    auto check = [&]() { return  map_ptr->check(); };
     if (verbose) std::cout << "round " << i << std::endl;
     using V = typename SetType::V;
     V default_value;
@@ -145,14 +154,16 @@ double run_mixed_operations(parlay::sequence<K>& all,
         }
         return true; });}, 1000, true);
 
-    size_t initial_size = check();
+    if (do_check && verbose)
+      std::cout << "inserted" << std::endl;
 
-    if (verbose)
-      std::cout << "initial size = " << initial_size << std::endl;
-
-    if (initial_size != n) {
-      std::cout << "bad initial size: " << initial_size << std::endl;
-      abort();
+    long initial_size = 0;
+    if (do_check) {
+      initial_size = check();
+      if (initial_size != n) {
+        std::cout << "bad initial size: " << initial_size << std::endl;
+        abort();
+      }
     }
 
     parlay::sequence<statistics> processor_stats(p);
@@ -219,6 +230,7 @@ double run_mixed_operations(parlay::sequence<K>& all,
         // if transaction is size one then only need to wrap atomic region around each operation
         // also a find can be put in an read_only region
         if (trans_size == 1) {
+          std::cout << "." << std::endl;
           if (op_types[jj] == Find) {
             local_stats.query_count++;
 #ifdef NoProtect
@@ -300,64 +312,70 @@ double run_mixed_operations(parlay::sequence<K>& all,
                 << std::endl;
     }
     // now we do various consistency checks
-    size_t final_cnt = check();
-    long total_added = overall_stats.added_count;
-    long total_updates = overall_stats.update_count;
-    double update_successes = overall_stats.update_success_count;
-    double update_success_ratio = update_successes / total_updates;
-    long total_queries = overall_stats.query_count;
-    double total_found = overall_stats.query_total_value / default_value[0];
-    double success_ratio = total_found / total_queries;
-    int range_ratio = overall_stats.range_sum / (overall_stats.range_count + 1);
-    if (verbose) {
-      std::cout << "total updates =     " << total_updates 
-                << "\nsuccesful updates = " << (long) update_successes
-                << "\ntotal queries =     " << total_queries 
-                << "\nsuccesful queries = " << (long) total_found
-                << "\ninitial size =      " << initial_size
-                << "\ntotal added =       " << total_added
-                << "\nfinal size =        " << final_cnt 
-                << std::endl;
+    if (do_check) {
+      size_t final_cnt = check();
+      long total_added = overall_stats.added_count;
+      long total_updates = overall_stats.update_count;
+      double update_successes = overall_stats.update_success_count;
+      double update_success_ratio = update_successes / total_updates;
+      long total_queries = overall_stats.query_count;
+      double total_found = overall_stats.query_total_value / default_value[0];
+      double success_ratio = total_found / total_queries;
+      int range_ratio = overall_stats.range_sum / (overall_stats.range_count + 1);
+      if (verbose) {
+        std::cout << "total updates =     " << total_updates 
+                  << "\nsuccesful updates = " << (long) update_successes
+                  << "\ntotal queries =     " << total_queries 
+                  << "\nsuccesful queries = " << (long) total_found
+                  << "\ninitial size =      " << initial_size
+                  << "\ntotal added =       " << total_added
+                  << "\nfinal size =        " << final_cnt 
+                  << std::endl;
+      }
+
+      if (range_query_percent > 0 &&
+          (range_ratio > 1.1 * range_size ||
+           (10 * range_size < n) && (range_ratio < .9 * range_size)))
+        std::cout << "bad range sizes, average range size returned = "
+                  << range_ratio << std::endl;
+      if ((success_ratio < .4 || success_ratio > .6) && n > 10000)
+        std::cout << "bad query success ratio, should be .5 is "
+                  << success_ratio << std::endl;
+      if ((update_success_ratio < .4 || update_success_ratio > .6) && n > 10000)
+        std::cout << "bad update success ratio, should be .5 is "
+                  << update_success_ratio << std::endl;
+
+      if (initial_size + total_added != final_cnt) {
+        std::cout << "bad size: initial size = " << initial_size 
+                  << ", added " << total_added
+                  << ", final size = " << final_cnt 
+                  << std::endl;
+      }
     }
-
-    if (range_query_percent > 0 &&
-        (range_ratio > 1.1 * range_size ||
-         (10 * range_size < n) && (range_ratio < .9 * range_size)))
-      std::cout << "bad range sizes, average range size returned = "
-                << range_ratio << std::endl;
-    if ((success_ratio < .4 || success_ratio > .6) && n > 10000)
-      std::cout << "bad query success ratio, should be .5 is "
-                << success_ratio << std::endl;
-    if ((update_success_ratio < .4 || update_success_ratio > .6) && n > 10000)
-      std::cout << "bad update success ratio, should be .5 is "
-                << update_success_ratio << std::endl;
-
-    if (initial_size + total_added != final_cnt) {
-      std::cout << "bad size: initial size = " << initial_size 
-                << ", added " << total_added
-                << ", final size = " << final_cnt 
-                << std::endl;
-    }
-
+    
     // finally remove all the keys and delete the map
     parlay::parallel_for(0, unique.size(), [&] (size_t i) {
       stm::atomic_region([&] {
           tr.remove(unique[i]);
           return true; });
       }, 100);
-    if (check() != 0) {
+    if (do_check && check() != 0) {
       std::cout << "not empty after all keys deleted" << std::endl;
       abort();
     }
 
-    //using atomic region breaks 2plsf with hash_block since it runs out of read buffer
-    //stm::atomic_region([=] { delete map_ptr; return true;});
+    // Using atomic region breaks 2plsf with hash_block since it runs
+    // out of read buffer.
+    // Using stm::Delete breaks tinystm, presumably because it can't
+    // handle non-trivial destructors
+#ifdef LimitedSTM
+    //stm::atomic_region([=] { stm::Delete(map_ptr); return true;});
+#else
     delete map_ptr; 
-
+#endif
+    
 #ifdef UEPOCH_H_
     long cnt = uepoch::clear();
-    //std::cout << "Epoch memory cleared: " << cnt << std::endl;
-    //parlay::internal::get_default_allocator().print_stats();
 #endif
   }  return throughput/rounds;
 }

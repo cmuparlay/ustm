@@ -18,9 +18,8 @@
 #include "glue/mvustm_glue.h"
 #elif defined(USTM_)
 #include "glue/ustm_glue.h"
-#elif defined(TWOPLSF)
-#include "glue/2plsf_glue.h"
-namespace stm { struct versioned {}; }
+#elif defined(Other)
+#include "glue/other_glue.h"
 #endif
 
 namespace stm {
