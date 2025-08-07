@@ -44,6 +44,7 @@ echo "Date:" ${today} >> ${filename}
 echo `lscpu | grep 'Model name'` >> ${filename}
 echo "Git branch:" `git rev-parse --short HEAD` >> ${filename}
 echo "Compiler:" `g++ --version | head -1` >> ${filename}
+echo "OS:" `lsb_release -a | grep 'Description' | cut -c 1-13`
 echo "Hugepage:" `cat /sys/kernel/mm/transparent_hugepage/enabled` >> ${filename}
 
 # non-trivial types

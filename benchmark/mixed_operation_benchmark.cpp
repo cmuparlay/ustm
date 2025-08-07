@@ -230,7 +230,6 @@ double run_mixed_operations(parlay::sequence<K>& all,
         // if transaction is size one then only need to wrap atomic region around each operation
         // also a find can be put in an read_only region
         if (trans_size == 1) {
-          std::cout << "." << std::endl;
           if (op_types[jj] == Find) {
             local_stats.query_count++;
 #ifdef NoProtect
