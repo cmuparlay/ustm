@@ -239,20 +239,23 @@ public:
     return true;
   }
 
-  bool upsert(const K& k, const V& v) {
+  template <typename F>
+  bool upsert_f(const K& k, const F& f) {
     bucket* s = hash_table.get_bucket(k);
     node* old_node = s->load();
     if (old_node != nullptr && old_node->find_index(k) != -1) {
-      auto f = [&] (auto x) {return v;};
       s->ptr = update_node(old_node, k, f);      
       retire_node(old_node);
       return false;
     } else {
-      s->ptr = insert_to_node(old_node, k, v);
+      s->ptr = insert_to_node(old_node, k, f(std::optional<V>()));
       retire_node(old_node);
       return true;
     }
   }
+
+  bool upsert(const K& k, const V& v) {
+    return upsert_f(k, [&] (auto x) {return v;}); }
 
   bool remove(const K& k) {
     bucket* s = hash_table.get_bucket(k);

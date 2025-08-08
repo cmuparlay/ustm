@@ -528,6 +528,11 @@ struct ordered_map {
 
   bool upsert(const K& k, const V& v) { return insert(k, v, true);}
 
+  template <typename F>
+  bool upsert_f(const K& k, const F& f) {
+    return upsert(k, f(find(k)));
+  }
+
   // Deletes by finding the leaf containing the key, and removing from
   // the leaf.  Returns false if not found.
   bool remove(const K& k) {

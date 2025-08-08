@@ -452,7 +452,11 @@ namespace ustm {
   template <typename T>
   inline void store(T& loc, const T& v) {
     Descriptor* myd = getDescriptor();
-    if (myd->inTransaction && myd->inConstructor == 0) {
+    // if (ustm::load(loc) == v) return;
+    if (myd->inConstructor > 0) loc = v;
+    else if (!myd->inTransaction)
+      ustm::transaction([&] {ustm::store(loc, v); return true;});
+    else {
       // insert into hash filter and map so reads can find it
       myd->writeFilter[hash<filterBits>(&loc)] = 1;
       myd->writeMap[&loc] = myd->writeLog.size();
@@ -469,8 +473,12 @@ namespace ustm {
       // add to write map (and filter) so reads can find it
       myd->writeLog.push_back(e);
 #endif
-    } else loc = v;
+    } 
   }
+
+  template <typename T>
+  inline void fence(T& loc) {
+    ustm::transaction([=] {ustm::store(loc, ustm::load(loc));}); }
 #ifdef STMStats
 
   std::pair<long,long> statistics() {
