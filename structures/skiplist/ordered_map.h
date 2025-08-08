@@ -136,7 +136,7 @@ struct ordered_map {
 
   template <typename F>
   bool upsert_f(const K& k, const F& f) {
-    return upsert_(k,f(find_(k)));
+    return upsert_(k,f(find(k)));
   }
   
   bool remove(const K& k) {

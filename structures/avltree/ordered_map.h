@@ -107,12 +107,11 @@ private:
       if (new_r == r) return p;
       new_l = l = p->left.load();
     } else { // key already in tree
+      inserted = false;
       if (upsert) {
         Delete(p);
         return New(k, v, nullptr, nullptr);
-      }
-      inserted = false;
-      return p;
+      } else return p;
     }
 
     node* new_p = rebalance(p, new_l, new_r);
