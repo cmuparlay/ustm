@@ -426,7 +426,7 @@ struct ordered_map {
   bool upsert(const K& k, const V& v) { return insert(k, v, true);}
 
   template <typename F>
-  bool upsert_f(const K& k, const F& f) { return upsert(k,f(find_(k))); }
+  bool upsert_f(const K& k, const F& f) { return upsert(k,f(find(k))); }
 
   bool insert(const K& k, const V& v, bool upsert = false) {
     auto [gp, p, cptr, c, byte_pos] = find_location(root, k);

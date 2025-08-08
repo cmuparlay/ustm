@@ -29,7 +29,7 @@
 namespace ustm {
   // some constants
   constexpr int MaxThreads = 4096; // arbitrary, can be increased
-  constexpr int logLocks = 19; // log_2 of number of locks
+  constexpr int logLocks = 22; // log_2 of number of locks
   static constexpr int filterBits = 10; // used for the writelog hash filter
 
   using TS = size_t; // type for timestamps
@@ -40,7 +40,7 @@ namespace ustm {
       __asm__ __volatile__ ("rdtsc" : "=a" (lo), "=d" (hi));
       return (TS) (((uint64_t)(hi & ~(1<<31)) << 32) | lo);
     }
-    TS nextStamp() { return getStamp(); }
+    TS nextStamp(TS ignore=0) { return getStamp(); }
   };
 #else
   struct timeStamp {
@@ -48,8 +48,9 @@ namespace ustm {
     // returns current stamp
     TS getStamp() const { return ts.load(); }
     // returns incremented stamp
-    TS nextStamp() { 
+    TS nextStamp(TS prevStamp=(0ul-1ul)) { 
       TS stamp1 = ts.load(); // delay to avoid fetch-and-increment
+      if (stamp1 > prevStamp) return stamp1;
       for (volatile int i = 1; i < 500; i++) {}
       TS stamp2 = ts.load();
       if (stamp1 == stamp2) return ++ts; // fetch and increment
@@ -77,7 +78,7 @@ namespace ustm {
 #endif
   // The lock structure.  Contains the status of the lock and if using
   // versioning a version list.
-  struct alignas(32) lock {
+  struct alignas(16) lock {
     using Status = size_t;
     // If locked (high bit set) keeps tid of owner, otherwise keeps timestamp
     std::atomic<Status> v = 1; // time starts at 1
@@ -211,6 +212,8 @@ namespace ustm {
         }
         // get stamp -- this is the serialization point
         TS endStamp = ts.getStamp();
+        if (myd->writeLog.size() > 10)
+          ts.nextStamp(endStamp);
         // Validate the reads (abort if any fail)
         for (auto& e : myd->readLog) 
           if (!getLock(e).validateRead(myd->startStamp, myd->tid))
@@ -232,7 +235,7 @@ namespace ustm {
 #endif
         }
         std::atomic_thread_fence(std::memory_order_release);
-        for (auto& e : myd->writeLog) // unlock writes
+        for (auto&  e : myd->writeLog) // unlock writes
           if (e.oldStamp != 0)
             getLock(e.loc).unlock(endStamp);
       }
@@ -395,7 +398,7 @@ namespace ustm {
         // Using lazy timestamps from verlib.  Only increments
         // on second try avoiding too many increments.
         if (myd->numRetries == 0) myd->startStamp = stm->ts.getStamp();
-        else myd->startStamp = stm->ts.nextStamp();
+        else myd->startStamp = stm->ts.nextStamp(myd->startStamp);
 #else
         // Using lazy timestamps from verlib.  Only increments
         // on second try avoiding too many increments.
@@ -404,9 +407,11 @@ namespace ustm {
         // use lazy stamp on first try
         else if (myd->numRetries == 0) myd->startStamp = stm->ts.getStamp();
         // increment on second try of readOnly
-        else if (readOnly) {myd->equalStampOK = true; stm->ts.nextStamp();}
+        else if (readOnly) {
+          myd->equalStampOK = true;
+          stm->ts.nextStamp(myd->startStamp);}
         // increment on second+ try of updating transaction
-        else myd->startStamp = stm->ts.nextStamp();
+        else myd->startStamp = stm->ts.nextStamp(myd->startStamp);
 #endif
         return func();});
 #ifdef LongJmp
@@ -455,7 +460,7 @@ namespace ustm {
     // if (ustm::load(loc) == v) return;
     if (myd->inConstructor > 0) loc = v;
     else if (!myd->inTransaction)
-      ustm::transaction([&] {ustm::store(loc, v); return true;});
+      loc = v; //ustm::transaction([&] {ustm::store(loc, v); return true;});
     else {
       // insert into hash filter and map so reads can find it
       myd->writeFilter[hash<filterBits>(&loc)] = 1;

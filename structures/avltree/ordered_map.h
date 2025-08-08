@@ -91,22 +91,26 @@ private:
     } else return p; // balanced
   }
 
-  static node* insert(node* p, const K& k, const V& v, bool& inserted) {
+  static node* insert(node* p, const K& k, const V& v, bool upsert, bool& inserted) {
     if (p == nullptr) // if empty
       return New(k, v, nullptr, nullptr);
 
     node *l, *r, *new_l, *new_r;
     if (k < p->key) { // go left
       l = p->left.load();
-      new_l = insert(l, k, v, inserted);
+      new_l = insert(l, k, v, upsert, inserted);
       if (new_l == l) return p;
       new_r = r = p->right.load();
     } else if (k > p->key) { // go right
       r = p->right.load();
-      new_r = insert(r, k, v, inserted);
+      new_r = insert(r, k, v, upsert, inserted);
       if (new_r == r) return p;
       new_l = l = p->left.load();
     } else { // key already in tree
+      if (upsert) {
+        Delete(p);
+        return New(k, v, nullptr, nullptr);
+      }
       inserted = false;
       return p;
     }
@@ -193,10 +197,21 @@ public:
   bool insert(const K& key, const V& value) {
     bool inserted = true;
     node* r = root.load();
-    node* new_r = insert(r, key, value, inserted);
+    node* new_r = insert(r, key, value, false, inserted);
     if (r != new_r) root = new_r;
     return inserted;
   }
+
+  bool upsert(const K& key, const V& value) {
+    bool inserted = true;
+    node* r = root.load();
+    node* new_r = insert(r, key, value, true, inserted);
+    if (r != new_r) root = new_r;
+    return inserted;
+  }
+
+  template <typename F>
+  bool upsert_f(const K& k, const F& f) { return upsert(k,f(find(k))); }
 
   std::optional<V> find(const K& key) {
     node* p = nullptr;

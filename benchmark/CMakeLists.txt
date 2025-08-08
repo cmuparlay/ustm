@@ -32,7 +32,7 @@ foreach(bench ${STRUCTS})
   #add_benchmark(${bench}_onefile ${MIXED} ${STRUCT_DIR}/${bench} "Other;OneFile" "")
 endforeach()
 
-set(TPCC_STRUCTS "btree" "hash_block")
+set(TPCC_STRUCTS "btree" "hash_block" "arttree" "avltree")
 
 foreach(bench ${TPCC_STRUCTS})
   add_benchmark(tpcc_${bench}_mvustm ${TPCC} ${STRUCT_DIR}/${bench} "USTM;MV" "")
