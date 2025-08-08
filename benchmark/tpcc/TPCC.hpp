@@ -296,17 +296,17 @@ namespace tpcc {
           ret = 0;
 
           const customer::key k_c(warehouse_id, districtID, customerID);
-          auto v_c = tbl_customer[warehouse_id-1]->get_(k_c, tid);
+          auto v_c = tbl_customer[warehouse_id-1]->get(k_c, tid);
           assert(v_c.has_value());
           SanityCheckCustomer(&k_c, &(*v_c));
 
           const warehouse::key k_w(warehouse_id);
-          auto v_w = tbl_warehouse[warehouse_id-1]->get_(k_w, tid);
+          auto v_w = tbl_warehouse[warehouse_id-1]->get(k_w, tid);
           assert(v_w.has_value());
           SanityCheckWarehouse(&k_w, &(*v_w));
 
           const district::key k_d(warehouse_id, districtID);
-          auto v_d = tbl_district[warehouse_id-1]->get_(k_d, tid);
+          auto v_d = tbl_district[warehouse_id-1]->get(k_d, tid);
 
           assert(v_d.has_value());
           SanityCheckDistrict(&k_d, &(*v_d));
@@ -317,14 +317,14 @@ namespace tpcc {
           const new_order::key k_no(warehouse_id, districtID, my_next_o_id);
           const new_order::value v_no;
           const size_t new_order_sz = sizeof(v_no);
-          tbl_new_order[warehouse_id-1]->insert_(k_no, v_no, tid);
+          tbl_new_order[warehouse_id-1]->insert(k_no, v_no, tid);
           ret += new_order_sz;
 
           if (!g_new_order_fast_id_gen) {
             district::value v_d_new(*v_d);
             // abort();
             v_d_new.d_next_o_id++;
-            tbl_district[warehouse_id-1]->put_(k_d, v_d_new, tid);
+            tbl_district[warehouse_id-1]->put(k_d, v_d_new, tid);
           }
 
           const oorder::key k_oo(warehouse_id, districtID, k_no.no_o_id);
@@ -336,13 +336,13 @@ namespace tpcc {
           v_oo.o_entry_d = GetCurrentTimeMillis();
 
           const size_t oorder_sz = sizeof(v_oo);
-          tbl_oorder[warehouse_id-1]->insert_(k_oo, v_oo, tid);
+          tbl_oorder[warehouse_id-1]->insert(k_oo, v_oo, tid);
           ret += oorder_sz;
 
           const oorder_c_id_idx::key k_oo_idx(warehouse_id, districtID, customerID, k_no.no_o_id);
           const oorder_c_id_idx::value v_oo_idx(0);
 
-          tbl_oorder_c_id_idx[warehouse_id-1]->insert_(k_oo_idx, v_oo_idx, tid);
+          tbl_oorder_c_id_idx[warehouse_id-1]->insert(k_oo_idx, v_oo_idx, tid);
 
           for (uint ol_number = 1; ol_number <= numItems; ol_number++) {
             const uint ol_supply_w_id = supplierWarehouseIDs[ol_number - 1];
@@ -350,7 +350,7 @@ namespace tpcc {
             const uint ol_quantity = orderQuantities[ol_number - 1];
 
             const item::key k_i(ol_i_id);
-            auto v_i = tbl_item[0]->get_(k_i, tid);
+            auto v_i = tbl_item[0]->get(k_i, tid);
             SanityCheckItem(&k_i, &(*v_i));
 
             const stock::key k_s(ol_supply_w_id, ol_i_id);
@@ -367,7 +367,7 @@ namespace tpcc {
 
             tbl_stock[ol_supply_w_id-1]->upsert_f(k_s, update_stock, tid);
 
-            //auto v_s = tbl_stock[ol_supply_w_id-1]->get_(k_s, tid);
+            //auto v_s = tbl_stock[ol_supply_w_id-1]->get(k_s, tid);
             //SanityCheckStock(&k_s, &(*v_s));
             // stock::value v_s_new(*v_s);
             // //stock::value v_s_new; // toss
@@ -378,7 +378,7 @@ namespace tpcc {
             // v_s_new.s_ytd += ol_quantity;
             // v_s_new.s_remote_cnt += (ol_supply_w_id == warehouse_id) ? 0 : 1;
 
-            // tbl_stock[ol_supply_w_id-1]->put_(k_s, v_s_new, tid);
+            // tbl_stock[ol_supply_w_id-1]->put(k_s, v_s_new, tid);
 
             const order_line::key k_ol(warehouse_id, districtID, k_no.no_o_id, ol_number);
             order_line::value v_ol;
@@ -389,7 +389,7 @@ namespace tpcc {
             v_ol.ol_quantity = int8_t(ol_quantity);
 
             const size_t order_line_sz = sizeof(v_ol);
-            tbl_order_line[warehouse_id-1]->insert_(k_ol, v_ol, tid);
+            tbl_order_line[warehouse_id-1]->insert(k_ol, v_ol, tid);
             ret += order_line_sz;
           }
           return true;
@@ -462,14 +462,14 @@ namespace tpcc {
           };
           tbl_warehouse[warehouse_id-1]->upsert_f(k_w, update_warehouse, tid);
                     
-          //auto v_w = tbl_warehouse[warehouse_id-1]->get_(k_w, tid);
+          //auto v_w = tbl_warehouse[warehouse_id-1]->get(k_w, tid);
           // assert(v_w.has_value());
           // SanityCheckWarehouse(&k_w, &(*v_w));
 
           //warehouse::value v_w_new(*v_w);
           //warehouse::value v_w_new; 
           //v_w_new.w_ytd += paymentAmount;
-          //tbl_warehouse[warehouse_id-1]->put_(k_w, v_w_new, tid);
+          //tbl_warehouse[warehouse_id-1]->put(k_w, v_w_new, tid);
 
           const district::key k_d(warehouse_id, districtID);
           std::string d_name;
@@ -482,13 +482,13 @@ namespace tpcc {
 
           auto v_d = tbl_district[warehouse_id-1]->upsert_f(k_d, update_district, tid);
                     
-          //auto v_d = tbl_district[warehouse_id-1]->get_(k_d, tid);
+          //auto v_d = tbl_district[warehouse_id-1]->get(k_d, tid);
           //assert(v_d.has_value());
           //SanityCheckDistrict(&k_d, &(*v_d));
 
           //district::value v_d_new(*v_d);
           //v_d_new.d_ytd += paymentAmount;
-          //tbl_district[warehouse_id-1]->put_(k_d, v_d_new, tid);
+          //tbl_district[warehouse_id-1]->put(k_d, v_d_new, tid);
 
           customer::key k_c;
           if (RandomNumber(r, 1, 100) <= 60) {
@@ -503,7 +503,7 @@ namespace tpcc {
             k_c_idx.c_d_id = customerDistrictID;
             k_c_idx.c_last.assign((const char *) lastname_buf, 16);
 
-            auto v_c_idx = tbl_customer_name_idx[customerWarehouseID-1]->get_(k_c_idx, tid);
+            auto v_c_idx = tbl_customer_name_idx[customerWarehouseID-1]->get(k_c_idx, tid);
             assert(v_c_idx.has_value() && v_c_idx->c_id_idx->size() > 0);
             assert(v_c_idx->c_id_idx->size() < NMaxCustomerIdxScanElems); // we should detect this
             int index = v_c_idx->c_id_idx->size() / 2;
@@ -520,7 +520,7 @@ namespace tpcc {
             k_c.c_d_id = customerDistrictID;
             k_c.c_id = customerID;
           }
-          auto v_c = tbl_customer[customerWarehouseID-1]->get_(k_c, tid);
+          auto v_c = tbl_customer[customerWarehouseID-1]->get(k_c, tid);
           assert(v_c.has_value());
           SanityCheckCustomer(&k_c, &(*v_c));
           customer::value v_c_new(*v_c);
@@ -543,7 +543,7 @@ namespace tpcc {
             memcpy((void *) v_c_new.c_data.data(), &buf[0], v_c_new.c_data.size());
           }
 
-          tbl_customer[customerWarehouseID-1]->put_(k_c, v_c_new, tid);
+          tbl_customer[customerWarehouseID-1]->put(k_c, v_c_new, tid);
 
           const history::key k_h(k_c.c_d_id, k_c.c_w_id, k_c.c_id, districtID, warehouse_id, ts);
           history::value v_h;
@@ -551,7 +551,7 @@ namespace tpcc {
           v_h.h_data.assign(w_name + "    " + d_name);
 
           const size_t history_sz = sizeof(v_h);
-          tbl_history[warehouse_id-1]->insert_(k_h, v_h, tid);
+          tbl_history[warehouse_id-1]->insert(k_h, v_h, tid);
           ret += history_sz;
           return true;
         });

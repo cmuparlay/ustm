@@ -47,8 +47,9 @@ int main(int argc, char* argv[]) {
     }, 1, true);
 
     auto [total_aborts, total_ops_] = stm::statistics();
-    std::cout << total_aborts << ", " << total_ops_ << std::endl;
     long total_ops = parlay::reduce(ops);
+    if (total_ops != total_ops_)
+      std::cout << "inconsistent total ops: " << total_ops_ << ", " << total_ops << std::endl;
   
     if (verbose) tpcc_struct.table_sizes();
     if (i >= warmup)

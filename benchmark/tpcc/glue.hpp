@@ -31,21 +31,11 @@ struct RMap_ {
 
   std::optional<V> get(const K& k, long tid) { return m.find(k); }
 
-  std::optional<V> get_(const K& k, long tid) { return m.find(k); }
-
   bool insert(const K& key, const V& value, long tid) {
     return m.insert(key, value);
   }
 
-  bool insert_(const K& key, const V& value, long tid) {
-    return m.insert(key, value);
-  }
-
   bool put(const K& key, const V& value, long tid) {
-    return m.upsert(key, value);
-  }
-
-  bool put_(const K& key, const V& value, long tid) {
     return m.upsert(key, value);
   }
 
