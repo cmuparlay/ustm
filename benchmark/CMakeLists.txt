@@ -36,7 +36,8 @@ set(TPCC_STRUCTS "btree" "hash_block" "arttree" "avltree")
 
 foreach(bench ${TPCC_STRUCTS})
   add_benchmark(tpcc_${bench}_mvustm ${TPCC} ${STRUCT_DIR}/${bench} "USTM;MV" "")
-  add_benchmark(tpcc_${bench}_mvustm_hwstamp ${TPCC} ${STRUCT_DIR}/${bench} "USTM;MV;HWStamp" "")
+  add_benchmark(tpcc_${bench}_ustm_longjmp ${TPCC} ${STRUCT_DIR}/${bench} "USTM;MV;HWStamp" "")
+  add_benchmark(tpcc_${bench}_mvustm_longjmp ${TPCC} ${STRUCT_DIR}/${bench} "USTM;MV;HWStamp" "")
   add_benchmark(tpcc_${bench}_2plsf ${TPCC} ${STRUCT_DIR}/${bench} "Other;TWOPLSF" "")
 endforeach()
   

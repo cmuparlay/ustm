@@ -2,6 +2,7 @@
 
 # tree and hash structures (larger n)
 structs="hash_block btree arttree leaftree skiplist treap avltree"
+tiny_structs="btree leaftree skiplist treap avltree"
 sizes="-n 100000,10000000"
 
 # list structures (use smaller n)
@@ -9,13 +10,18 @@ lstructs="list"
 lsizes="-n 100,1000"
 
 # structures that support range queries
-rstructs="btree arttree"
+range_structs="btree arttree"
+
+# structures for tpcc
+tpcc_structs="btree arttree hash_block"
+tpcc_impls="mvustm mvustm_longjmp ustm_longjmp 2plsf"
 
 # require non-trivial types
 xstructs="hash_probe"
 
 # implementations that support trivial types (8-byte, trivially copyable)
-impls="mvustm mvustm_hwstamp ustm_longjmp mvustm_longjmp mvustm_trythrow mvustm_unprotected 2plsf tiny"
+impls="mvustm mvustm_hwstamp ustm_longjmp mvustm_longjmp mvustm_trythrow mvustm_unprotected 2plsf"
+tiny_impls="tiny"
 
 # implementations that support general relocatable types (subset of above)
 general_impls="mvustm mvustm_hwstamp mvustm_longjmp mvustm_trythrow mvustm_unprotected"
@@ -29,7 +35,7 @@ geomean_args="-u 0,5,50 -z 0,.99 -r 1 -trans 16"
 range_args="-n 1000000 -u 100 -z 0 -trans 16 -rs 1,10,100,1000,10000,100000,1000000 -rqp 50"
 
 # common header (useful on multinode numa machines)
-head="timelimit -t 100 numactl -i all"
+head="timelimit -t 200 numactl -i all"
 
 # print various imformation about the machine/compiler/date at head of file
 procs=`nproc`
@@ -44,7 +50,7 @@ echo "Date:" ${today} >> ${filename}
 echo `lscpu | grep 'Model name'` >> ${filename}
 echo "Git branch:" `git rev-parse --short HEAD` >> ${filename}
 echo "Compiler:" `g++ --version | head -1` >> ${filename}
-echo "OS:" `lsb_release -a | grep 'Description' | cut -c 1-13`
+echo "OS:" `lsb_release -a | grep 'Description' | cut -c 14-` >> ${filename}
 echo "Hugepage:" `cat /sys/kernel/mm/transparent_hugepage/enabled` >> ${filename}
 
 # non-trivial types
@@ -67,6 +73,16 @@ do
     done
 done
 
+# non list structures tinystm
+for struct in ${tiny_structs}
+do
+    echo ${struct}
+    for impl in ${tiny_impls}
+    do
+        ${head} ./${struct}_${impl} ${sizes} ${geomean_args} >> ${filename}
+    done
+done
+
 # list structures
 for struct in ${lstructs}
 do
@@ -78,10 +94,19 @@ do
 done
 
 # range queries
-for struct in ${rstructs}
+for struct in ${range_structs}
 do
     for impl in ${impls}
     do
         ${head} ./${struct}_${impl} ${range_args} >> ${filename}
+    done
+done
+
+# tpcc queries
+for struct in ${tpcc_structs}
+do
+    for impl in ${tpcc_impls}
+    do
+        ${head} ./${struct}_${impl} -nowarmup -r 3 >> ${filename}
     done
 done

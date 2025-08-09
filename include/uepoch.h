@@ -59,7 +59,23 @@ namespace uepoch {
 
       // the various delayed lists for each thread
       struct alignas(256) thread_state {
-        using list = std::forward_list<std::function<void(void)>>;
+        struct list {
+          using T = std::function<void(void)>;
+          long cnt = 0;
+          std::forward_list<T> lst;
+          void push(T&& f) {lst.push_front(f); cnt++;}
+          void clear(long n) {
+            long i = 0;
+            while (i < n && !lst.empty()) {
+              i++; lst.front()(); lst.pop_front(); }
+            cnt -= i;
+          }
+          void prepend(list& l) {
+            lst.splice_after(lst.cbefore_begin(), l.lst);
+            cnt += l.cnt;
+            l.cnt = 0;
+          }
+        };
         list current; // delayed functions from current epoch
         list old;  // delayed functions from previous epoch
         list safe; // delayed functions that are safe to call
@@ -111,8 +127,10 @@ namespace uepoch {
       void advance_epoch(int i) {
         thread_state& pid = pools[i];
         if (pid.epoch + 1 < current_epoch.load()) {
-          pid.safe.splice_after(pid.safe.cbefore_begin(), pid.old);
-          pid.old.swap(pid.current);
+          // could call all the delayed functions in old at this point, but
+          // we delay and put them in safe so they can be applied over time
+          pid.safe.prepend(pid.old);  // old is now empty
+          std::swap(pid.old, pid.current);  // current is now empty
           pid.epoch = current_epoch.load();
         }
         long heuristic_threshold = 10 * num_threads();
@@ -128,11 +146,11 @@ namespace uepoch {
         update_epoch();
         long cnt = 0;
         for (long i = 0; i < max_threads; i++) {
-          for (auto& x : pools[i].old) {x(); cnt++;}
-          for (auto& x : pools[i].current) {x(); cnt++;}
-          for (auto& x : pools[i].safe) {x(); cnt++;}
-          pools[i].old.clear(); pools[i].current.clear();
-          pools[i].safe.clear();
+          auto& p = pools[i];
+          cnt += (p.old.cnt + p.current.cnt + p.safe.cnt);
+          p.old.clear(p.old.cnt);
+          p.current.clear(p.current.cnt);
+          p.safe.clear(p.safe.cnt);
         }
         return cnt;
       }
@@ -142,11 +160,10 @@ namespace uepoch {
       void delay(std::function<void(void)> f) {
         auto i = thread_id();
         advance_epoch(i);
-        pools[i].current.push_front(std::move(f));
-        if (!pools[i].safe.empty()) {
-          pools[i].safe.front()();
-          pools[i].safe.pop_front();
-        }
+        pools[i].current.push(std::move(f));
+        if (pools[i].safe.cnt > 100)
+          pools[i].safe.clear(10);
+        else pools[i].safe.clear(1);
       }
     }; // end struct epoch_state
   

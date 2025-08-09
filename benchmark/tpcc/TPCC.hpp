@@ -151,6 +151,7 @@ namespace tpcc {
       } else {
         loaders.push_back(new tpcc_order_loader(2343352, gtc, tbl_oorder, tbl_oorder_c_id_idx, tbl_new_order, tbl_order_line, -1));
       }
+      std::cout << "here" << std::endl;
       loaders_run_clear();
 
       // one sync is enough

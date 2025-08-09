@@ -91,80 +91,85 @@ private:
     } else return p; // balanced
   }
 
-  static node* insert(node* p, const K& k, const V& v, bool upsert, bool& inserted) {
+  static std::pair<bool, node*>
+  insert(node* p, const K& k, const V& v, bool upsert, bool& inserted) {
     if (p == nullptr) // if empty
-      return New(k, v, nullptr, nullptr);
+      return std::pair(true, New(k, v, nullptr, nullptr));
 
     node *l, *r, *new_l, *new_r;
+    bool changed;
     if (k < p->key) { // go left
       l = p->left.load();
-      new_l = insert(l, k, v, upsert, inserted);
-      if (new_l == l) return p;
+      std::tie(changed, new_l) = insert(l, k, v, upsert, inserted);
+      if (!changed) return std::pair(false, p);
       new_r = r = p->right.load();
     } else if (k > p->key) { // go right
       r = p->right.load();
-      new_r = insert(r, k, v, upsert, inserted);
-      if (new_r == r) return p;
+      std::tie(changed, new_r) = insert(r, k, v, upsert, inserted);
+      if (!changed) return std::pair(false, p);
       new_l = l = p->left.load();
     } else { // key already in tree
       inserted = false;
       if (upsert) {
         Delete(p);
-        return New(k, v, nullptr, nullptr);
-      } else return p;
+        return std::pair(true, New(k, v, nullptr, nullptr));
+      } else return std::pair(false, p);
     }
 
     node* new_p = rebalance(p, new_l, new_r);
     if (new_p == p) {
-      int new_height = 1 + std::max(node::getHeight(new_l), node::getHeight(new_r));
-      if (new_height != p->height.load()) p->height = new_height;
       if (new_l == l) p->right = new_r;
       else p->left = new_l;
-      return p;
-    } else return new_p;
+      int new_height = 1 + std::max(node::getHeight(new_l), node::getHeight(new_r));
+      if (new_height != p->height.load()) {
+        p->height = new_height;
+        return std::pair(true, p);
+      } else return std::pair(false, p); 
+    } else return std::pair(true, new_p);
   }
 
-  static node* remove(node* p, const K& k, bool& removed) {
+  static std::pair<bool,node*> remove(node* p, const K& k, bool& removed) {
     if (p == nullptr) { // if empty
       removed = false;
-      return nullptr;
+      return std::pair(false, nullptr);
     }
 
     node *l, *r, *new_l, *new_r;
     node* new_p = p;
+    bool changed;
     if (k == p->key) { // found the key
       new_l = l = p->left.load();
       new_r = r = p->right.load();
       // if leaf
       if (l == nullptr && r == nullptr) { 
         Delete(p);
-        return nullptr;
+        return std::pair(true, nullptr);
       }
       // if has 2 children
       else if (l != nullptr && r != nullptr) {
         auto [key, value] = maxEntry(l);
-        new_l = remove(l, key, removed);
+        std::tie(changed, new_l) = remove(l, key, removed);
         new_p = New(key, value, new_l, r);
         Delete(p);
       }
       // if has one child
       else if (r == nullptr) {
         Delete(p);
-        return l;
+        return std::pair(true, l);
       } else {
         Delete(p);
-        return r;
+        return std::pair(true, r);
       }
-    } else { // not equal to key 
+    } else { // not equal to key
       if (k < p->key) { // go left
         l = p->left.load();
-        new_l = remove(l, k, removed);
-        if (new_l == l) return p; // common case
+        std::tie(changed, new_l) = remove(l, k, removed);
+        if (!changed) return std::pair(false, p); // common case
         new_r = r = p->right.load();
       } else { // go right
         r = p->right.load();
-        new_r = remove(r, k, removed);
-        if (new_r == r) return p; // common case
+        std::tie(changed, new_r) = remove(r, k, removed);
+        if (!changed) return std::pair(false, p); // common case
         new_l = l = p->left.load();
       }
     }
@@ -172,12 +177,14 @@ private:
     // children have changed, need to check for balance
     node* newer_p = rebalance(new_p, new_l, new_r);
     if (newer_p == p) { 
-      int new_height = 1 + std::max(node::getHeight(new_l), node::getHeight(new_r));
-      if (p->height.load() != new_height) p->height = new_height;
       if (new_l == l) p->right = new_r;
       else p->left = new_l;
-      return p;
-    } else return newer_p;
+      int new_height = 1 + std::max(node::getHeight(new_l), node::getHeight(new_r));
+      if (p->height.load() != new_height) {
+        p->height = new_height;
+        return std::pair(true, p);
+      } else return std::pair(false, p);
+    } else return std::pair(true, newer_p);
   }
 
 public:
@@ -188,24 +195,30 @@ public:
   bool remove(const K& key) {
     bool removed = true;
     node* r = root.load();
-    node* new_r = remove(r, key, removed);
-    if (r != new_r) root = new_r;
+    auto [changed, new_r] = remove(r, key, removed);
+    if (changed) root = new_r;
     return removed;
   }
 
+  long tick = 0;
+  
   bool insert(const K& key, const V& value) {
     bool inserted = true;
     node* r = root.load();
-    node* new_r = insert(r, key, value, false, inserted);
-    if (r != new_r) root = new_r;
+    auto [changed, new_r] = insert(r, key, value, false, inserted);
+    if (changed) root = new_r;
+    if (tick++ % 10000 == 0)
+        std::cout << "insert max height = " << max_height() << std::endl;
     return inserted;
   }
 
   bool upsert(const K& key, const V& value) {
     bool inserted = true;
     node* r = root.load();
-    node* new_r = insert(r, key, value, true, inserted);
-    if (r != new_r) root = new_r;
+    auto [changed, new_r] = insert(r, key, value, true, inserted);
+    if (changed) root = new_r;
+    if (tick++ % 10000 == 0)
+      std::cout << "upsert max height = " << max_height() << std::endl;
     return inserted;
   }
 
@@ -260,4 +273,16 @@ public:
     return hrec(root.load(), 0);
   }
 
+  // return max height
+  double max_height() {
+    std::function<size_t(node*, size_t)> hrec;
+    hrec = [&] (node* p, size_t depth) {
+      if (p == nullptr) return depth;
+      size_t d1, d2;
+      parlay::par_do([&] () { d1 = hrec((p->left).load(), depth + 1);},
+                     [&] () { d2 = hrec((p->right).load(), depth + 1);});
+      return std::max(d1, d2);
+    };
+    return hrec(root.load(), 0);
+  }
 };
