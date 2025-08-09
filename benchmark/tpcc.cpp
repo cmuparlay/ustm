@@ -34,11 +34,9 @@ int main(int argc, char* argv[]) {
 
     if (verbose) tpcc_struct.table_sizes();
 
-    std::cout << "here1" << std::endl;
 #ifdef UEPOCH_H_
     long cnt = uepoch::clear();
 #endif
-    std::cout << "here2" << std::endl;
 
     auto startTime = std::chrono::high_resolution_clock::now();
     gtc->finish = startTime + std::chrono::seconds{(uint64_t)gtc->interval};
@@ -49,7 +47,6 @@ int main(int argc, char* argv[]) {
       auto ltc = new LocalTestConfig();
       ltc->tid=i;
       ltc->seed=2*i;
-      std::cout << "here3" << std::endl;
       ops[i] = tpcc_struct.execute(gtc,ltc);
     }, 1, true);
 
@@ -69,7 +66,7 @@ int main(int argc, char* argv[]) {
     tpcc_struct.cleanup(gtc);
 #ifdef UEPOCH_H_
     cnt = uepoch::clear();
-    std::cout << "after run: " << cnt << std::endl;
+    //std::cout << "epoch space after run: " << cnt << std::endl;
 #endif
   }
 }

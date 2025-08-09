@@ -207,8 +207,8 @@ public:
     node* r = root.load();
     auto [changed, new_r] = insert(r, key, value, false, inserted);
     if (changed) root = new_r;
-    if (tick++ % 10000 == 0)
-        std::cout << "insert max height = " << max_height() << std::endl;
+    //if (tick++ % 10000 == 0)
+    //    std::cout << "insert max height = " << max_height() << std::endl;
     return inserted;
   }
 
@@ -217,8 +217,8 @@ public:
     node* r = root.load();
     auto [changed, new_r] = insert(r, key, value, true, inserted);
     if (changed) root = new_r;
-    if (tick++ % 10000 == 0)
-      std::cout << "upsert max height = " << max_height() << std::endl;
+    // if (tick++ % 10000 == 0)
+    //  std::cout << "upsert max height = " << max_height() << std::endl;
     return inserted;
   }
 
