@@ -213,7 +213,7 @@ namespace ustm {
         // get stamp -- this is the serialization point
         TS endStamp = ts.getStamp();
         if (myd->writeLog.size() > 10)
-          ts.nextStamp();
+          ts.nextStamp(endStamp);
         // Validate the reads (abort if any fail)
         for (auto& e : myd->readLog) 
           if (!getLock(e).validateRead(myd->startStamp, myd->tid))
@@ -398,7 +398,7 @@ namespace ustm {
         // Using lazy timestamps from verlib.  Only increments
         // on second try avoiding too many increments.
         if (myd->numRetries == 0) myd->startStamp = stm->ts.getStamp();
-        else myd->startStamp = stm->ts.nextStamp();
+        else myd->startStamp = stm->ts.nextStamp(myd->startStamp);
 #else
         // Using lazy timestamps from verlib.  Only increments
         // on second try avoiding too many increments.
@@ -411,7 +411,7 @@ namespace ustm {
           myd->equalStampOK = true;
           stm->ts.nextStamp(myd->startStamp);}
         // increment on second+ try of updating transaction
-        else myd->startStamp = stm->ts.nextStamp();
+        else myd->startStamp = stm->ts.nextStamp(myd->startStamp);
 #endif
         return func();});
 #ifdef LongJmp
