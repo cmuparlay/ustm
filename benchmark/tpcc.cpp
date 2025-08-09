@@ -60,5 +60,8 @@ int main(int argc, char* argv[]) {
 		<< ", %aborts = " << total_aborts * 100.0 / total_ops
 		<< std::endl;
     tpcc_struct.cleanup(gtc);
+#ifdef UEPOCH_H_
+    long cnt = uepoch::clear();
+#endif
   }
 }
