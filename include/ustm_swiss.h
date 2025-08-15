@@ -25,6 +25,9 @@
 #include <unordered_map>
 #include <vector>
 #include "uepoch.h"
+#ifdef ParlayAlloc
+#include <parlay/alloc.h>
+#endif
 
 namespace ustm {
   // some constants
@@ -147,6 +150,7 @@ namespace ustm {
     long numAborts = 0;
     long numCommits = 0;
 #endif
+    long lazyCnt = 0;
     
 #ifdef SimpleSTM
     // Entry for the write log.  Contains the location, an oldStamp used
@@ -258,6 +262,7 @@ namespace ustm {
         uepoch::delay(std::move(e));
       if (++myd->numRetries % 4000000 == 0) { 
         std::cout << "ustm: too many retries: " << std::endl; abort();}
+      myd->lazyCnt = 10;
 #ifdef STMStats
       myd->numAborts++;
 #endif
@@ -381,6 +386,7 @@ namespace ustm {
     if (myd->inTransaction) return func(); // if nested then just run
     myd->inTransaction = true;
     myd->numRetries = 0;
+    myd->lazyCnt = std::max(myd->lazyCnt - 1, 0l);
 #ifndef SimpleSTM
     myd->readOnly = readOnly;
 #endif
@@ -394,25 +400,20 @@ namespace ustm {
     while (true) {
 #endif
       auto returnValue = uepoch::protect([&] {
-#ifdef SimpleSTM
-        // Using lazy timestamps from verlib.  Only increments
-        // on second try avoiding too many increments.
-        if (myd->numRetries == 0) myd->startStamp = stm->ts.getStamp();
-        else myd->startStamp = stm->ts.nextStamp(myd->startStamp);
-#else
         // Using lazy timestamps from verlib.  Only increments
         // on second try avoiding too many increments.
         // don't use lazy stamps if large
-        if (large) myd->startStamp = stm->ts.nextStamp();
+        if (myd->lazyCnt > 0) myd->startStamp = stm->ts.nextStamp();
         // use lazy stamp on first try
         else if (myd->numRetries == 0) myd->startStamp = stm->ts.getStamp();
         // increment on second try of readOnly
+#ifndef SimpleSTM
         else if (readOnly) {
           myd->equalStampOK = true;
           stm->ts.nextStamp(myd->startStamp);}
+#endif
         // increment on second+ try of updating transaction
         else myd->startStamp = stm->ts.nextStamp(myd->startStamp);
-#endif
         return func();});
 #ifdef LongJmp
       if (!stm->commitTransaction(myd))
@@ -438,20 +439,35 @@ namespace ustm {
     Descriptor* myd = getDescriptor();
     if (myd->inTransaction) {
       myd->inConstructor++;
+#ifdef ParlayAlloc
+      T* ptr = parlay::type_allocator<T>::create(args...);
+      myd->allocLog.push_back([=] {parlay::type_allocator<T>::destroy(ptr);});
+#else
       T* ptr = new T(args...);
       myd->allocLog.push_back([=] {delete ptr;});
+#endif
       myd->inConstructor--;
       return ptr;
-    } else return new T(args...);
-  }
+    } else {
+#ifdef ParlayAlloc
+      return parlay::type_allocator<T>::create(args...);
+#else
+      return new T(args...);
+#endif
+    } }
 
   // adds to log and only applies deletes on success
   template<typename T>
   inline void Delete(T* obj) {
     if (obj == nullptr) return;
     Descriptor* myd = getDescriptor();
+#ifdef ParlayAlloc
+    if (!myd->inTransaction) parlay::type_allocator<T>::destroy(obj);
+    else myd->deleteLog.push_back([=] { parlay::type_allocator<T>::destroy(obj);});
+#else
     if (!myd->inTransaction) delete obj;
     else myd->deleteLog.push_back([=] { delete obj;});
+#endif
   }
 
   template <typename T>

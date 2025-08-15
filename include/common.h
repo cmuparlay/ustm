@@ -6,6 +6,7 @@
 #include <csetjmp>
 #include <functional>
 #include <iostream>
+#include <optional>
 #include <thread>
 #include <vector>
 

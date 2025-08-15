@@ -6,7 +6,7 @@ set(OTHER_DIR ${PROJECT_SOURCE_DIR}/other)
 
 set(STRUCTS "avltree" "treap" "leaftree" "btree" "arttree" "hash_block" "list" "skiplist")
 
-set(COMMON_DEFS "STMStats")
+set(COMMON_DEFS "STMStats;ParlayAlloc")
 
 function(add_benchmark NAME SOURCE STRUCT_NAME DEFS LIB)
   add_executable(${NAME} ${SOURCE})
@@ -36,10 +36,21 @@ set(TPCC_STRUCTS "btree" "hash_block" "arttree" "avltree")
 
 foreach(bench ${TPCC_STRUCTS})
   add_benchmark(tpcc_${bench}_mvustm ${TPCC} ${STRUCT_DIR}/${bench} "USTM;MV" "")
-  add_benchmark(tpcc_${bench}_ustm_longjmp ${TPCC} ${STRUCT_DIR}/${bench} "USTM;MV;HWStamp" "")
-  add_benchmark(tpcc_${bench}_mvustm_longjmp ${TPCC} ${STRUCT_DIR}/${bench} "USTM;MV;HWStamp" "")
+  add_benchmark(tpcc_${bench}_ustm ${TPCC} ${STRUCT_DIR}/${bench} "USTM;SimpleSTM" "")
+  add_benchmark(tpcc_${bench}_ustm_longjmp ${TPCC} ${STRUCT_DIR}/${bench} "USTM;SimpleSTM;LongJmp" "")
+  add_benchmark(tpcc_${bench}_ustm_hwstamp ${TPCC} ${STRUCT_DIR}/${bench} "USTM;SimpleSTM;LongJmp" "")
+  add_benchmark(tpcc_${bench}_ustm_longjmp_hwstamp ${TPCC} ${STRUCT_DIR}/${bench} "USTM;SimpleSTM;LongJmp;HWStamp" "")
+  add_benchmark(tpcc_${bench}_mvustm_longjmp ${TPCC} ${STRUCT_DIR}/${bench} "USTM;MV;LongJmp" "")
+  add_benchmark(tpcc_${bench}_mvustm_trythrow ${TPCC} ${STRUCT_DIR}/${bench} "USTM;MV;TryThrow" "")
+  add_benchmark(tpcc_${bench}_mvustm_hwstamp ${TPCC} ${STRUCT_DIR}/${bench} "USTM;MV;HWStamp" "")
+  add_benchmark(tpcc_${bench}_mvustm_longjmp_hwstamp ${TPCC} ${STRUCT_DIR}/${bench} "USTM;MV;HWStamp;LongJmp" "")
+
+
+  add_benchmark(tpcc_${bench}_ustm_old ${TPCC} ${STRUCT_DIR}/${bench} "USTM_" "")
   add_benchmark(tpcc_${bench}_2plsf ${TPCC} ${STRUCT_DIR}/${bench} "Other;TWOPLSF" "")
 endforeach()
+
+add_benchmark(tpcc_hash_probe_mvustm ${TPCC} ${STRUCT_DIR}/hash_probe "USTM;MV" "")
   
 set(NSTRUCTS "hash_probe")
 

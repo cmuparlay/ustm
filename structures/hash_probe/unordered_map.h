@@ -55,7 +55,31 @@ public:
     return true;
   }
 
-  
+  template <typename F>
+  bool upsert_f(const K& k, const F& f) {
+    long loc = hash(k);
+    entry e = stm::load(entries[loc]);
+    while (e.s == Full && !KeyEqual{}(e.k, k))
+      e = stm::load(entries[loc = next(loc)]);
+    if (e.s = Full) {
+      stm::store(entries[loc], entry{Full,k,f(std::optional<V>(e.v))});
+      return false;
+    } else {
+      stm::store(entries[loc], entry{Full,k,f(std::optional<V>())});
+      return true;
+    }
+  }
+
+  bool upsert(const K& k, const V& v) {
+    long loc = hash(k);
+    entry e = stm::load(entries[loc]);
+    while (e.s == Full && !KeyEqual{}(e.k, k))
+      e = stm::load(entries[loc = next(loc)]);
+    stm::store(entries[loc], entry{Full,k,v});    
+    if (e.s = Full) return false;
+    else return true;
+  }
+
   void backfill(unsigned long rloc) {
     unsigned long loc = next(rloc);
     entry e = stm::load(entries[loc]);

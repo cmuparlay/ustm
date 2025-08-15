@@ -67,4 +67,14 @@ namespace stm {
   using atomic = atomic_other<T>;
   struct versioned {};
 #endif
+
+  std::pair<long,long> statistics() {
+#ifdef STMStats
+    return std::pair(0ul,0ul);
+#else
+    return std::pair(0ul,0ul);
+
+
+#endif
+  }
 }

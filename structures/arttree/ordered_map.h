@@ -283,7 +283,7 @@ struct ordered_map {
     }
 
     // create singleton leaf
-    generic_leaf(K& key, V& value) : header(key, Leaf, 1, String::length(key)) {
+    generic_leaf(const K& key, const V& value) : header(key, Leaf, 1, String::length(key)) {
       key_vals[0] = KV{key, value};
     }
 
@@ -311,13 +311,13 @@ struct ordered_map {
     }
 
     // add to leaf
-    generic_leaf(int byte_pos, leaf_ptr l, K& key, V& value, bool replace = false) 
+    generic_leaf(int byte_pos, leaf_ptr l, const K& key, const V& value, bool replace = false) 
       : header(l->key, Leaf, l->size + (replace ? 0 : 1), byte_pos) {
       update(l->key_vals, key_vals, l->size, key, value, replace, byte_pos);
     }
 
     // remove from leaf
-    generic_leaf(leaf_ptr l, K& key) 
+    generic_leaf(leaf_ptr l, const K& key) 
       : header(l->key, Leaf, l->size - 1, 0) {
       int j = 0;
       for (int i=0; i < l->size; i++) {
