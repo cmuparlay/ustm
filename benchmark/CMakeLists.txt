@@ -38,17 +38,18 @@ foreach(bench ${TPCC_STRUCTS})
   add_benchmark(tpcc_${bench}_mvustm ${TPCC} ${STRUCT_DIR}/${bench} "USTM;MV" "")
   add_benchmark(tpcc_${bench}_ustm ${TPCC} ${STRUCT_DIR}/${bench} "USTM;SimpleSTM" "")
   add_benchmark(tpcc_${bench}_ustm_longjmp ${TPCC} ${STRUCT_DIR}/${bench} "USTM;SimpleSTM;LongJmp" "")
-  add_benchmark(tpcc_${bench}_ustm_hwstamp ${TPCC} ${STRUCT_DIR}/${bench} "USTM;SimpleSTM;LongJmp" "")
+  add_benchmark(tpcc_${bench}_ustm_hwstamp ${TPCC} ${STRUCT_DIR}/${bench} "USTM;SimpleSTM;HWStamp" "")
   add_benchmark(tpcc_${bench}_ustm_longjmp_hwstamp ${TPCC} ${STRUCT_DIR}/${bench} "USTM;SimpleSTM;LongJmp;HWStamp" "")
   add_benchmark(tpcc_${bench}_mvustm_longjmp ${TPCC} ${STRUCT_DIR}/${bench} "USTM;MV;LongJmp" "")
   add_benchmark(tpcc_${bench}_mvustm_trythrow ${TPCC} ${STRUCT_DIR}/${bench} "USTM;MV;TryThrow" "")
   add_benchmark(tpcc_${bench}_mvustm_hwstamp ${TPCC} ${STRUCT_DIR}/${bench} "USTM;MV;HWStamp" "")
   add_benchmark(tpcc_${bench}_mvustm_longjmp_hwstamp ${TPCC} ${STRUCT_DIR}/${bench} "USTM;MV;HWStamp;LongJmp" "")
-
-
   add_benchmark(tpcc_${bench}_ustm_old ${TPCC} ${STRUCT_DIR}/${bench} "USTM_" "")
   add_benchmark(tpcc_${bench}_2plsf ${TPCC} ${STRUCT_DIR}/${bench} "Other;TWOPLSF" "")
 endforeach()
+
+add_benchmark(tpcc_mix_2plsf ${TPCC} "${STRUCT_DIR}/arttree;${STRUCT_DIR}/hash_block" "Other;TWOPLSF;Mix" "")
+add_benchmark(tpcc_mix_mvustm ${TPCC} "${STRUCT_DIR}/arttree;${STRUCT_DIR}/hash_block" "USTM;MV;Mix" "")
 
 add_benchmark(tpcc_hash_probe_mvustm ${TPCC} ${STRUCT_DIR}/hash_probe "USTM;MV" "")
   

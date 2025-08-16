@@ -140,7 +140,7 @@ namespace ustm {
     bool readOnly {false};
 #endif
     bool toAbort {false};
-    bool equalStampOK {false};
+    bool lazy {false};
     int inConstructor {0};
     size_t tid; // thread identifier
     size_t numRetries {0};    
@@ -216,8 +216,8 @@ namespace ustm {
         }
         // get stamp -- this is the serialization point
         TS endStamp = ts.getStamp();
-        if (myd->writeLog.size() > 10)
-          ts.nextStamp(endStamp);
+        //if (myd->writeLog.size() > 10)
+        //  ts.nextStamp(endStamp);
         // Validate the reads (abort if any fail)
         for (auto& e : myd->readLog) 
           if (!getLock(e).validateRead(myd->startStamp, myd->tid))
@@ -263,19 +263,13 @@ namespace ustm {
       if (++myd->numRetries % 4000000 == 0) { 
         std::cout << "ustm: too many retries: " << std::endl; abort();}
       myd->lazyCnt = 10;
+      myd->lazy = false;
+      myd->reset();
 #ifdef STMStats
       myd->numAborts++;
 #endif
-      myd->reset();
-#ifdef LongJmp
-      uepoch::get_epoch().unannounce();
-      std::longjmp(myd->continuation, 1);
-#elif defined(TryThrow)
-      uepoch::get_epoch().unannounce();
-      throw 0;
-#endif      
     }
-
+    
     STMState() {
       for (int i=0; i < MaxThreads; i++) {
         descriptors[i].tid = i;
@@ -348,18 +342,23 @@ namespace ustm {
       if (prevStatus == status) {
         if (status < myd->startStamp) return *location;
         if (!lck.isLocked(status)) {
-          if (status == myd->startStamp && myd->equalStampOK)
+#ifndef SimpleSTM
+          if (status == myd->startStamp && myd->readOnly && !myd->lazy)
             return *location;
+#endif
           if (!myd->inTransaction) return *location;
           break;
         }
       }
     }
-    if (regular || (status == myd->startStamp && myd->numRetries == 0)) {
-#if defined(LongJmp) || defined(TryThrow)
-      myd->stmState->abortTransaction(myd);
-#else
+    if (regular || (status == myd->startStamp && myd->lazy)) {
       myd->toAbort = true;
+#if defined(LongJmp)
+      uepoch::get_epoch().unannounce();
+      std::longjmp(myd->continuation, 1);
+#elif defined(TryThrow)
+      uepoch::get_epoch().unannounce();
+      throw 0;
 #endif
     }
 #ifdef SimpleSTM
@@ -387,50 +386,41 @@ namespace ustm {
     myd->inTransaction = true;
     myd->numRetries = 0;
     myd->lazyCnt = std::max(myd->lazyCnt - 1, 0l);
+    myd->lazy = !large && (myd->lazyCnt == 0);
+    decltype(func()) returnValue;
 #ifndef SimpleSTM
     myd->readOnly = readOnly;
 #endif
-    myd->equalStampOK = large;
+    while (true) {
 #ifdef LongJmp
-    setjmp(myd->continuation); // return to here if aborted
+      if (!setjmp(myd->continuation)) {
 #elif defined(TryThrow)
-    while (true) {
       try {
-#else
-    while (true) {
 #endif
-      auto returnValue = uepoch::protect([&] {
+      returnValue = uepoch::protect([&] {
         // Using lazy timestamps from verlib.  Only increments
         // on second try avoiding too many increments.
         // don't use lazy stamps if large
-        if (myd->lazyCnt > 0) myd->startStamp = stm->ts.nextStamp();
-        // use lazy stamp on first try
-        else if (myd->numRetries == 0) myd->startStamp = stm->ts.getStamp();
-        // increment on second try of readOnly
 #ifndef SimpleSTM
-        else if (readOnly) {
-          myd->equalStampOK = true;
-          stm->ts.nextStamp(myd->startStamp);}
+        if (readOnly) {
+          if (myd->numRetries == 0)
+            if (myd->lazy) myd->startStamp = stm->ts.getStamp();
+            else myd->startStamp = stm->ts.nextStamp();
+          else stm->ts.nextStamp(myd->startStamp); }
+        else
 #endif
-        // increment on second+ try of updating transaction
-        else myd->startStamp = stm->ts.nextStamp(myd->startStamp);
+          if (myd->lazy) myd->startStamp = stm->ts.getStamp();
+          else myd->startStamp = stm->ts.nextStamp();
         return func();});
 #ifdef LongJmp
-      if (!stm->commitTransaction(myd))
-        stm->abortTransaction(myd);
-      return returnValue;
+      }
 #elif defined(TryThrow)
-      if (!stm->commitTransaction(myd))
-        stm->abortTransaction(myd);
-      return returnValue;
     } catch (int x) {}
-  }
-#else
+#endif
       if (!myd->toAbort && stm->commitTransaction(myd)) 
         return returnValue;
-      stm->abortTransaction(myd);
+      else stm->abortTransaction(myd);
     }
-#endif
   } 
 
   // adds to log so can delete if aborted
