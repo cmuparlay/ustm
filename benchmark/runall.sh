@@ -13,8 +13,8 @@ lsizes="-n 100,1000"
 range_structs="btree arttree"
 
 # structures for tpcc
-tpcc_structs="btree arttree hash_block"
-tpcc_impls="mvustm mvustm_longjmp ustm_longjmp 2plsf"
+tpcc_structs="btree arttree hash_block mix"
+tpcc_impls="mvustm ustm ustm_longjmp_hwstamp 2plsf"
 
 # require non-trivial types
 xstructs="hash_probe"
