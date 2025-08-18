@@ -52,9 +52,10 @@ namespace ustm {
     TS getStamp() const { return ts.load(); }
     // returns incremented stamp
     TS nextStamp(TS prevStamp=(0ul-1ul)) { 
-      TS stamp1 = ts.load(); // delay to avoid fetch-and-increment
+      TS stamp1 = ts.load(); 
       if (stamp1 > prevStamp) return stamp1;
-      for (volatile int i = 1; i < 500; i++) {}
+      // delay to try to avoid fetch-and-increment
+      for (volatile int i = 1; i < 200; i++) {}
       TS stamp2 = ts.load();
       if (stamp1 == stamp2) return ++ts; // fetch and increment
       else return stamp2;
@@ -150,7 +151,7 @@ namespace ustm {
     long numAborts = 0;
     long numCommits = 0;
 #endif
-    long lazyCnt = 0;
+    long commitsSinceAbort = 0;
     
 #ifdef SimpleSTM
     // Entry for the write log.  Contains the location, an oldStamp used
@@ -240,8 +241,9 @@ namespace ustm {
         }
         std::atomic_thread_fence(std::memory_order_release);
         for (auto&  e : myd->writeLog) // unlock writes
-          if (e.oldStamp != 0)
-            getLock(e.loc).unlock(endStamp);
+         if (e.oldStamp != 0)
+           getLock(e.loc).unlock(endStamp);
+        //ts.nextStamp(myd->startStamp);
       }
       // Since successful, apply the deletes.
       for (auto& e : myd->deleteLog)
@@ -262,7 +264,7 @@ namespace ustm {
         uepoch::delay(std::move(e));
       if (++myd->numRetries % 4000000 == 0) { 
         std::cout << "ustm: too many retries: " << std::endl; abort();}
-      myd->lazyCnt = 10;
+      myd->commitsSinceAbort = 0;
       myd->lazy = false;
       myd->reset();
 #ifdef STMStats
@@ -385,8 +387,10 @@ namespace ustm {
     if (myd->inTransaction) return func(); // if nested then just run
     myd->inTransaction = true;
     myd->numRetries = 0;
-    myd->lazyCnt = std::max(myd->lazyCnt - 1, 0l);
-    myd->lazy = !large && (myd->lazyCnt == 0);
+    // Using lazy timestamps from verlib.  Only increments
+    // on second try avoiding too many increments.
+    // Only use lazy if not large and no recent abort
+    myd->lazy = !large && (myd->commitsSinceAbort++ > 10);
     decltype(func()) returnValue;
 #ifndef SimpleSTM
     myd->readOnly = readOnly;
@@ -398,9 +402,6 @@ namespace ustm {
       try {
 #endif
       returnValue = uepoch::protect([&] {
-        // Using lazy timestamps from verlib.  Only increments
-        // on second try avoiding too many increments.
-        // don't use lazy stamps if large
 #ifndef SimpleSTM
         if (readOnly) {
           if (myd->numRetries == 0)
