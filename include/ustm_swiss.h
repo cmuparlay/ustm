@@ -216,8 +216,8 @@ namespace ustm {
         }
         // get stamp -- this is the serialization point
         TS endStamp = ts.getStamp();
-        //if (myd->writeLog.size() > 10)
-        //  ts.nextStamp(endStamp);
+        if (myd->writeLog.size() > 10)
+          ts.nextStamp(endStamp);
         // Validate the reads (abort if any fail)
         for (auto& e : myd->readLog) 
           if (!getLock(e).validateRead(myd->startStamp, myd->tid))
@@ -410,7 +410,7 @@ namespace ustm {
         else
 #endif
           if (myd->lazy) myd->startStamp = stm->ts.getStamp();
-          else myd->startStamp = stm->ts.nextStamp();
+          else myd->startStamp = stm->ts.nextStamp(myd->startStamp);
         return func();});
 #ifdef LongJmp
       }

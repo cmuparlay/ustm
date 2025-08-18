@@ -6,18 +6,18 @@
 //   uepoch::protect(const F& f) : takes a lambda or function f
 //      with no arguments and with or without a result, and runs it in
 //      protected mode
-//   uepoch::delay(std::function<void(void)> f) : takes a function f and
-//      delays running it until everyone who was in a with_epoch at
-//      the time of the delay has now exited
-//   uepoch::clear() : forces all delayed functions to run. not safe to run
-//      concurrently with the other two functions
-// with_epoch can be safely nested (all but the outermost is ignored)
+//   uepoch::delay(std::function<void()> f) : takes a function f and
+//      delays running it until everyone who was in a protect at
+//      the time of this call has now exited
+//   uepoch::clear() : forces all delayed functions to run. Not safe to 
+//      run concurrently with the other two functions
+// protect can be safely nested (all but the outermost is ignored)
 //
 // Example:
 //     uepoch::delay([&] {delete y;});
-//     auto r = uepoch::with_epoch([&] { ... x = y->left; ... return z;});
-// If the delay is called concurrently with the with_epoch the deletion
-// of y is delayed until the with_epoch finishes.
+//     auto r = uepoch::protect([&] { ... x = y->left; ... return z;});
+// If the delay is called while the the lambda passed to protect is
+// running, the deletion of y is delayed until the lambda returns.
 //
 // It also supports adding functions to run just before and after an
 // epoch is incremented using add_{before,after}_epoch_hook
@@ -26,10 +26,12 @@
 #ifndef UEPOCH_H_
 #define UEPOCH_H_
 
+#include <array>
 #include <atomic>
 #include <forward_list>
 #include <functional>
 #include <iostream>
+#include <utility>
 #include <vector>
 #include <type_traits>
 #define UEPOCH
@@ -38,7 +40,8 @@ namespace uepoch {
   
   namespace internal {
     constexpr int max_threads = 4096; // can be increased
-
+    using thunk = std::function<void()>;
+    
     extern inline std::atomic<int>& num_threads() {
       static std::atomic<int> num_threads;
       return num_threads;  }
@@ -49,9 +52,6 @@ namespace uepoch {
 
     // the main structure
     struct alignas(64) epoch_state {
-      std::vector<std::function<void()>> before_epoch_hooks;
-      std::vector<std::function<void()>> after_epoch_hooks;
-
       // announcements for each thread
       struct alignas(64) announce {
         std::atomic<long> last;
@@ -60,10 +60,9 @@ namespace uepoch {
       // the various delayed lists for each thread
       struct alignas(256) thread_state {
         struct list {
-          using T = std::function<void(void)>;
           long cnt = 0;
-          std::forward_list<T> lst;
-          void push(T&& f) {lst.push_front(f); cnt++;}
+          std::forward_list<thunk> lst;
+          void push(thunk&& f) {lst.push_front(std::forward<thunk>(f)); cnt++;}
           void clear(long n) {
             long i = 0;
             while (i < n && !lst.empty()) {
@@ -86,13 +85,16 @@ namespace uepoch {
 
       // the full state
       std::atomic<long> current_epoch{0};
-      announce announcements[max_threads];
-      thread_state pools[max_threads];
+      std::array<announce, max_threads> announcements;
+      std::array<thread_state, max_threads> pools;
+      std::vector<thunk> before_epoch_hooks;
+      std::vector<thunk> after_epoch_hooks;
   
       epoch_state() {}
       ~epoch_state() {clear();}
 
       // adds current epoch to the announcement slot of this thread
+      // returns false if it was already announced
       bool announce() {
         size_t id = thread_id();
         if (announcements[id].last.load() == -1l) {
@@ -114,28 +116,29 @@ namespace uepoch {
           if (threads > max_threads) {
             std::cerr << "epoch: too many threads" << std::endl;
             abort(); }
+          // check if all announced epochs are at least current epoch
           for (int i=0; i < threads; i++)
             if ((announcements[i].last != -1l) &&
                 announcements[i].last < current_e) return;
           if (num_threads() == threads) break;
         }
-        for (const auto h : before_epoch_hooks) h();
+        for (const auto& h : before_epoch_hooks) h();
         if (current_epoch.compare_exchange_strong(current_e, current_e+1))
-          for (const auto h : after_epoch_hooks) h();
+          for (const auto& h : after_epoch_hooks) h();
       }
 
       void advance_epoch(int i) {
-        thread_state& pid = pools[i];
-        if (pid.epoch + 1 < current_epoch.load()) {
+        thread_state& pool = pools[i];
+        if (pool.epoch + 1 < current_epoch.load()) {
           // could call all the delayed functions in old at this point, but
           // we delay and put them in safe so they can be applied over time
-          pid.safe.prepend(pid.old);  // old is now empty
-          std::swap(pid.old, pid.current);  // current is now empty
-          pid.epoch = current_epoch.load();
+          pool.safe.prepend(pool.old);  // old is now empty
+          std::swap(pool.old, pool.current);  // current is now empty
+          pool.epoch = current_epoch.load();
         }
         long heuristic_threshold = 10 * num_threads();
-        if (++pid.count == heuristic_threshold) { 
-          pid.count = 0;
+        if (++pool.count == heuristic_threshold) { 
+          pool.count = 0;
           update_epoch();
         }
       }
@@ -157,11 +160,11 @@ namespace uepoch {
 
       // Delays running the function f until there are no longer any
       // announced threads active at the time of the call.
-      void delay(std::function<void(void)> f) {
+      void delay(thunk&& f) {
         auto i = thread_id();
         advance_epoch(i);
-        pools[i].current.push(std::move(f));
-        if (pools[i].safe.cnt > 100)
+        pools[i].current.push(std::forward<thunk>(f));
+        if (pools[i].safe.cnt > 500)
           pools[i].safe.clear(10);
         else pools[i].safe.clear(1);
       }
@@ -193,8 +196,8 @@ namespace uepoch {
     }
   }
 
-  void delay(const std::function<void(void)>& f) {
-    get_epoch().delay(std::move(f)); }
+  void delay(std::function<void()>&& f) {
+    get_epoch().delay(std::forward<std::function<void()>>(f)); }
   void add_before_epoch_hook(std::function<void()> f) {
     get_epoch().before_epoch_hooks.push_back(f); }
   void add_after_epoch_hook(std::function<void()> f) {
