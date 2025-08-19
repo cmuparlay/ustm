@@ -140,8 +140,7 @@ namespace ustm {
 #ifndef SimpleSTM
     bool readOnly {false};
 #endif
-    bool toAbort {false};
-    bool lazy {false};
+    bool lateRead {false};
     int inConstructor {0};
     size_t tid; // thread identifier
     size_t numRetries {0};    
@@ -151,7 +150,6 @@ namespace ustm {
     long numAborts = 0;
     long numCommits = 0;
 #endif
-    long commitsSinceAbort = 0;
     
 #ifdef SimpleSTM
     // Entry for the write log.  Contains the location, an oldStamp used
@@ -184,7 +182,7 @@ namespace ustm {
     void reset() {
       writeLog.clear(); readLog.clear();
       deleteLog.clear(); allocLog.clear();
-      inConstructor = false; toAbort = false;
+      inConstructor = false; lateRead = false;
       writeMap.clear(); writeFilter = 0;
     }
   };
@@ -209,6 +207,7 @@ namespace ustm {
     // returns true if successful
     inline bool commitTransaction(Descriptor* myd) {
       if (myd->writeLog.size() > 0) {
+        if (myd->lateRead) return false;
         // Take locks (abort if any fail)
         for (auto& e : myd->writeLog) {
           auto [r, s] = getLock(e.loc).tryLock(myd->tid, myd->startStamp);
@@ -217,8 +216,6 @@ namespace ustm {
         }
         // get stamp -- this is the serialization point
         TS endStamp = ts.getStamp();
-        if (myd->writeLog.size() > 10)
-          ts.nextStamp(endStamp);
         // Validate the reads (abort if any fail)
         for (auto& e : myd->readLog) 
           if (!getLock(e).validateRead(myd->startStamp, myd->tid))
@@ -240,10 +237,10 @@ namespace ustm {
 #endif
         }
         std::atomic_thread_fence(std::memory_order_release);
+        ts.nextStamp(endStamp);
         for (auto&  e : myd->writeLog) // unlock writes
          if (e.oldStamp != 0)
            getLock(e.loc).unlock(endStamp);
-        //ts.nextStamp(myd->startStamp);
       }
       // Since successful, apply the deletes.
       for (auto& e : myd->deleteLog)
@@ -264,9 +261,8 @@ namespace ustm {
         uepoch::delay(std::move(e));
       if (++myd->numRetries % 4000000 == 0) { 
         std::cout << "ustm: too many retries: " << std::endl; abort();}
-      myd->commitsSinceAbort = 0;
-      myd->lazy = false;
       myd->reset();
+      ts.nextStamp(myd->startStamp);
 #ifdef STMStats
       myd->numAborts++;
 #endif
@@ -344,25 +340,23 @@ namespace ustm {
       if (prevStatus == status) {
         if (status < myd->startStamp) return *location;
         if (!lck.isLocked(status)) {
-#ifndef SimpleSTM
-          if (status == myd->startStamp && myd->readOnly && !myd->lazy)
-            return *location;
-#endif
           if (!myd->inTransaction) return *location;
           break;
         }
       }
     }
-    if (regular || (status == myd->startStamp && myd->lazy)) {
-      myd->toAbort = true;
+    if (!unprotected) myd->lateRead = true;
 #if defined(LongJmp)
+    if (regular) {
       uepoch::get_epoch().unannounce();
       std::longjmp(myd->continuation, 1);
+    }
 #elif defined(TryThrow)
+    if (regular) {
       uepoch::get_epoch().unannounce();
       throw 0;
-#endif
     }
+#endif
 #ifdef SimpleSTM
     return *location;
 #else
@@ -387,10 +381,6 @@ namespace ustm {
     if (myd->inTransaction) return func(); // if nested then just run
     myd->inTransaction = true;
     myd->numRetries = 0;
-    // Using lazy timestamps from verlib.  Only increments
-    // on second try avoiding too many increments.
-    // Only use lazy if not large and no recent abort
-    myd->lazy = !large && (myd->commitsSinceAbort++ > 10);
     decltype(func()) returnValue;
 #ifndef SimpleSTM
     myd->readOnly = readOnly;
@@ -402,23 +392,18 @@ namespace ustm {
       try {
 #endif
       returnValue = uepoch::protect([&] {
-#ifndef SimpleSTM
-        if (readOnly) {
-          if (myd->numRetries == 0)
-            if (myd->lazy) myd->startStamp = stm->ts.getStamp();
-            else myd->startStamp = stm->ts.nextStamp();
-          else stm->ts.nextStamp(myd->startStamp); }
-        else
-#endif
-          if (myd->lazy) myd->startStamp = stm->ts.getStamp();
-          else myd->startStamp = stm->ts.nextStamp(myd->startStamp);
-        return func();});
+        myd->startStamp = stm->ts.getStamp();
+        return func();
+      });
 #ifdef LongJmp
       }
+      if (!myd->lateRead && stm->commitTransaction(myd)) 
 #elif defined(TryThrow)
-    } catch (int x) {}
+      } catch (int x) {}
+      if (!myd->lateRead && stm->commitTransaction(myd)) 
+#else
+      if (stm->commitTransaction(myd))
 #endif
-      if (!myd->toAbort && stm->commitTransaction(myd)) 
         return returnValue;
       else stm->abortTransaction(myd);
     }
@@ -439,13 +424,13 @@ namespace ustm {
 #endif
       myd->inConstructor--;
       return ptr;
-    } else {
+    } else
 #ifdef ParlayAlloc
       return parlay::type_allocator<T>::create(args...);
 #else
-      return new T(args...);
+      else return new T(args...);
 #endif
-    } }
+  }
 
   // adds to log and only applies deletes on success
   template<typename T>
@@ -464,7 +449,6 @@ namespace ustm {
   template <typename T>
   inline void store(T& loc, const T& v) {
     Descriptor* myd = getDescriptor();
-    // if (ustm::load(loc) == v) return;
     if (myd->inConstructor > 0) loc = v;
     else if (!myd->inTransaction)
       loc = v; //ustm::transaction([&] {ustm::store(loc, v); return true;});
@@ -482,7 +466,6 @@ namespace ustm {
       link<T>* hp = ustm::New<link<T>>(&loc, v);
       ustm::Delete(hp); // delete is delayed
       Descriptor::logEntry e{&loc, 0, hp, &hp->value, sizeof(T)};
-      // add to write map (and filter) so reads can find it
       myd->writeLog.push_back(e);
 #endif
     } 
