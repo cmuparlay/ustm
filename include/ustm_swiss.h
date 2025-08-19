@@ -345,18 +345,16 @@ namespace ustm {
         }
       }
     }
-    if (!unprotected) myd->lateRead = true;
-#if defined(LongJmp)
     if (regular) {
+      myd->lateRead = true;
+#if defined(LongJmp)
       uepoch::get_epoch().unannounce();
       std::longjmp(myd->continuation, 1);
-    }
 #elif defined(TryThrow)
-    if (regular) {
       uepoch::get_epoch().unannounce();
       throw 0;
-    }
 #endif
+    }
 #ifdef SimpleSTM
     return *location;
 #else
