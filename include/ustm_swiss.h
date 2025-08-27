@@ -426,7 +426,7 @@ namespace ustm {
 #ifdef ParlayAlloc
       return parlay::type_allocator<T>::create(args...);
 #else
-      else return new T(args...);
+      return new T(args...);
 #endif
   }
 
