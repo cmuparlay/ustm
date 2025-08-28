@@ -43,7 +43,13 @@ namespace ustm {
       __asm__ __volatile__ ("rdtsc" : "=a" (lo), "=d" (hi));
       return (TS) (((uint64_t)(hi & ~(1<<31)) << 32) | lo);
     }
-    TS nextStamp(TS ignore=0) { return getStamp(); }
+    TS nextStamp(TS prevStamp=0) {
+      if (prevStamp == 0) prevStamp = getStamp();
+      while (true) {
+        TS stamp = getStamp();
+        if (stamp > prevStamp) return stamp;
+      }
+    }
   };
 #else
   struct timeStamp {
@@ -51,14 +57,13 @@ namespace ustm {
     // returns current stamp
     TS getStamp() const { return ts.load(); }
     // returns incremented stamp
-    TS nextStamp(TS prevStamp=(0ul-1ul)) { 
-      TS stamp1 = ts.load(); 
-      if (stamp1 > prevStamp) return stamp1;
-      // delay to try to avoid fetch-and-increment
-      for (volatile int i = 1; i < 200; i++) {}
-      TS stamp2 = ts.load();
-      if (stamp1 == stamp2) return ++ts; // fetch and increment
-      else return stamp2;
+    TS nextStamp(TS prevStamp=0) {
+      if (prevStamp == 0) prevStamp = getStamp();
+      for (int i=0; i < 3; i++) {
+        for (volatile int i = 1; i < 200; i++);
+        TS stamp = ts.load(); 
+        if (stamp > prevStamp) return stamp;
+      } return ++ts;
     }
   };
 #endif
@@ -237,7 +242,9 @@ namespace ustm {
 #endif
         }
         std::atomic_thread_fence(std::memory_order_release);
+#ifndef LazyStamp
         ts.nextStamp(endStamp);
+#endif
         for (auto&  e : myd->writeLog) // unlock writes
          if (e.oldStamp != 0)
            getLock(e.loc).unlock(endStamp);
@@ -345,7 +352,11 @@ namespace ustm {
         }
       }
     }
+#ifdef LazyStamp
+    if (regular || (myd->readOnly && status == myd->startStamp)) {
+#else
     if (regular) {
+#endif
       myd->lateRead = true;
 #if defined(LongJmp)
       uepoch::get_epoch().unannounce();
@@ -398,7 +409,10 @@ namespace ustm {
       if (!myd->lateRead && stm->commitTransaction(myd)) 
 #elif defined(TryThrow)
       } catch (int x) {}
-      if (!myd->lateRead && stm->commitTransaction(myd)) 
+      if (!myd->lateRead && stm->commitTransaction(myd))
+#elif defined(LazyStamp)
+        if ((!myd->lateRead || (myd->readOnly && myd->numRetries > 0))
+            && stm->commitTransaction(myd))
 #else
       if (stm->commitTransaction(myd))
 #endif
