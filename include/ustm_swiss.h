@@ -59,11 +59,13 @@ namespace ustm {
     // returns incremented stamp
     TS nextStamp(TS prevStamp=0) {
       if (prevStamp == 0) prevStamp = getStamp();
-      for (int i=0; i < 3; i++) {
-        for (volatile int i = 1; i < 200; i++);
-        TS stamp = ts.load(); 
-        if (stamp > prevStamp) return stamp;
-      } return ++ts;
+      for (volatile int i = 0; i < 200; i++);
+      TS stamp = ts.load(); 
+      if (stamp > prevStamp) return stamp;
+      for (volatile int i = 0; i < 200; i++);
+      stamp = ts.load(); 
+      if (stamp > prevStamp) return stamp;
+      return ++ts;
     }
   };
 #endif
