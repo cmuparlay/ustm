@@ -20,7 +20,7 @@ tpcc_impls="mvustm ustm ustm_longjmp_hwstamp 2plsf"
 xstructs="hash_probe"
 
 # implementations that support trivial types (8-byte, trivially copyable)
-impls="mvustm mvustm_hwstamp ustm_longjmp mvustm_longjmp mvustm_trythrow mvustm_unprotected 2plsf"
+impls="mvustm mvustm_lzstamp mvustm_hwstamp ustm_longjmp mvustm_longjmp mvustm_trythrow mvustm_unprotected 2plsf"
 tiny_impls="tiny"
 
 # implementations that support general relocatable types (subset of above)
@@ -35,7 +35,8 @@ geomean_args="-u 0,5,50 -z 0,.99 -r 1 -trans 16"
 range_args="-n 1000000 -u 100 -z 0 -trans 16 -rs 1,10,100,1000,10000,100000,1000000 -rqp 50"
 
 # common header (useful on multinode numa machines)
-head="timelimit -p -t 200 numactl -i all"
+#head="timelimit -p -t 200 numactl -i all"
+head="numactl -i all"
 
 # print various imformation about the machine/compiler/date at head of file
 procs=`nproc`

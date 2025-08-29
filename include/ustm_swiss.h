@@ -352,11 +352,7 @@ namespace ustm {
         }
       }
     }
-#ifdef LazyStamp
-    if (regular || (myd->readOnly && status == myd->startStamp)) {
-#else
     if (regular) {
-#endif
       myd->lateRead = true;
 #if defined(LongJmp)
       uepoch::get_epoch().unannounce();
@@ -372,6 +368,18 @@ namespace ustm {
     TS stamp = lck.getStamp(status);
     // Chase down the version list to the right one
     while (stamp >= myd->startStamp && nxt != nullptr) {
+#ifdef LazyStamp
+      if (status == myd->startStamp) {
+        myd->lateRead = true;
+#if defined(LongJmp)
+        uepoch::get_epoch().unannounce();
+        std::longjmp(myd->continuation, 1);
+#elif defined(TryThrow)
+        uepoch::get_epoch().unannounce();
+        throw 0;
+#endif
+      }
+#endif
       if (nxt->addr == &v)
         location = &(reinterpret_cast<link<T>*>(nxt)->value);
       stamp = nxt->stamp;
