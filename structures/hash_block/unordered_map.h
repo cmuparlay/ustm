@@ -19,7 +19,11 @@ struct unordered_map {
   using K = K_;
   using V = V_;
 private:
-  struct KV {K key; V value;};
+#ifdef UpsertInPlace
+  struct KV {K key; stm::atomic<V> value; V val() const {return value.load();}};
+#else
+  struct KV {K key; V value; V val() const {return value;}};
+#endif
 
   template <typename Range>
   static int find_in_range(const Range& entries, long cnt, const K& k) {
@@ -47,7 +51,7 @@ private:
       i++;
     }
     out[i].key = entries[i].key;
-    out[i].value = f(std::optional(entries[i].value));
+    out[i].value = f(std::optional(entries[i].val()));
     i++;
     while (i < cnt) {
       out[i] = entries[i];
@@ -78,24 +82,25 @@ private:
     int cnt;
     KV entries[Size];
 
-    // return index of key in entries, or -1 if not found
-    int find_index(const K& k) {
-      if (cnt <= 31) return find_in_range(entries, cnt, k);
-      else return find_in_range(((BigNode*) this)->entries, cnt, k);
+    KV* get_entries() {
+      return (cnt <= 31) ? entries : ((BigNode*) this)->entries.data();
     }
+            
+    // return index of key in entries, or -1 if not found
+    int find_index(const K& k) { return find_in_range(get_entries(), cnt, k); }
 
     // return optional value found in entries given a key
     std::optional<V> find(const K& k) {
       if (cnt <= 31) { // regular node
 	if (KeyEqual{}(entries[0].key, k)) // shortcut for common case
-          return entries[0].value;
+          return entries[0].val();
 	int i = find_in_range(entries+1, cnt-1, k);
 	if (i == -1) return {};
-	else return entries[i].value;
+	else return entries[i].val();
       } else { // big node
 	int i = find_in_range(((BigNode*) this)->entries, cnt, k);
 	if (i == -1) return {};
-	else return ((BigNode*) this)->entries[i].value;
+	else return ((BigNode*) this)->entries[i].val();
       }
     }
 
@@ -120,8 +125,7 @@ private:
 
     // singleton
     Node(const K& k, const V& v) : cnt(1) {
-      entries[0].key = k;
-      entries[0].value = v;
+      entries[0].key = KV{k,v};
     }
   };
   using node = Node<0>;
@@ -188,6 +192,14 @@ private:
     else return (node*) stm::New<BigNode>(old, k, v);
   }
 
+#ifdef UpsertInPlace
+  template <typename F>
+  static void update_node(node* ptr, const K& k, const F& f) {
+    KV* entries = ptr->get_entries();
+    int idx = find_in_range(entries, ptr->cnt, k);
+    entries[idx].value = f(std::optional(entries[idx].val()));
+  }
+#else
   template <typename F>
   static node* update_node(node* old, const K& k, const F& f) {
     if (old->cnt == 1) return (node*) stm::New<Node1>(old, k, f);
@@ -196,7 +208,8 @@ private:
     else if (old->cnt <= 31) return (node*) stm::New<Node31>(old, k, f);
     else return (node*) stm::New<BigNode>(old, k, f);
   }
-
+#endif
+  
   static node* remove_from_node(node* old, const K& k) {
     if (old->cnt == 1) return (node*) nullptr;
     if (old->cnt == 2) return (node*) stm::New<Node1>(old, k);
@@ -244,8 +257,12 @@ public:
     bucket* s = hash_table.get_bucket(k);
     node* old_node = s->load();
     if (old_node != nullptr && old_node->find_index(k) != -1) {
+#ifdef UpsertInPlace
+      update_node(old_node, k, f);
+#else
       s->ptr = update_node(old_node, k, f);      
       retire_node(old_node);
+#endif
       return false;
     } else {
       s->ptr = insert_to_node(old_node, k, f(std::optional<V>()));
