@@ -37,18 +37,62 @@
 #define UEPOCH
 
 namespace uepoch {
-  
-  namespace internal {
-    constexpr int max_threads = 4096; // can be increased
-    using thunk = std::function<void()>;
-    
-    extern inline std::atomic<int>& num_threads() {
+
+  constexpr int max_threads = 4096; // can be increased
+  constexpr long bytes_per_thread = 1ul << 26;
+
+  extern inline std::atomic<int>& num_threads() {
       static std::atomic<int> num_threads;
       return num_threads;  }
 
     extern inline int thread_id() {
       static thread_local int id{num_threads().fetch_add(1)};
       return id; }
+
+  template <typename T>
+  struct pool {
+    struct alignas(128) poolList { T* head = nullptr; size_t n = 0; };
+    static std::array<poolList, max_threads> lists;
+
+    template <typename... Args>
+    static inline T* New(int tid, Args&&... args) {
+      auto& l = lists[tid];
+      if (l.n == 0) return new T(args...);
+      l.n--;
+      T* h = l.head;
+      l.head = *((T**) h);
+      return new (h) T(args...);
+    }
+
+    static inline void Delete(int tid, T* obj) {
+      auto& l = lists[tid];
+      if (l.n * sizeof(T) > bytes_per_thread) delete obj;
+      else {
+        obj->~T();
+        l.n++;
+        *((T**) obj) = l.head;
+        l.head = obj;
+      }
+    }
+
+    static void clear() {
+      for (auto& l : lists) {
+        T* h = l.head;
+        while (h != nullptr) {
+          T* nxt = *((T**) h);
+          free(h);
+          h = nxt;
+        }
+        l.n = 0;
+      }
+    }
+  };
+    
+  template <typename T>
+  std::array<typename pool<T>::poolList, max_threads> pool<T>::lists;
+  
+  namespace internal {
+    using thunk = std::function<void()>;
 
     // the main structure
     struct alignas(64) epoch_state {
@@ -59,25 +103,8 @@ namespace uepoch {
 
       // the various delayed lists for each thread
       struct alignas(256) thread_state {
-        struct list {
-          long cnt = 0;
-          std::forward_list<thunk> lst;
-          void push(thunk&& f) {lst.push_front(std::forward<thunk>(f)); cnt++;}
-          void clear(long n) {
-            long i = 0;
-            while (i < n && !lst.empty()) {
-              i++; lst.front()(); lst.pop_front(); }
-            cnt -= i;
-          }
-          void prepend(list& l) {
-            lst.splice_after(lst.cbefore_begin(), l.lst);
-            cnt += l.cnt;
-            l.cnt = 0;
-          }
-        };
-        list current; // delayed functions from current epoch
-        list old;  // delayed functions from previous epoch
-        list safe; // delayed functions that are safe to call
+        std::vector<thunk> current; // delayed functions from current epoch
+        std::vector<thunk> old;  // delayed functions from previous epoch
         long epoch = 0; // epoch on last delay
         long count = 0; // number of calls to delay since last epoch update
         thread_state() {}
@@ -127,12 +154,17 @@ namespace uepoch {
           for (const auto& h : after_epoch_hooks) h();
       }
 
+      void clear_list(std::vector<thunk>& v) {
+        for (auto& x : v) x();
+        v.clear();
+      }
+      
       void advance_epoch(int i) {
         thread_state& pool = pools[i];
         if (pool.epoch + 1 < current_epoch.load()) {
           // could call all the delayed functions in old at this point, but
           // we delay and put them in safe so they can be applied over time
-          pool.safe.prepend(pool.old);  // old is now empty
+          clear_list(pool.old);
           std::swap(pool.old, pool.current);  // current is now empty
           pool.epoch = current_epoch.load();
         }
@@ -150,10 +182,9 @@ namespace uepoch {
         long cnt = 0;
         for (long i = 0; i < max_threads; i++) {
           auto& p = pools[i];
-          cnt += (p.old.cnt + p.current.cnt + p.safe.cnt);
-          p.old.clear(p.old.cnt);
-          p.current.clear(p.current.cnt);
-          p.safe.clear(p.safe.cnt);
+          cnt += (p.old.size() + p.current.size());
+          clear_list(p.old);
+          clear_list(p.current);
         }
         return cnt;
       }
@@ -163,10 +194,7 @@ namespace uepoch {
       void delay(thunk&& f) {
         auto i = thread_id();
         advance_epoch(i);
-        pools[i].current.push(std::forward<thunk>(f));
-        if (pools[i].safe.cnt > 500)
-          pools[i].safe.clear(10);
-        else pools[i].safe.clear(1);
+        pools[i].current.push_back(std::forward<thunk>(f));
       }
     }; // end struct epoch_state
   

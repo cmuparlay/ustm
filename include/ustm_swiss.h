@@ -438,8 +438,10 @@ namespace ustm {
     if (myd->inTransaction) {
       myd->inConstructor++;
 #ifdef ParlayAlloc
-      T* ptr = parlay::type_allocator<T>::create(args...);
-      myd->allocLog.push_back([=] {parlay::type_allocator<T>::destroy(ptr);});
+      //T* ptr = parlay::type_allocator<T>::create(args...);
+      //myd->allocLog.push_back([=] {parlay::type_allocator<T>::destroy(ptr);});
+      T* ptr = uepoch::pool<T>::New(myd->tid, args...);
+      myd->allocLog.push_back([=] {uepoch::pool<T>::Delete(myd->tid, ptr);});
 #else
       T* ptr = new T(args...);
       myd->allocLog.push_back([=] {delete ptr;});
@@ -448,7 +450,8 @@ namespace ustm {
       return ptr;
     } else
 #ifdef ParlayAlloc
-      return parlay::type_allocator<T>::create(args...);
+      //return parlay::type_allocator<T>::create(args...);
+      return uepoch::pool<T>::New(myd->tid, args...);
 #else
       return new T(args...);
 #endif
@@ -460,8 +463,10 @@ namespace ustm {
     if (obj == nullptr) return;
     Descriptor* myd = getDescriptor();
 #ifdef ParlayAlloc
-    if (!myd->inTransaction) parlay::type_allocator<T>::destroy(obj);
-    else myd->deleteLog.push_back([=] { parlay::type_allocator<T>::destroy(obj);});
+    //if (!myd->inTransaction) parlay::type_allocator<T>::destroy(obj);
+    //else myd->deleteLog.push_back([=] { parlay::type_allocator<T>::destroy(obj);});
+    if (!myd->inTransaction) uepoch::pool<T>::Delete(myd->tid, obj);
+    else myd->deleteLog.push_back([=] { uepoch::pool<T>::Delete(myd->tid, obj);});
 #else
     if (!myd->inTransaction) delete obj;
     else myd->deleteLog.push_back([=] { delete obj;});
