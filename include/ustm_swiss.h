@@ -59,7 +59,6 @@ namespace ustm {
     // returns incremented stamp
     TS nextStamp(TS prevStamp=0) {
       if (prevStamp == 0) prevStamp = getStamp();
-      for (volatile int i = 0; i < 200; i++);
       TS stamp = ts.load(); 
       if (stamp > prevStamp) return stamp;
       for (volatile int i = 0; i < 200; i++);
@@ -187,10 +186,11 @@ namespace ustm {
 
     // used to reset between each attempt
     void reset() {
-      writeLog.clear(); readLog.clear();
-      deleteLog.clear(); allocLog.clear();
+      if (writeLog.size() > 0) {
+        writeFilter = 0; writeLog.clear(); writeMap.clear();
+      }
+      readLog.clear(); deleteLog.clear(); allocLog.clear();
       inConstructor = false; lateRead = false;
-      writeMap.clear(); writeFilter = 0;
     }
   };
 
@@ -213,7 +213,9 @@ namespace ustm {
 
     // returns true if successful
     inline bool commitTransaction(Descriptor* myd) {
-      if (myd->writeLog.size() > 0) {
+      TS endStamp;
+      bool hasWrite = myd->writeLog.size() > 0;
+      if (hasWrite) {
         if (myd->lateRead) return false;
         // Take locks (abort if any fail)
         for (auto& e : myd->writeLog) {
@@ -222,7 +224,7 @@ namespace ustm {
           e.oldStamp = s;
         }
         // get stamp -- this is the serialization point
-        TS endStamp = ts.getStamp();
+        endStamp = ts.getStamp();
         // Validate the reads (abort if any fail)
         for (auto& e : myd->readLog) 
           if (!getLock(e).validateRead(myd->startStamp, myd->tid))
@@ -244,9 +246,6 @@ namespace ustm {
 #endif
         }
         std::atomic_thread_fence(std::memory_order_release);
-#ifndef LazyStamp
-        ts.nextStamp(endStamp);
-#endif
         for (auto&  e : myd->writeLog) // unlock writes
          if (e.oldStamp != 0)
            getLock(e.loc).unlock(endStamp);
@@ -255,6 +254,9 @@ namespace ustm {
       for (auto& e : myd->deleteLog)
         uepoch::delay(std::move(e));
       myd->reset();
+#ifndef LazyStamp
+      if (hasWrite) ts.nextStamp(endStamp);
+#endif
       myd->inTransaction = false;
 #ifdef STMStats
       myd->numCommits++;
@@ -309,12 +311,13 @@ namespace ustm {
 
   template <typename T>
   inline T load(T& v, bool unprotected=false) {
+    __builtin_prefetch (&v);
     Descriptor* myd = getDescriptor();
     lock& lck = myd->stmState->getLock(&v);
     auto status = lck.getStatus();
 
     // check if value is in the write buffer
-    if (myd->writeFilter[hash<filterBits>(&v)]) {
+    if (myd->writeLog.size() > 0 && myd->writeFilter[hash<filterBits>(&v)]) {
       auto a = myd->writeMap.find((void*) &v);
       if (a != myd->writeMap.end()) {
 #ifdef SimpleSTM
