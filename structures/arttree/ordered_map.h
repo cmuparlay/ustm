@@ -458,7 +458,7 @@ struct ordered_map {
           *cptr = (node*) stm::New<big_leaf>(byte_pos, l, k, v, replace);
           stm::Delete(bl);
         } else { // too large
-          int n = max_big_leaf_size + 1;
+          constexpr int n = max_big_leaf_size + 1;
 
           // insert new key-value pair into l and put result into tmp
           KV tmp[n];
@@ -470,6 +470,7 @@ struct ordered_map {
           int start = 0;
           int byteval = gb(tmp[0]);
           node* children[n];
+          //node* children[n];
           for (int i=1; i < n; i++) {
             if (gb(tmp[i]) != byteval) {
               children[j++] = new_leaf(byte_pos+1, &tmp[start], &tmp[i]);

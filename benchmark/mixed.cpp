@@ -37,6 +37,11 @@
 // and if Range_Search is defined:
 //   range(Func f, K start, K end)
 
+//TRANS_SAFE is defined for gcctm but in no other cases
+#if !defined(TRANS_SAFE)
+#define TRANS_SAFE
+#endif
+
 std::string command_string = R"(
 [-n <sizes>]  : comma separated sizes of the map (default 1000)
 [-p <num-threads>] : number of threads to use (default # of threads on machine)
@@ -132,7 +137,7 @@ double run_mixed_operations(parlay::sequence<K>& all,
   // loop over rounds
   for (int i = 0; i < rounds + warmup; i++) {
 #ifdef LimitedSTM
-    auto *map_ptr = stm::atomic_region([=]() { return stm::New<SetType>(n); });
+    auto *map_ptr = stm::atomic_region([=]() TRANS_SAFE { return stm::New<SetType>(n); });
 #else
     auto *map_ptr = new SetType(n);
 #endif
@@ -146,13 +151,23 @@ double run_mixed_operations(parlay::sequence<K>& all,
     
     // insert n distinct elements
     parlay::parallel_for(0, n, [&] (size_t i) {
-      stm::atomic_region([&] {
+      bool abort = false;
+      stm::atomic_region([&] () TRANS_SAFE {
 	bool x = tr.insert(unique[i], default_value);
         if (!x) {
+#if !defined(GCCTM)
           std::cout << "Error: key found when inserting unique keys" << std::endl;
           std::abort();
+#else //Can't perform IO in GCCTM, do it outside of the transaction
+          abort = true;
+#endif
         }
-        return true; });}, 1000, true);
+        return true; });
+        if(abort) {
+          std::abort();
+          std::cout << "Error: key found when inserting unique keys" << std::endl;
+        }
+      }, 1000, true);
 
     if (do_check && verbose)
       std::cout << "inserted" << std::endl;
@@ -216,9 +231,9 @@ double run_mixed_operations(parlay::sequence<K>& all,
           K begin = all[j];
           K end = begin + range_gap;
           if (end < begin) end = max_key;
-          local_stats.range_sum += stm::atomic_read_only([&] {
+          local_stats.range_sum += stm::atomic_read_only([&] () TRANS_SAFE {
             long cnt = 0;
-            auto addf = [&] (K k, V v) { cnt++; };
+            auto addf = [&] (K k, V v) TRANS_SAFE  { cnt++; };
             tr.range(addf, begin, end);
             return cnt;}, range_size > 1000);
           j += trans_size;
@@ -235,26 +250,26 @@ double run_mixed_operations(parlay::sequence<K>& all,
 #ifdef NoProtect
             auto val = tr.find(all[j]);
 #else
-            auto val = stm::atomic_read_only_singleton([&] {return tr.find(all[j]);});
+            auto val = stm::atomic_read_only_singleton([&] () TRANS_SAFE {return tr.find(all[j]);});
 #endif
             if (val.has_value()) local_stats.query_total_value += val.value()[0];
           } else if (op_types[jj] == Insert) {
             local_stats.update_count++;
-            if (stm::atomic_region([&] {return tr.insert(all[j], default_value);})) {
+            if (stm::atomic_region([&] () TRANS_SAFE {return tr.insert(all[j], default_value);})) {
               local_stats.added_count++;
               local_stats.update_success_count++;
             }
           }
           else if (op_types[jj] == Remove) {
             local_stats.update_count++;
-            if (stm::atomic_region([&] {return tr.remove(all[j]);})) {
+            if (stm::atomic_region([&] () TRANS_SAFE {return tr.remove(all[j]);})) {
               local_stats.added_count--;
               local_stats.update_success_count++;
             }
           }
         } else {
           // run trans_size operations atomically in a transaction
-          auto [added, queries, found, update_success] = stm::atomic_region([&] {
+          auto [added, queries, found, update_success] = stm::atomic_region([&] () TRANS_SAFE {
             int loc_added = 0;
             int loc_queries = 0;
             int loc_found = 0;
@@ -354,7 +369,7 @@ double run_mixed_operations(parlay::sequence<K>& all,
     
     // finally remove all the keys and delete the map
     parlay::parallel_for(0, unique.size(), [&] (size_t i) {
-      stm::atomic_region([&] {
+      stm::atomic_region([&] () TRANS_SAFE {
           tr.remove(unique[i]);
           return true; });
       }, 100);

@@ -1,4 +1,4 @@
-# bash
+#!/bin/bash
 
 # tree and hash structures (larger n)
 structs="hash_block btree arttree leaftree skiplist treap avltree"
@@ -20,7 +20,7 @@ tpcc_impls="mvustm ustm ustm_longjmp_hwstamp 2plsf"
 xstructs="hash_probe"
 
 # implementations that support trivial types (8-byte, trivially copyable)
-impls="mvustm mvustm_lzstamp mvustm_hwstamp ustm_longjmp mvustm_longjmp mvustm_trythrow mvustm_unprotected 2plsf"
+impls="mvustm mvustm_lzstamp mvustm_hwstamp ustm_longjmp mvustm_longjmp mvustm_trythrow mvustm_unprotected 2plsf gcctm"
 tiny_impls="tiny"
 
 # implementations that support general relocatable types (subset of above)
@@ -47,12 +47,12 @@ filename=../../timings/${procs}-${machine}_${today}
 
 echo ${filename}
 > ${filename}
-echo "Date:" ${today} >> ${filename}
-echo `lscpu | grep 'Model name'` >> ${filename}
-echo "Git branch:" `git rev-parse --short HEAD` >> ${filename}
-echo "Compiler:" `g++ --version | head -1` >> ${filename}
-echo "OS:" `lsb_release -a | grep 'Description' | cut -c 14-` >> ${filename}
-echo "Hugepage:" `cat /sys/kernel/mm/transparent_hugepage/enabled` >> ${filename}
+echo "Date:" ${today} | tee ${filename}
+echo `lscpu | grep 'Model name'` | tee ${filename}
+echo "Git branch:" `git rev-parse --short HEAD` | tee ${filename}
+echo "Compiler:" `g++ --version | head -1` | tee ${filename}
+echo "OS:" `lsb_release -a | grep 'Description' | cut -c 14-` | tee ${filename}
+echo "Hugepage:" `cat /sys/kernel/mm/transparent_hugepage/enabled` | tee ${filename}
 
 # tpcc queries
 for struct in ${tpcc_structs}
@@ -60,7 +60,7 @@ do
     echo tpcc ${struct}
     for impl in ${tpcc_impls}
     do
-        ${head} ./tpcc_${struct}_${impl} -nowarmup -r 3 >> ${filename}
+        ${head} ./tpcc_${struct}_${impl} -nowarmup -r 3 | tee ${filename}
     done
 done
 
@@ -70,7 +70,7 @@ do
     echo ${struct}
     for impl in ${general_impls}
     do
-        ${head} ./${struct}_${impl} ${sizes} ${geomean_args} >> ${filename}
+        ${head} ./${struct}_${impl} ${sizes} ${geomean_args} | tee ${filename}
     done
 done
 
@@ -80,7 +80,7 @@ do
     echo ${struct}
     for impl in ${impls}
     do
-        ${head} ./${struct}_${impl} ${sizes} ${geomean_args} >> ${filename}
+        ${head} ./${struct}_${impl} ${sizes} ${geomean_args} | tee ${filename}
     done
 done
 
@@ -90,7 +90,7 @@ do
     echo ${struct}
     for impl in ${tiny_impls}
     do
-        ${head} ./${struct}_${impl} ${sizes} ${geomean_args} >> ${filename}
+        ${head} ./${struct}_${impl} ${sizes} ${geomean_args} | tee ${filename}
     done
 done
 
@@ -100,7 +100,7 @@ do
     echo ${struct}
     for impl in ${impls}
     do
-        ${head} ./${struct}_${impl} ${lsizes} ${geomean_args} >> ${filename}
+        ${head} ./${struct}_${impl} ${lsizes} ${geomean_args} | tee ${filename}
     done
 done
 
@@ -109,7 +109,7 @@ for struct in ${range_structs}
 do
     for impl in ${impls}
     do
-        ${head} ./${struct}_${impl} ${range_args} >> ${filename}
+        ${head} ./${struct}_${impl} ${range_args} | tee ${filename}
     done
 done
 

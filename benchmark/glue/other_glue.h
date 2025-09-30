@@ -21,6 +21,12 @@ namespace stm { using versioned = ofwf::tmbase; }
 #include "2PLSF.hpp"
 namespace stm { struct versioned {}; }
 namespace ext_stm = twoplsf;
+
+#elif defined(GCCTM)
+#include "GCCTM.hpp"
+namespace stm { struct versioned {}; }
+namespace ext_stm = gcctm;
+
 #else
 No STM Specified
 #endif
