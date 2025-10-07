@@ -560,9 +560,9 @@ struct ordered_map {
       int s = 0;
       int e = a->size;
       if (start.has_value())
-        while (l->key_vals[s].key < *start && s < e) s++;
+        while (compare(l->key_vals[s].key, *start, pos) == -1 && s < e) s++;
       if (end.has_value())
-        while (l->key_vals[e-1].key > *end) e--;
+        while (compare(l->key_vals[e-1].key, *end, pos) == 1) e--;
       for (int i = s; i < e; i++) {
         add(l->key_vals[i].key, l->key_vals[i].value);
       }
