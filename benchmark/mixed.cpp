@@ -121,7 +121,7 @@ double run_mixed_operations(parlay::sequence<K>& all,
   int range_query_percent = P.getOptionIntValue("-rqp", 0);
   int range_query_threads = std::ceil((range_query_percent * p)/100.0);
   enum op_type : char {Find, Insert, Remove};
-#ifdef LimitedSTM
+#if defined(LimitedSTM) || defined(NO_CHECK)
   bool do_check = false;
 #else
   bool do_check = true;
