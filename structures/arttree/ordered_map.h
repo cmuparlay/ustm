@@ -32,6 +32,7 @@
 #include <parlay/parallel.h>
 #include <parlay/primitives.h>
 
+namespace parlay {
 // string definition for integer types
 template <typename K>
 struct int_string {
@@ -744,3 +745,4 @@ struct ordered_map {
 };
 
 #endif // FLOCK_ARTTREE_H_
+} //end namespace parlay

@@ -9,6 +9,8 @@
 #include <optional>
 #include <tuple>
 
+namespace parlay {
+  
 template <typename K_,
 	  typename V_,
 	  typename Compare = std::less<K_>>
@@ -286,3 +288,4 @@ public:
     return hrec(root.load(), 0);
   }
 };
+} //end namespace parlay

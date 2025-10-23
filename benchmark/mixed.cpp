@@ -445,11 +445,11 @@ int main(int argc, char* argv[]) {
     auto unique = parlay::random_shuffle(parlay::remove_duplicates(a));
     using K = parlay::chars;
 #ifdef RADIX
-    using SetType = ordered_map<K,V,RadixString<K>>;
+    using SetType = parlay::ordered_map<K,V,RadixString<K>>;
 #elif HASH
-    using SetType = unordered_map<K,V,parlay::hash<K>>;
+    using SetType = parlay::unordered_map<K,V,parlay::hash<K>>;
 #else
-    using SetType = ordered_map<K,V>;
+    using SetType = parlay::ordered_map<K,V>;
 #endif
     auto endKey = [] (const K& begin, long range_size) {return begin;};
     run_loops<SetType, K>(a, unique,
@@ -460,9 +460,9 @@ int main(int argc, char* argv[]) {
 
     using K = unsigned long;
 #ifdef HASH
-    using SetType = unordered_map<K,V,IntHash>;
+    using SetType = parlay::unordered_map<K,V,IntHash>;
 #else
-    using SetType = ordered_map<K,V>;
+    using SetType = parlay::ordered_map<K,V>;
 #endif
 
     parlay::sequence<K> unique_keys;
