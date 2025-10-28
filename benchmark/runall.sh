@@ -36,7 +36,7 @@ range_args="-n 1000000 -u 100 -z 0 -trans 16 -rs 1,10,100,1000,10000,100000,1000
 
 # common header (useful on multinode numa machines)
 #head="timelimit -p -t 200 numactl -i all"
-head="numactl -i all"
+head="ITM_DEFAULT_METHOD=ml_wt numactl -i all"
 
 # print various imformation about the machine/compiler/date at head of file
 procs=`nproc`
@@ -60,7 +60,7 @@ do
     echo tpcc ${struct}
     for impl in ${tpcc_impls}
     do
-        ${head} ./tpcc_${struct}_${impl} -nowarmup -r 3 | tee ${filename}
+        eval "${head} ./tpcc_${struct}_${impl} -nowarmup -r 3" | tee ${filename}
     done
 done
 
@@ -70,7 +70,7 @@ do
     echo ${struct}
     for impl in ${general_impls}
     do
-        ${head} ./${struct}_${impl} ${sizes} ${geomean_args} | tee ${filename}
+        eval "${head} ./${struct}_${impl} ${sizes} ${geomean_args}" | tee ${filename}
     done
 done
 
@@ -80,7 +80,7 @@ do
     echo ${struct}
     for impl in ${impls}
     do
-        ${head} ./${struct}_${impl} ${sizes} ${geomean_args} | tee ${filename}
+        eval "${head} ./${struct}_${impl} ${sizes} ${geomean_args}" | tee ${filename}
     done
 done
 
@@ -90,7 +90,7 @@ do
     echo ${struct}
     for impl in ${tiny_impls}
     do
-        ${head} ./${struct}_${impl} ${sizes} ${geomean_args} | tee ${filename}
+        eval "${head} ./${struct}_${impl} ${sizes} ${geomean_args}" | tee ${filename}
     done
 done
 
@@ -100,7 +100,7 @@ do
     echo ${struct}
     for impl in ${impls}
     do
-        ${head} ./${struct}_${impl} ${lsizes} ${geomean_args} | tee ${filename}
+        eval "${head} ./${struct}_${impl} ${lsizes} ${geomean_args}" | tee ${filename}
     done
 done
 
@@ -109,7 +109,6 @@ for struct in ${range_structs}
 do
     for impl in ${impls}
     do
-        ${head} ./${struct}_${impl} ${range_args} | tee ${filename}
+        eval "${head} ./${struct}_${impl} ${range_args}" | tee ${filename}
     done
 done
-
