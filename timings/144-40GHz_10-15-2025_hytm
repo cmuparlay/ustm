@@ -1,0 +1,6 @@
+Date: 10-15-2025
+Model name: Intel(R) Xeon(R) CPU E7-8867 v4 @ 2.40GHz
+Git branch: fb32054
+Compiler: g++ (Ubuntu 9.4.0-1ubuntu1~20.04.2) 9.4.0
+OS: Ubuntu 20.04.6 LTS
+Hugepage: [always] madvise never

@@ -1,4 +1,4 @@
-# bash
+#!/bin/bash
 
 # tree and hash structures (larger n)
 structs="hash_block btree arttree leaftree skiplist treap avltree"
@@ -14,17 +14,17 @@ range_structs="btree arttree"
 
 # structures for tpcc
 tpcc_structs="btree arttree hash_block mix"
-tpcc_impls="mvustm ustm ustm_longjmp_hwstamp 2plsf"
+tpcc_impls="mvustm ustm ustm_longjmp_hwstamp 2plsf hytm"
 
 # require non-trivial types
 xstructs="hash_probe"
 
 # implementations that support trivial types (8-byte, trivially copyable)
-impls="mvustm mvustm_lzstamp mvustm_hwstamp ustm_longjmp mvustm_longjmp mvustm_trythrow mvustm_unprotected 2plsf"
+impls="mvustm mvustm_lzstamp mvustm_hwstamp ustm_longjmp mvustm_longjmp mvustm_trythrow mvustm_unprotected 2plsf hytm"
 tiny_impls="tiny"
 
 # implementations that support general relocatable types (subset of above)
-general_impls="mvustm mvustm_hwstamp mvustm_longjmp mvustm_trythrow mvustm_unprotected"
+general_impls="mvustm mvustm_hwstamp mvustm_longjmp mvustm_trythrow mvustm_unprotected hytm"
 
 # arguments that scan over update percent (-u), and zipfian (-z), using
 # transactions of size 16, reporting the geometric mean of throughput
@@ -37,6 +37,7 @@ range_args="-n 1000000 -u 100 -z 0 -trans 16 -rs 1,10,100,1000,10000,100000,1000
 # common header (useful on multinode numa machines)
 #head="timelimit -p -t 200 numactl -i all"
 head="numactl -i all"
+hytm_head="numactl --cpunodebind=0,1 --membind=0,1"
 
 # print various imformation about the machine/compiler/date at head of file
 procs=`nproc`
@@ -53,6 +54,7 @@ echo "Git branch:" `git rev-parse --short HEAD` >> ${filename}
 echo "Compiler:" `g++ --version | head -1` >> ${filename}
 echo "OS:" `lsb_release -a | grep 'Description' | cut -c 14-` >> ${filename}
 echo "Hugepage:" `cat /sys/kernel/mm/transparent_hugepage/enabled` >> ${filename}
+echo "HYTM Threads (capped): 72" >> ${filename}
 
 # tpcc queries
 for struct in ${tpcc_structs}
@@ -60,7 +62,11 @@ do
     echo tpcc ${struct}
     for impl in ${tpcc_impls}
     do
-        ${head} ./tpcc_${struct}_${impl} -nowarmup -r 3 >> ${filename}
+        if [ "${impl}" = "hytm" ]; then
+            ${hytm_head} ./tpcc_${struct}_${impl} -nowarmup -r 3 -p 72 >> ${filename}
+        else
+            ${head} ./tpcc_${struct}_${impl} -nowarmup -r 3 >> ${filename}
+        fi
     done
 done
 
@@ -70,7 +76,11 @@ do
     echo ${struct}
     for impl in ${general_impls}
     do
-        ${head} ./${struct}_${impl} ${sizes} ${geomean_args} >> ${filename}
+        if [ "${impl}" = "hytm" ]; then
+            ${hytm_head} ./${struct}_${impl} ${sizes} ${geomean_args} -p 72 >> ${filename}
+        else
+            ${head} ./${struct}_${impl} ${sizes} ${geomean_args} >> ${filename}
+        fi
     done
 done
 
@@ -80,7 +90,11 @@ do
     echo ${struct}
     for impl in ${impls}
     do
-        ${head} ./${struct}_${impl} ${sizes} ${geomean_args} >> ${filename}
+        if [ "${impl}" = "hytm" ]; then
+            ${hytm_head} ./${struct}_${impl} ${sizes} ${geomean_args} -p 72 >> ${filename}
+        else
+            ${head} ./${struct}_${impl} ${sizes} ${geomean_args} >> ${filename}
+        fi
     done
 done
 
@@ -100,7 +114,11 @@ do
     echo ${struct}
     for impl in ${impls}
     do
-        ${head} ./${struct}_${impl} ${lsizes} ${geomean_args} >> ${filename}
+        if [ "${impl}" = "hytm" ]; then
+            ${hytm_head} ./${struct}_${impl} ${lsizes} ${geomean_args} -p 72 >> ${filename}
+        else
+            ${head} ./${struct}_${impl} ${lsizes} ${geomean_args} >> ${filename}
+        fi
     done
 done
 
@@ -109,7 +127,11 @@ for struct in ${range_structs}
 do
     for impl in ${impls}
     do
-        ${head} ./${struct}_${impl} ${range_args} >> ${filename}
+        if [ "${impl}" = "hytm" ]; then
+            ${hytm_head} ./${struct}_${impl} ${range_args} -p 72 >> ${filename}
+        else
+            ${head} ./${struct}_${impl} ${range_args} >> ${filename}
+        fi
     done
 done
 

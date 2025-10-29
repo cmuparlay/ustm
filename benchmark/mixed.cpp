@@ -59,7 +59,9 @@ using V = std::array<unsigned long, 1>;
     std::size_t operator()(K const& k) const noexcept {
       return k * UINT64_C(0xbf58476d1ce4e5b9);}
   };
-  using SetType = unordered_map<K,V,IntHash>;
+  // Use global scope unordered_map to avoid conflict with std::unordered_map
+  // when HyTm headers introduce "using namespace std"
+  using SetType = ::unordered_map<K,V,IntHash>;
 #else
   using SetType = ordered_map<K,V>;
 #endif

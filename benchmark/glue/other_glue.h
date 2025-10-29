@@ -1,5 +1,14 @@
 #pragma once
 
+#include <utility> // for std::pair
+#include <type_traits> // for std::is_void_v
+#include <iostream> // for logging
+#include <thread> // for thread::get_id
+#include <csignal> // for signal handling
+#include <cstdlib> // for exit
+#include <unistd.h> // for dup, dup2, close
+#include <fcntl.h> // for open
+
 #ifdef TL2O
 #include "TL2Orig.hpp"
 namespace ext_stm = tl2orig;
@@ -21,10 +30,231 @@ namespace stm { using versioned = ofwf::tmbase; }
 #include "2PLSF.hpp"
 namespace stm { struct versioned {}; }
 namespace ext_stm = twoplsf;
+
+#elif defined(HyTm)
+// HyTm defines - use the volatile (no-phtm) version to avoid PMEM/persistent issues
+#define phytm1_fgl_colocated_locks_no_phtm  // Use tm_volatile.h instead of tm.h
+#define DISABLE_ZEROING_MEMORY  // Skip memset operations that cause bus errors
+#define MAX_THREADS_POW2 512   // Increase thread limit for USTM benchmarks
+#define LimitedSTM             // Use transactional allocation like TinySTM
+
+// Uncomment the following line to enable verbose HyTm logging
+// #define HYTM_VERBOSE_LOGGING
+
+// NOTE: Do not override VMEM/PMEM base addresses here.
+// Let the HyTm library provide sensible defaults via its config.h
+// (e.g. VMEM_POOL_BASE_ADDR_NUMA0 / PMEM_POOL_BASE_ADDR_NUMA0). Overriding
+// these hard-coded addresses is non-portable and may cause mmap conflicts.
+
+#include "../../other/ptmbench/phytmlib/phytm2.h"
+
+namespace {
+  struct HyTmThreadCheckInOut {
+    bool initialized = false;
+    HyTmThreadCheckInOut() {
+#ifdef HYTM_VERBOSE_LOGGING
+      std::cout << "[HyTm] Thread " << std::this_thread::get_id() << " initializing..." << std::endl;
+#endif
+      TM_THREAD_ENTER();
+      initialized = true;
+#ifdef HYTM_VERBOSE_LOGGING
+      std::cout << "[HyTm] Thread " << std::this_thread::get_id() << " initialized successfully" << std::endl;
+#endif
+    }
+    // Note: TM_THREAD_EXIT() might not be needed based on HyTm's design
+    ~HyTmThreadCheckInOut() {
+      if (initialized) {
+#ifdef HYTM_VERBOSE_LOGGING
+        std::cout << "[HyTm] Thread " << std::this_thread::get_id() << " cleaning up..." << std::endl;
+#endif
+      }
+    }
+  };
+  
+  thread_local HyTmThreadCheckInOut tl_hytm_tcico;
+  
+  // Global initializer
+  struct HyTmInit {
+    static void bus_error_handler(int sig) {
+#ifdef HYTM_VERBOSE_LOGGING
+      std::cout << "[HyTm] BUS ERROR detected during program execution!" << std::endl;
+      std::cout << "[HyTm] This likely occurred during HyTm memory management operations" << std::endl;
+      std::cout << "[HyTm] Signal: " << sig << std::endl;
+#endif
+      std::exit(1);
+    }
+    
+    HyTmInit() {
+#ifdef HYTM_VERBOSE_LOGGING
+      std::cout << "[HyTm] Global initialization starting..." << std::endl;
 #else
-No STM Specified
+      // Suppress HyTm library output during initialization
+      int stdout_backup = dup(STDOUT_FILENO);
+      int devnull = open("/dev/null", O_WRONLY);
+      dup2(devnull, STDOUT_FILENO);
+      close(devnull);
+#endif
+      
+      // Install signal handler before HyTm initialization
+      struct sigaction sa;
+      sa.sa_handler = bus_error_handler;
+      sigemptyset(&sa.sa_mask);
+      sa.sa_flags = 0;
+      sigaction(SIGBUS, &sa, nullptr);
+      
+      try {
+        TM_STARTUP(2);  // Use only 2 threads for initialization
+#ifdef HYTM_VERBOSE_LOGGING
+        std::cout << "[HyTm] Global initialization completed" << std::endl;
+#endif
+      } catch (...) {
+#ifdef HYTM_VERBOSE_LOGGING
+        std::cout << "[HyTm] Exception during initialization - continuing" << std::endl;
+#endif
+      }
+      
+#ifndef HYTM_VERBOSE_LOGGING
+      // Restore stdout
+      dup2(stdout_backup, STDOUT_FILENO);
+      close(stdout_backup);
+#endif
+    }
+    ~HyTmInit() { 
+#ifdef HYTM_VERBOSE_LOGGING
+      std::cout << "[HyTm] Global shutdown starting..." << std::endl;
+#else
+      // Suppress HyTm library output during shutdown
+      int stdout_backup = dup(STDOUT_FILENO);
+      int devnull = open("/dev/null", O_WRONLY);
+      dup2(devnull, STDOUT_FILENO);
+      close(devnull);
+#endif
+      TM_SHUTDOWN(); 
+#ifdef HYTM_VERBOSE_LOGGING
+      std::cout << "[HyTm] Global shutdown completed" << std::endl;
+#endif
+#ifndef HYTM_VERBOSE_LOGGING
+      // Restore stdout
+      dup2(stdout_backup, STDOUT_FILENO);
+      close(stdout_backup);
+#endif
+    }
+  };
+  static HyTmInit hytm_init;
+}
+
+namespace stm { struct versioned {}; }
+
+#else
+#error "No STM Specified"
 #endif
 
+#ifdef HyTm
+// HyTm implementation
+namespace stm {
+  template <typename F>
+  auto atomic_region(F &&func) {
+    // Thread is automatically initialized via tl_hytm_tcico
+    using T = decltype(func());
+    if constexpr (std::is_void_v<T>) {
+      TM_BEGIN();
+      try {
+        func();
+        TM_END();
+      } catch (...) {
+#ifdef HYTM_VERBOSE_LOGGING
+        std::cout << "[HyTm] Exception in atomic_region (void)" << std::endl;
+#endif
+        throw;
+      }
+    } else {
+      T result;
+      TM_BEGIN();
+      try {
+        result = func();
+        TM_END();
+      } catch (...) {
+#ifdef HYTM_VERBOSE_LOGGING
+        std::cout << "[HyTm] Exception in atomic_region (non-void)" << std::endl;
+#endif
+        throw;
+      }
+      return result;
+    }
+  }
+
+  template <typename F>
+  auto atomic_read_only(F &&func, bool large = false) {
+    // HyTm has read-only transactions
+    using T = decltype(func());
+    if constexpr (std::is_void_v<T>) {
+      TM_BEGIN_RO();
+      func();
+      TM_END();
+    } else {
+      T result;
+      TM_BEGIN_RO();
+      result = func();
+      TM_END();
+      return result;
+    }
+  }
+  
+  template <typename F>
+  auto atomic_read_only_singleton(F &&f) {
+    return atomic_region(std::forward<F>(f));
+  }
+
+  template <typename T>
+  void Delete(T *ptr) { 
+    tmDelete(ptr);
+  }
+      
+  template <typename T, typename... Args>
+  T *New(Args... args) { 
+    return tmNew<T>(std::forward<Args>(args)...);
+  }
+
+  template <typename T>
+  struct atomic {
+    tx_field<T> val;  // Remove mutable since it's causing address tracking issues
+    
+    atomic() : val() {}
+    atomic(T v) : val() { val = v; }  // Use assignment operator which calls store()
+    
+    // Provide the interface the benchmark expects
+    void store(T v) { val.store(v); }
+    T load() const { return const_cast<tx_field<T>&>(val).load(); }  // Cast away const for load
+    T load_unprotected() const { return const_cast<tx_field<T>&>(val).load(); }  // Just use regular load
+    void validate() const { /* no-op */ }
+    void init(T x) { val = x; }
+    T operator=(T b) { val = b; return b; }
+    operator T() const { return const_cast<tx_field<T>&>(val).load(); }  // Implicit conversion to T
+  };
+
+  // Extension methods for compatibility with benchmark interface
+  template <typename T>
+  T load_unprotected(const tx_field<T>& field) {
+    return field.load();
+  }
+
+  template <typename T>
+  void validate(const tx_field<T>& field) {
+    // No validation needed for HyTm
+  }
+
+  template <typename T>
+  void init(tx_field<T>& field, T value) {
+    field = value;
+  }
+
+  std::pair<long,long> statistics() {
+    return std::pair(0ul,0ul);
+  }
+}
+
+#else
+// Non-HyTm STM implementations
 namespace stm {
 
 #ifdef OneFile
@@ -65,19 +295,7 @@ namespace stm {
   T *New(Args... args) { return ext_stm::tmNew<T>(args...); }
 
   template <typename T>
-  struct atomic {
-  private:
-    ext_stm::tmtype<T> val;
-  public:
-    atomic(T v) : val(v) {}
-    atomic() {}
-    void store(T v) { val = v; }
-    T load() const { return val.pload(); }
-    T load_unprotected() const { return val.pload();}
-    void validate() const { }
-    void init(T x) { store(x); }
-    T operator=(T b) { store(b); return b; }
-  };
+  using atomic = typename ext_stm::template tmtype<T>;
 
   std::pair<long,long> statistics() {
 #if defined(STMStats) && defined(TWOPLSF)
@@ -96,3 +314,5 @@ namespace stm {
 #endif
   }
 }
+
+#endif // !HyTm

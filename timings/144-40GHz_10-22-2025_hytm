@@ -1,0 +1,102 @@
+Date: 10-22-2025
+Model name: Intel(R) Xeon(R) CPU E7-8867 v4 @ 2.40GHz
+Git branch: fb32054
+Compiler: g++ (Ubuntu 9.4.0-1ubuntu1~20.04.2) 9.4.0
+OS: Ubuntu 20.04.6 LTS
+Hugepage: [always] madvise never
+Threads (capped): 72
+hash_block
+./hash_block_hytm,u=0,trans=16,n=100000,p=72,z=0,pa=0,mops=184
+n: 100000, geomean throughput: 184
+btree
+./btree_hytm,u=0,trans=16,n=100000,p=72,z=0,pa=0,mops=3.52
+./btree_hytm,u=0,trans=16,n=100000,p=72,z=0.99,pa=0,mops=3.84
+./btree_hytm,u=5,trans=16,n=100000,p=72,z=0,pa=0,mops=3.64
+./btree_hytm,u=5,trans=16,n=100000,p=72,z=0.99,pa=0,mops=2.93
+./btree_hytm,u=50,trans=16,n=100000,p=72,z=0,pa=0,mops=3.62
+./btree_hytm,u=50,trans=16,n=100000,p=72,z=0.99,pa=0,mops=0.472
+n: 100000, geomean throughput: 2.5037
+arttree
+./arttree_hytm,u=0,trans=16,n=100000,p=72,z=0,pa=0,mops=6.93
+./arttree_hytm,u=0,trans=16,n=100000,p=72,z=0.99,pa=0,mops=7.61
+./arttree_hytm,u=5,trans=16,n=100000,p=72,z=0,pa=0,mops=6.58
+./arttree_hytm,u=5,trans=16,n=100000,p=72,z=0.99,pa=0,mops=5.75
+./arttree_hytm,u=50,trans=16,n=100000,p=72,z=0,pa=0,mops=5.67
+./arttree_hytm,u=50,trans=16,n=100000,p=72,z=0.99,pa=0,mops=1.11
+n: 100000, geomean throughput: 4.82117
+leaftree
+./leaftree_hytm,u=0,trans=16,n=100000,p=72,z=0,pa=0,mops=0.304
+./leaftree_hytm,u=0,trans=16,n=100000,p=72,z=0.99,pa=0,mops=0.316
+./leaftree_hytm,u=5,trans=16,n=100000,p=72,z=0,pa=0,mops=0.299
+./leaftree_hytm,u=5,trans=16,n=100000,p=72,z=0.99,pa=0,mops=0.134
+./leaftree_hytm,u=50,trans=16,n=100000,p=72,z=0,pa=0,mops=0.268
+./leaftree_hytm,u=50,trans=16,n=100000,p=72,z=0.99,pa=0,mops=0.019
+n: 100000, geomean throughput: 0.164199
+./leaftree_hytm,u=0,trans=16,n=10000000,p=72,z=0,pa=0,mops=0.146
+./leaftree_hytm,u=0,trans=16,n=10000000,p=72,z=0.99,pa=0,mops=0.145
+./leaftree_hytm,u=5,trans=16,n=10000000,p=72,z=0,pa=0,mops=0.141
+./leaftree_hytm,u=5,trans=16,n=10000000,p=72,z=0.99,pa=0,mops=0.0829
+./leaftree_hytm,u=50,trans=16,n=10000000,p=72,z=0,pa=0,mops=0.13
+./leaftree_hytm,u=50,trans=16,n=10000000,p=72,z=0.99,pa=0,mops=0.012
+n: 10000000, geomean throughput: 0.0853303
+skiplist
+./skiplist_hytm,u=0,trans=16,n=100000,p=72,z=0,pa=0,mops=0.133
+./skiplist_hytm,u=0,trans=16,n=100000,p=72,z=0.99,pa=0,mops=0.143
+./skiplist_hytm,u=5,trans=16,n=100000,p=72,z=0,pa=0,mops=0.128
+./skiplist_hytm,u=5,trans=16,n=100000,p=72,z=0.99,pa=0,mops=0.0631
+./skiplist_hytm,u=50,trans=16,n=100000,p=72,z=0,pa=0,mops=0.0971
+./skiplist_hytm,u=50,trans=16,n=100000,p=72,z=0.99,pa=0,mops=0.0113
+n: 100000, geomean throughput: 0.0743226
+./skiplist_hytm,u=0,trans=16,n=10000000,p=72,z=0,pa=0,mops=0.0708
+./skiplist_hytm,u=0,trans=16,n=10000000,p=72,z=0.99,pa=0,mops=0.076
+./skiplist_hytm,u=5,trans=16,n=10000000,p=72,z=0.99,pa=0,mops=0.04
+./skiplist_hytm,u=50,trans=16,n=10000000,p=72,z=0,pa=0,mops=0.0689
+./skiplist_hytm,u=50,trans=16,n=10000000,p=72,z=0.99,pa=0,mops=0.00602
+n: 10000000, geomean throughput: 0.0389175
+treap
+./treap_hytm,u=0,trans=16,n=100000,p=72,z=0,pa=0,mops=0.836
+./treap_hytm,u=0,trans=16,n=100000,p=72,z=0.99,pa=0,mops=0.889
+./treap_hytm,u=5,trans=16,n=100000,p=72,z=0,pa=0,mops=0.81
+./treap_hytm,u=5,trans=16,n=100000,p=72,z=0.99,pa=0,mops=0.357
+./treap_hytm,u=50,trans=16,n=100000,p=72,z=0,pa=0,mops=0.611
+./treap_hytm,u=50,trans=16,n=100000,p=72,z=0.99,pa=0,mops=0.0525
+n: 100000, geomean throughput: 0.436258
+avltree
+./avltree_hytm,u=0,trans=16,n=100000,p=72,z=0,pa=0,mops=0.523
+./avltree_hytm,u=0,trans=16,n=100000,p=72,z=0.99,pa=0,mops=0.834
+./avltree_hytm,u=5,trans=16,n=100000,p=72,z=0,pa=0,mops=0.48
+./avltree_hytm,u=5,trans=16,n=100000,p=72,z=0.99,pa=0,mops=0.235
+./avltree_hytm,u=50,trans=16,n=100000,p=72,z=0,pa=0,mops=0.22
+./avltree_hytm,u=50,trans=16,n=100000,p=72,z=0.99,pa=0,mops=0.0254
+n: 100000, geomean throughput: 0.254999
+list
+./list_hytm,u=0,trans=16,n=100,p=72,z=0,pa=0,mops=27.1
+./list_hytm,u=0,trans=16,n=100,p=72,z=0.99,pa=0,mops=29.1
+./list_hytm,u=5,trans=16,n=100,p=72,z=0,pa=0,mops=0.0108
+./list_hytm,u=5,trans=16,n=100,p=72,z=0.99,pa=0,mops=0.0111
+./list_hytm,u=50,trans=16,n=100,p=72,z=0,pa=0,mops=0.00389
+./list_hytm,u=50,trans=16,n=100,p=72,z=0.99,pa=0,mops=0.00306
+n: 100, geomean throughput: 0.101987
+./list_hytm,u=0,trans=16,n=1000,p=72,z=0,pa=0,mops=0.00266
+./list_hytm,u=0,trans=16,n=1000,p=72,z=0.99,pa=0,mops=0.00282
+./list_hytm,u=5,trans=16,n=1000,p=72,z=0,pa=0,mops=0.000127
+./list_hytm,u=5,trans=16,n=1000,p=72,z=0.99,pa=0,mops=0.000142
+./list_hytm,u=50,trans=16,n=1000,p=72,z=0,pa=0,mops=3.91e-05
+./list_hytm,u=50,trans=16,n=1000,p=72,z=0.99,pa=0,mops=4.2e-05
+n: 1000, geomean throughput: 0.0114229
+btree range queries
+./btree_hytm,u=100,trans=16,n=1000000,p=72,z=0,pa=0,rs=1,rqp=50,rqmops=24.8,mops=1.53
+range_size: 1, throughput: 24.8
+./btree_hytm,u=100,trans=16,n=1000000,p=72,z=0,pa=0,rs=10,rqp=50,rqmops=20.1,mops=1.44
+range_size: 10, throughput: 20.1
+./btree_hytm,u=100,trans=16,n=1000000,p=72,z=0,pa=0,rs=100,rqp=50,rqmops=5.34,mops=1.48
+range_size: 100, throughput: 5.34
+./btree_hytm,u=100,trans=16,n=1000000,p=72,z=0,pa=0,rs=1000,rqp=50,rqmops=0.0766,mops=1.4
+range_size: 1000, throughput: 0.0766
+./btree_hytm,u=100,trans=16,n=1000000,p=72,z=0,pa=0,rs=10000,rqp=50,rqmops=3.55e-05,mops=1.41
+range_size: 10000, throughput: 3.55
+./btree_hytm,u=100,trans=16,n=1000000,p=72,z=0,pa=0,rs=100000,rqp=50,rqmops=1.63e-05,mops=0.652
+range_size: 100000, throughput: 1.63
+./btree_hytm,u=100,trans=16,n=1000000,p=72,z=0,pa=0,rs=1000000,rqp=50,rqmops=4.37e-07,mops=0.0169
+range_size: 1000000, throughput: 4.37
+arttree range queries
