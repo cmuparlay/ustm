@@ -1,8 +1,7 @@
 #!/bin/bash
 
 # tree and hash structures (larger n)
-# Note: treap, avltree, skiplist, leaftree crash with HyTm - skipping for now
-structs="hash_block btree arttree"
+structs="hash_block btree arttree leaftree skiplist treap avltree"
 sizes="100000 10000000"
 
 # list structures (use smaller n)
@@ -24,7 +23,7 @@ impl="hytm"
 # Individual test parameters (now separated for individual runs)
 update_percents="0 5 50"
 zipfian_params="0 .99"
-trans_size="16"
+trans_size="1"
 rounds="1"
 
 # Range query parameters
@@ -55,11 +54,6 @@ echo "OS:" `lsb_release -a | grep 'Description' | cut -c 14-` >> ${filename}
 echo "Hugepage:" `cat /sys/kernel/mm/transparent_hugepage/enabled` >> ${filename}
 echo "Threads (capped): 72" >> ${filename}
 
-# Helper function to filter out HyTm debug output
-run_and_filter() {
-    $@ 2>&1 | grep -v "^\[HyTm\]" | grep -v "^phytm" | grep -v "^TM:" | grep -v "^HTM" | grep -v "^PMEM" | grep -v "^SIMPLE TM" | grep -v "^TM FREE" | grep -v "^Phytm" | grep -v "^Size of" | grep -v "^Max software" | grep -v "^TM Alloc" | grep -v "^Aligned base" | grep -v "^INIT:" | grep -v "^Page size" | grep -v "^Page count" | grep -v "^Page mask" | grep -v "^NUMA" | grep -v "system ready" | grep -v "system shutdown"
-}
-
 # Helper function to calculate geometric mean
 geomean() {
     local product=1
@@ -75,41 +69,19 @@ geomean() {
     fi
 }
 
-# tpcc queries
-for struct in ${tpcc_structs}
-do
-    echo "tpcc ${struct}" >> ${filename}
-    run_and_filter ${head} ./tpcc_${struct}_${impl} -nowarmup -r 3 -p 72 >> ${filename}
-done
+# # tpcc queries
+# for struct in ${tpcc_structs}
+# do
+#     echo tpcc ${struct}
+#     ${head} ./tpcc_${struct}_${impl} -nowarmup -r 3 >> ${filename}
+# done
 
-# non-trivial types - run each configuration individually and compute geomean
-for struct in ${xstructs}
-do
-    echo "${struct}" >> ${filename}
-    for n in ${sizes}
-    do
-        throughputs=()
-        for u in ${update_percents}
-        do
-            for z in ${zipfian_params}
-            do
-                output=$(run_and_filter ${head} ./${struct}_${impl} -n ${n} -u ${u} -z ${z} -r ${rounds} -trans ${trans_size} -p 72)
-                result=$(echo "$output" | grep -oP 'mops=\K[0-9.]+' | head -1)
-                result_line=$(echo "$output" | grep 'mops=')
-                if [ ! -z "$result_line" ]; then
-                    echo "$result_line" >> ${filename}
-                fi
-                if [ ! -z "$result" ]; then
-                    throughputs+=($result)
-                fi
-            done
-        done
-        if [ ${#throughputs[@]} -gt 0 ]; then
-            gmean=$(geomean "${throughputs[@]}")
-            echo "n: ${n}, geomean throughput: ${gmean}" >> ${filename}
-        fi
-    done
-done
+# # non-trivial types
+# for struct in ${xstructs}
+# do
+#     echo ${struct}
+#     ${head} ./${struct}_${impl} ${sizes} ${geomean_args} >> ${filename}
+# done
 
 # non list structures - run each configuration individually and compute geomean
 for struct in ${structs}
@@ -122,7 +94,7 @@ do
         do
             for z in ${zipfian_params}
             do
-                output=$(run_and_filter ${head} ./${struct}_${impl} -n ${n} -u ${u} -z ${z} -r ${rounds} -trans ${trans_size} -p 72)
+                output=$(${head} ./${struct}_${impl} -n ${n} -u ${u} -z ${z} -r ${rounds} -trans ${trans_size} -p 72)
                 result=$(echo "$output" | grep -oP 'mops=\K[0-9.]+' | head -1)
                 result_line=$(echo "$output" | grep 'mops=')
                 if [ ! -z "$result_line" ]; then
@@ -151,7 +123,7 @@ do
         do
             for z in ${zipfian_params}
             do
-                output=$(run_and_filter ${head} ./${struct}_${impl} -n ${n} -u ${u} -z ${z} -r ${rounds} -trans ${trans_size} -p 72)
+                output=$(${head} ./${struct}_${impl} -n ${n} -u ${u} -z ${z} -r ${rounds} -trans ${trans_size} -p 72)
                 result=$(echo "$output" | grep -oP 'mops=\K[0-9.]+' | head -1)
                 result_line=$(echo "$output" | grep 'mops=')
                 if [ ! -z "$result_line" ]; then
@@ -175,7 +147,7 @@ do
     echo "${struct} range queries" >> ${filename}
     for rs in ${range_sizes}
     do
-        output=$(run_and_filter ${head} ./${struct}_${impl} -n ${range_n} -u ${range_update} -z ${range_zipf} -trans ${range_trans} -rs ${rs} -rqp ${range_query_percent} -p 72)
+        output=$(${head} ./${struct}_${impl} -n ${range_n} -u ${range_update} -z ${range_zipf} -trans ${range_trans} -rs ${rs} -rqp ${range_query_percent} -p 72)
         result=$(echo "$output" | grep -oP 'mops=\K[0-9.]+' | head -1)
         result_line=$(echo "$output" | grep 'mops=')
         if [ ! -z "$result_line" ]; then
