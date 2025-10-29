@@ -1,0 +1,224 @@
+FLAGS =
+LDFLAGS =
+GCC = gcc
+GPP = g++-10
+GPP9 = g++-9
+
+PHYTM_FLAGS =
+
+### if libpapi is installed but you do not want to use it, invoke make with extra argument "has_libpapi=0"
+# has_libpapi=$(shell setbench/microbench/_check_lib.sh papi)
+has_libpapi=0
+ifneq ($(has_libpapi), 0)
+	FLAGS += -DUSE_PAPI
+	LDFLAGS += -lpapi
+endif
+
+### if libnuma is installed but you do not want to use it, invoke make with extra argument "has_libnuma=0"
+has_libnuma=$(shell setbench/microbench/_check_lib.sh numa)
+ifneq ($(has_libnuma), 0)
+	FLAGS += -DUSE_LIBNUMA
+	LDFLAGS += -lnuma
+endif
+
+use_asan=0
+ifneq ($(use_asan), 0)
+	LDFLAGS += -fsanitize=address -static-libasan
+endif
+
+use_asserts=0
+ifeq ($(use_asserts), 0)
+	FLAGS += -DNDEBUG
+endif
+
+use_fopenmp=0
+ifeq ($(use_fopenmp), 1)
+	FLAGS += -fopenmp
+endif
+
+use_timelines=0
+ifeq ($(use_timelines), 1)
+	FLAGS += -DMEASURE_TIMELINE_STATS
+endif
+
+hang_for_debug=0
+ifeq ($(hang_for_debug), 1)
+	FLAGS += -DHANG_ON_TIME_UP_FAILURE
+endif
+
+# has_htm=0
+has_htm=$(shell ./checkRTM.sh)
+ifneq ($(has_htm), 1)
+	FLAGS += -DDISABLE_HTM
+endif
+
+# hash_pmem=0
+hash_pmem=$(shell ./checkNVM.sh)
+ifneq ($(hash_pmem), 1)
+	FLAGS += -DDISABLE_PMEM
+endif
+
+use_max_abort_handler=0
+ifeq ($(use_max_abort_handler), 1)
+	PHYTM_FLAGS += -DUSE_MAX_ABORT_HANDLER
+endif
+
+disable_phytm_backoff=1
+ifeq ($(disable_phytm_backoff), 1)
+	FLAGS += -DDISABLE_PHYTM_BACKOFF
+	FLAGS += -DMAX_RETRIES=100000000
+else
+	# FLAGS += -DMAX_RETRIES=10000
+endif
+
+no_zeroing_for_phytm=1
+ifeq ($(no_zeroing_for_phytm), 1)
+	FLAGS += -DDISABLE_ZEROING_MEMORY
+endif
+
+
+
+no_optimize=0
+ifeq ($(no_optimize), 1)	
+	FLAGS += -O0
+	FLAGS += -fno-inline-functions -fno-inline-functions-called-once -fno-optimize-sibling-calls
+	FLAGS += -fno-default-inline -fno-inline
+	FLAGS += -fno-omit-frame-pointer
+else
+	# FLAGS += -O3
+	FLAGS += -O2
+	# FLAGS += -O1
+endif
+FLAGS += -mcx16 #needed for DWCAS (cmpxchg16b)
+
+FLAGS += -DMAX_THREADS_POW2=128
+FLAGS += -DCPU_FREQ_GHZ=2.1 #$(shell ./experiments/get_cpu_ghz.sh)
+FLAGS += -DMEMORY_STATS=if\(0\) -DMEMORY_STATS2=if\(0\)
+
+
+FLAGS += -DNO_CLEANUP_AFTER_WORKLOAD ### avoid executing data structure destructors, to save teardown time at the end of each trial (useful with massive trees)
+# FLAGS += -DRAPID_RECLAMATION
+FLAGS += -DRECORD_ABORTS
+FLAGS += -DGSTATS_MAX_THREAD_BUF_SIZE=524288
+FLAGS += -DDEBRA_ORIGINAL_FREE
+FLAGS += $(xargs)
+
+LDFLAGS += -Lsetbench/lib
+LDFLAGS += -I. -Isetbench/microbench `find setbench/common -type d | sed s/^/-I/`
+LDFLAGS += -lpthread
+LDFLAGS += -latomic
+LDFLAGS += -ldl
+LDFLAGS += -mrtm
+
+
+SPHT_DEFS = 
+
+SPHT_DEFS += -mavx 
+
+DISABLE_FLAG_IS_IN_TX ?= 1
+DISABLE_PCWM_OPT ?= 0
+DISABLE_FLAG_SNAPSHOT ?= 1
+DISABLE_APROX_WAIT_CLOCK ?= 1
+
+SPHT_DEFS += -O3
+
+NPROFILE=1
+ifeq ($(NPROFILE),1)
+SPHT_DEFS += -DNPROFILE
+endif
+
+
+ifeq ($(CONCURRENT_CHECKPOINTER),1)
+SPHT_DEFS += -DCONCURRENT_CHECKPOINTER
+endif
+
+ifeq ($(DISABLE_FLAG_IS_IN_TX),1)
+SPHT_DEFS += -DDISABLE_FLAG_IS_IN_TX
+endif
+
+ifeq ($(DISABLE_PCWM_OPT),1)
+SPHT_DEFS += -DDISABLE_PCWM_OPT
+endif
+
+ifeq ($(DISABLE_FLAG_SNAPSHOT),1)
+SPHT_DEFS += -DDISABLE_FLAG_SNAPSHOT
+endif
+
+ifeq ($(DISABLE_APROX_WAIT_CLOCK),1)
+SPHT_DEFS += -DDISABLE_APROX_WAIT_CLOCK
+endif
+
+
+
+.PHONY: all
+all:
+
+bin_dir=bin
+dir_guard:
+	@mkdir -p $(bin_dir)
+
+clean:
+	rm $(bin_dir)/*.out
+
+
+RECLAIMERS=none
+
+CXLAGS = -std=c11 -g
+CXXLAGS = -std=c++14 -g
+
+SPHT_DIR = spht
+SPHT_NVHTM_SRC_DIR = $(SPHT_DIR)/nvhtm/src
+# SPHT_LIBS = -lhtm_sgl
+SPHT_LIBS += -lrt -mrtm -lm 
+SPHT_DEFS += -DSPHT -DSPHT_MEASUREMENT_INCLUDE_REPLAY -DTM_DS
+SPHT_INCLUDES = -I ds_spht/$(1) -I $(SPHT_DIR) -I $(SPHT_DIR)/nvhtm/include -I $(SPHT_DIR)/deps/htm_alg/include -I $(SPHT_DIR)/deps/arch_dep/include 
+# SPHT_INCLUDES += -L $(SPHT_DIR)/deps/htm_alg -L $(SPHT_DIR)/nvhtm 
+
+SPHT_C_SRC_FILES = $(wildcard $(SPHT_NVHTM_SRC_DIR)/*.c)
+
+SPHT_CPP_SRC_FILES = $(wildcard $(SPHT_NVHTM_SRC_DIR)/*.cpp)
+SPHT_CPP_SRC_FILES := $(SPHT_CPP_SRC_FILES) $(SPHT_DIR)/deps/htm_alg/src/htm.cpp
+$(info $(SPHT_C_SRC_FILES))
+$(info $(SPHT_CPP_SRC_FILES))
+
+OBJS = ${SPHT_C_SRC_FILES:.c=.o}
+OBJS := $(OBJS) ${SPHT_CPP_SRC_FILES:.cpp=.o}
+
+SPHT_C_SRC_FILES := ${SPHT_C_SRC_FILES:.c=}
+SPHT_CPP_SRC_FILES := ${SPHT_CPP_SRC_FILES:.cpp=}
+
+$(info $(OBJS))
+
+$(SPHT_C_SRC_FILES): %: %.c
+	$(GCC) -c $< -o $@.o $(FLAGS) $(CXFLAGS) $(LDFLAGS) $(SPHT_DEFS) $(SPHT_INCLUDES) $(SPHT_LIBS)
+
+$(SPHT_CPP_SRC_FILES): %: %.cpp
+	$(GPP) -c $< -o $@.o $(FLAGS) $(CXXFLAGS) $(LDFLAGS) $(SPHT_DEFS) $(SPHT_INCLUDES) $(SPHT_LIBS)
+
+abtree: $(OBJS)
+	$(GPP) setbench/microbench/main.cpp -o $(bin_dir)/abtree_spht.out $^ -Ids_spht/abtree $(FLAGS) $(SPHT_DEFS) $(SPHT_INCLUDES) -DUSE_GSTATS_USER_HANDLER_H_FILE -DDS_TYPENAME=abtree -DRECLAIM_TYPE=none $(LDFLAGS) $(SPHT_LIBS)
+
+all: $(SPHT_CPP_SRC_FILES) $(SPHT_C_SRC_FILES) abtree
+
+# partial_algorithm_names=
+# ifeq ($(partial_algorithm_names),)
+#     SPHT_DS=$(patsubst ds_spht/%/adapter.h,%,$(wildcard ds_spht/*/adapter.h))
+# else
+# 	SPHT_DS=$(foreach partial_name,$(partial_algorithm_names), $(patsubst ds_spht/%/adapter.h,%,$(wildcard ds_spht/$(partial_name)*/adapter.h)))
+# endif
+# $(info $(SPHT_DS))
+
+# define create-target-new-ds-reclaim-spht =
+# _$(1).$(2).spht: dir_guard		
+# 	$(GPP) setbench/microbench/main.cpp -o $(bin_dir)/$(1).$(2).spht -lnvhtm $(SPHT_DEFS) $(SPHT_INCLUDES) -DUSE_GSTATS_USER_HANDLER_H_FILE -DDS_TYPENAME=$(1) -DRECLAIM_TYPE=$(2) $(FLAGS) $(PHYTM_FLAGS) $(CFLAGS) $(LDFLAGS) $(SPHT_LIBS)
+# 	$(GPP) setbench/microbench/main.cpp -o $(bin_dir)/$(1).$(2).spht_noopf -lnvhtm_noopf $(SPHT_DEFS) $(SPHT_INCLUDES) -DUSE_GSTATS_USER_HANDLER_H_FILE -DDS_TYPENAME=$(1) -DRECLAIM_TYPE=$(2) $(FLAGS) $(PHYTM_FLAGS) $(CFLAGS) $(LDFLAGS) $(SPHT_LIBS)
+# 	$(GPP) setbench/microbench/main.cpp -o $(bin_dir)/$(1).$(2).spht_no_pmem -lnvhtm_no_pmem $(SPHT_DEFS) $(SPHT_INCLUDES) -DUSE_GSTATS_USER_HANDLER_H_FILE -DDS_TYPENAME=$(1) -DRECLAIM_TYPE=$(2) $(FLAGS) $(PHYTM_FLAGS) $(CFLAGS) $(LDFLAGS) $(SPHT_LIBS)
+# 	$(GPP) setbench/microbench/main.cpp -o $(bin_dir)/$(1).$(2).spht_no_phtm -lnvhtm_no_phtm $(SPHT_DEFS) $(SPHT_INCLUDES) -DUSE_GSTATS_USER_HANDLER_H_FILE -DDS_TYPENAME=$(1) -DRECLAIM_TYPE=$(2) $(FLAGS) $(PHYTM_FLAGS) $(CFLAGS) $(LDFLAGS) $(SPHT_LIBS)
+# new-ds-reclaim-spht: _$(1).$(2).spht
+# endef
+# $(foreach ds,$(SPHT_DS), \
+# 	$(foreach reclaim,$(RECLAIMERS), \
+# 		$(eval $(call create-target-new-ds-reclaim-spht,$(ds),$(reclaim),spht)) \
+# 	) \
+# )
+# all: new-ds-reclaim-spht
