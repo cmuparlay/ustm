@@ -1,4 +1,5 @@
-#pragma once
+#if !defined(OTHER_GLUE_H) && !defined(GCC_TM)
+#define OTHER_GLUE_H
 
 #ifdef TL2O
 #include "TL2Orig.hpp"
@@ -98,7 +99,9 @@ namespace stm {
     }
     return std::pair(totalAborts, totalCommits);
 #else
-    return std::pair(0ul,0ul);
+    return std::pair<long, long>(0ul,0ul);
 #endif
   }
 }
+
+#endif

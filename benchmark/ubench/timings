@@ -1,0 +1,12 @@
+local small_bench_GCC_TM 5848782.47
+local small_bench_OneFile 1187633.87
+local small_bench_TWOPLSF 1255310.04
+local small_bench_USTM 5454684.55
+random small_bench_GCC_TM 5398481.45
+random small_bench_OneFile 966354.17
+random small_bench_TWOPLSF 1717979.24
+random small_bench_USTM 5248444.86
+always small_bench_GCC_TM 64271.14
+always small_bench_OneFile 1179906.94
+always small_bench_TWOPLSF 88354.21
+always small_bench_USTM 342752.17
