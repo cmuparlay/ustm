@@ -10,3 +10,52 @@ always small_bench_GCC_TM 64271.14
 always small_bench_OneFile 1179906.94
 always small_bench_TWOPLSF 88354.21
 always small_bench_USTM 342752.17
+
+local small_bench_GCC_TM 1 5472542.11
+local small_bench_OneFile 1 1075718.77
+local small_bench_TWOPLSF 1 396844.16
+local small_bench_USTM 1 5214572.41
+local small_bench_GCC_TM 10 5528602.92
+local small_bench_OneFile 10 1078499.99
+local small_bench_TWOPLSF 10 376318.57
+local small_bench_USTM 10 5005660.24
+local small_bench_GCC_TM 50 4902648.94
+local small_bench_OneFile 50 851107.80
+local small_bench_TWOPLSF 50 415430.43
+local small_bench_USTM 50 4219275.50
+local small_bench_GCC_TM 200 2230419.80
+local small_bench_OneFile 200 488189.82
+local small_bench_TWOPLSF 200 373001.02
+local small_bench_USTM 200 2763904.64
+random small_bench_GCC_TM 1 5116593.46
+random small_bench_OneFile 1 889162.34
+random small_bench_TWOPLSF 1 1102275.18
+random small_bench_USTM 1 5382993.24
+random small_bench_GCC_TM 10 4478657.06
+random small_bench_OneFile 10 918646.54
+random small_bench_TWOPLSF 10 870164.57
+random small_bench_USTM 10 5062993.25
+random small_bench_GCC_TM 50 3204130.79
+random small_bench_OneFile 50 817418.56
+random small_bench_TWOPLSF 50 865798.33
+random small_bench_USTM 50 4089028.28
+random small_bench_GCC_TM 200 2189613.37
+random small_bench_OneFile 200 492059.28
+random small_bench_TWOPLSF 200 837521.98
+random small_bench_USTM 200 2507130.67
+always small_bench_GCC_TM 1 64703.68
+always small_bench_OneFile 1 1129022.32
+always small_bench_TWOPLSF 1 82591.24
+always small_bench_USTM 1 351365.32
+always small_bench_GCC_TM 10 65997.68
+always small_bench_OneFile 10 897697.31
+always small_bench_TWOPLSF 10 81333.40
+always small_bench_USTM 10 335331.58
+always small_bench_GCC_TM 50 75611.66
+always small_bench_OneFile 50 653020.19
+always small_bench_TWOPLSF 50 92413.74
+always small_bench_USTM 50 299369.53
+always small_bench_GCC_TM 200 365462.12
+always small_bench_OneFile 200 461594.00
+always small_bench_TWOPLSF 200 99955.34
+always small_bench_USTM 200 252492.54

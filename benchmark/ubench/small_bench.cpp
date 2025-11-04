@@ -23,6 +23,10 @@ using array_t = uint64_t;
 using array_t = stm::atomic<uint64_t>;
 #endif
 
+static constexpr int MAX_RATIO = 200;
+//for threads to perform unnecessary instrumented reads
+thread_local array_t private_data[MAX_RATIO];
+
 static array_t* shared;
 
 static volatile int stop_requested = 0;
@@ -34,6 +38,7 @@ struct Args {
     int iterations = 1000;
     size_t array_size = 1;
     std::string mode = "local";
+    int unnecessary_read_ratio = 0;
     size_t (*get_idx)(struct thargs *a, int i); 
 };
 
@@ -43,14 +48,15 @@ void print_usage(const char* prog) {
         "  -t <num>    Number of threads (default: 1)\n"
         "  -i <num>    Iterations per thread (default: 1000)\n"
         "  -s <num>    Array size (default: 1)\n"
-        "  -m <mode>   Mode of operation: local | always | random (default: local)\n",
+        "  -m <mode>   Mode of operation: local | always | random (default: local)\n"
+        "  -r <num>    Number of unnecessary instrumented reads to perform for every write (default: 0)\n",
         prog);
 }
 
 Args parse_args(int argc, char** argv) {
     Args args;
     int opt;
-    while ((opt = getopt(argc, argv, "t:i:s:m:h")) != -1) {
+    while ((opt = getopt(argc, argv, "t:i:s:m:hr:")) != -1) {
         switch (opt) {
         case 't':
             args.threads = atoi(optarg);
@@ -68,6 +74,9 @@ Args parse_args(int argc, char** argv) {
                 print_usage(argv[0]);
                 exit(EXIT_FAILURE);
             }
+            break;
+        case 'r':
+            args.unnecessary_read_ratio = atoi(optarg);
             break;
         case 'h':
         default:
@@ -125,12 +134,14 @@ void *thread_main(void *p) {
 #ifdef GCC_TM //gcc's tm tends to over instrument, so we use their libitm directly
         uint32_t actions = _ITM_beginTransaction(pr_instrumentedCode);
         assert(actions & a_runInstrumentedCode && "ITM not running instrumented code correctly");
+        for(int r = 0; r < a->gargs->unnecessary_read_ratio; r++) _ITM_RU8(&private_data[r]);
         uint64_t v = _ITM_RU8(&shared[idx]);
         v++;
         _ITM_WU8(&shared[idx], v);
         _ITM_commitTransaction();
 #else
         stm::atomic_region([&] () {
+            for(int r = 0; r < a->gargs->unnecessary_read_ratio; r++) private_data[r].load();
             uint64_t v = shared[idx].load();
             v++;
             shared[idx].store(v);
@@ -149,6 +160,7 @@ int main(int argc, char **argv) {
     printf("Iterations: %d\n", args.iterations);
     printf("Array size: %zu\n", args.array_size);
     printf("Mode: %s\n", args.mode.c_str());
+    printf("Unnecessary read ratio: %d\n", args.unnecessary_read_ratio);
 
     pthread_t th[args.threads];
     struct thargs thread_args[args.threads];
