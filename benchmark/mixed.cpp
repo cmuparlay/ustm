@@ -57,9 +57,7 @@ example: -n 10000,10000000 -u 0,5,50 -z 0,.99 -trans 1,16 -rs 100,1000 -rqp 50 -
 )";
 
 using K = unsigned long;
-using V = unsigned long;
-
-#define default_value 3
+using V = std::array<unsigned long, 1>;
 
 #ifdef HASH
   struct IntHash {
@@ -104,25 +102,18 @@ statistics adds(statistics s1, statistics s2) {
   return r;
 }    
 
-template <typename T>
-std::unique_ptr<const T[]> to_const_array(const parlay::sequence<T>& seq) {
-  auto arr = std::make_unique<T[]>(seq.size());
-  std::copy(seq.begin(), seq.end(), arr.get());
-  return arr;
-}
-
 template<typename SetType, typename K>
-double run_mixed_operations(const parlay::sequence<K>& _all,
-                            const parlay::sequence<K>& _unique,
+double run_mixed_operations(parlay::sequence<K>& all,
+                            const parlay::sequence<K>& unique,
                             float zipfian_param,
                             int update_percent,
                             int trans_size,
                             long range_size,
                             bool warmup,
                             commandLine P) {
-  long m = _all.size();
+  long m = all.size();
   // half the unique elements on average are in the table
-  long n = _unique.size()/2;
+  long n = unique.size()/2; 
   long p = P.getOptionIntValue("-p", parlay::num_workers());  
   long rounds = P.getOptionIntValue("-r", 1);
   double trial_time = P.getOptionDoubleValue("-t", 1.0);
@@ -133,7 +124,7 @@ double run_mixed_operations(const parlay::sequence<K>& _all,
 #if defined(LimitedSTM) || defined(NO_CHECK)
   bool do_check = false;
 #else
-  bool do_check = !P.getOption("-no_check");
+  bool do_check = true;
 #endif
   auto op_types = parlay::tabulate(m, [&] (size_t i) -> op_type {
       auto h = parlay::hash64(m+i)%2000;
@@ -142,9 +133,6 @@ double run_mixed_operations(const parlay::sequence<K>& _all,
       else return Find; });
 
   double throughput = 0;
-
-  const K* unique = to_const_array(_unique).get();
-  const K* all = to_const_array(_all).get();
 
   // loop over rounds
   for (int i = 0; i < rounds + warmup; i++) {
@@ -158,20 +146,26 @@ double run_mixed_operations(const parlay::sequence<K>& _all,
     auto check = [&]() { return  map_ptr->check(); };
     if (verbose) std::cout << "round " << i << std::endl;
     using V = typename SetType::V;
+    V default_value;
+    default_value[0] = 3;
     
     // insert n distinct elements
-    parlay::parallel_for(0, n, [&] (const size_t i) {
+    parlay::parallel_for(0, n, [&] (size_t i) {
       bool abort = false;
       stm::atomic_region([&] () TRANS_SAFE {
 	bool x = tr.insert(unique[i], default_value);
         if (!x) {
-          //Can't perform IO in GCCTM, do it outside of the transaction
+#if !defined(GCCTM)
+          std::cout << "Error: key found when inserting unique keys" << std::endl;
+          std::abort();
+#else //Can't perform IO in GCCTM, do it outside of the transaction
           abort = true;
+#endif
         }
         return true; });
-        if(abort && do_check) {
-          std::cout << "Error: key {" << unique[i] << "} found when inserting unique keys" << std::endl;
+        if(abort) {
           std::abort();
+          std::cout << "Error: key found when inserting unique keys" << std::endl;
         }
       }, 1000, true);
 
@@ -205,7 +199,7 @@ double run_mixed_operations(const parlay::sequence<K>& _all,
     stm::statistics(); // reset stm statistics
 
     // loop across the processors
-    parlay::parallel_for(0, p, [&] (const size_t proc_id) {
+    parlay::parallel_for(0, p, [&] (size_t proc_id) {
       long start = proc_id * m/p;
       long end = (proc_id + 1) * m/p;
       // when we wrap around the following two indexes are offset 
@@ -239,7 +233,7 @@ double run_mixed_operations(const parlay::sequence<K>& _all,
           if (end < begin) end = max_key;
           local_stats.range_sum += stm::atomic_read_only([&] () TRANS_SAFE {
             long cnt = 0;
-            auto addf = [&] (const K k, const V v) TRANS_SAFE  { cnt++; };
+            auto addf = [&] (K k, V v) TRANS_SAFE  { cnt++; };
             tr.range(addf, begin, end);
             return cnt;}, range_size > 1000);
           j += trans_size;
@@ -258,8 +252,7 @@ double run_mixed_operations(const parlay::sequence<K>& _all,
 #else
             auto val = stm::atomic_read_only_singleton([&] () TRANS_SAFE {return tr.find(all[j]);});
 #endif
-
-            if (val.has_value()) local_stats.query_total_value += val.value();
+            if (val.has_value()) local_stats.query_total_value += val.value()[0];
           } else if (op_types[jj] == Insert) {
             local_stats.update_count++;
             if (stm::atomic_region([&] () TRANS_SAFE {return tr.insert(all[j], default_value);})) {
@@ -285,7 +278,7 @@ double run_mixed_operations(const parlay::sequence<K>& _all,
               if (op_types[jj+k] == Find) {
                 loc_queries += 1;
                 auto val = tr.find(all[j+k]);
-                if (val.has_value()) loc_found += val.value();
+                if (val.has_value()) loc_found += val.value()[0];
               } else if (op_types[jj+k] == Insert) {
                 if (tr.insert(all[j+k], default_value)) {loc_added++; loc_update_success++;}
               } else if (op_types[jj+k] == Remove) {
@@ -340,7 +333,7 @@ double run_mixed_operations(const parlay::sequence<K>& _all,
       double update_successes = overall_stats.update_success_count;
       double update_success_ratio = update_successes / total_updates;
       long total_queries = overall_stats.query_count;
-      double total_found = overall_stats.query_total_value / default_value;
+      double total_found = overall_stats.query_total_value / default_value[0];
       double success_ratio = total_found / total_queries;
       int range_ratio = overall_stats.range_sum / (overall_stats.range_count + 1);
       if (verbose) {
@@ -375,7 +368,7 @@ double run_mixed_operations(const parlay::sequence<K>& _all,
     }
     
     // finally remove all the keys and delete the map
-    parlay::parallel_for(0, _unique.size(), [&] (const size_t i) {
+    parlay::parallel_for(0, unique.size(), [&] (size_t i) {
       stm::atomic_region([&] () TRANS_SAFE {
           tr.remove(unique[i]);
           return true; });
