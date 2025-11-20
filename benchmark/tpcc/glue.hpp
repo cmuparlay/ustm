@@ -54,13 +54,13 @@ struct RMap_ {
 
 template <typename K, typename V>
 #if defined(HASH)
-using OrderedMap = RMap_<::unordered_map<K,V>>;
+using OrderedMap = RMap_<parlay::unordered_map<K,V>>;
 #elif defined(MIX)
-using OrderedMap = RMap_<ordered_map<K,V,StructString<K>>>;
+using OrderedMap = RMap_<parlay::ordered_map<K,V,StructString<K>>>;
 #elif defined(RADIX)
-using OrderedMap = RMap_<ordered_map<K,V,StructString<K>>>;
+using OrderedMap = RMap_<parlay::ordered_map<K,V,StructString<K>>>;
 #else
-using OrderedMap = RMap_<ordered_map<K,V>>;
+using OrderedMap = RMap_<parlay::ordered_map<K,V>>;
 #endif
 
 #ifdef Mix
@@ -69,14 +69,14 @@ using OrderedMap = RMap_<ordered_map<K,V>>;
 
 template <typename K, typename V>
 #if defined(HASH)
-using UnorderedMap = RMap_<::unordered_map<K,V>>;
+using UnorderedMap = RMap_<parlay::unordered_map<K,V>>;
 #elif defined(Mix)
-//using UnorderedMap = RMap_<ordered_map<K,V,StructString<K>>>;
-using UnorderedMap = RMap_<::unordered_map<K,V>>;
+//using UnorderedMap = RMap_<parlay::ordered_map<K,V,StructString<K>>>;
+using UnorderedMap = RMap_<parlay::unordered_map<K,V>>;
 #elif defined(RADIX)
-using UnorderedMap = RMap_<ordered_map<K,V,StructString<K>>>;
+using UnorderedMap = RMap_<parlay::ordered_map<K,V,StructString<K>>>;
 #else
-using UnorderedMap = RMap_<ordered_map<K,V>>;
+using UnorderedMap = RMap_<parlay::ordered_map<K,V>>;
 #endif
 
 

@@ -11,6 +11,8 @@
 #include <parlay/parallel.h>
 #include <parlay/primitives.h>
 
+namespace parlay {
+  
 template <typename K_,
 	  typename V_,
 	  class Hash = std::hash<K_>,
@@ -308,3 +310,4 @@ public:
 
   long check() { return size();}
 };
+} //end namespace parlay

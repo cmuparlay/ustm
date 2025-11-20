@@ -9,6 +9,8 @@
 #include <optional>
 #include <tuple>
 
+namespace parlay {
+  
 template <typename K_,
 	  typename V_,
 	  typename Compare = std::less<K_>>
@@ -98,12 +100,12 @@ private:
 
     node *l, *r, *new_l, *new_r;
     bool changed;
-    if (k < p->key) { // go left
+    if (Compare{}(k, p->key)) { // go left
       l = p->left.load();
       std::tie(changed, new_l) = insert(l, k, v, upsert, inserted);
       if (!changed) return std::pair(false, p);
       new_r = r = p->right.load();
-    } else if (k > p->key) { // go right
+    } else if (Compare{}(p->key,k)) { // go right
       r = p->right.load();
       std::tie(changed, new_r) = insert(r, k, v, upsert, inserted);
       if (!changed) return std::pair(false, p);
@@ -161,7 +163,7 @@ private:
         return std::pair(true, r);
       }
     } else { // not equal to key
-      if (k < p->key) { // go left
+      if (Compare{}(k, p->key)) { // go left
         l = p->left.load();
         std::tie(changed, new_l) = remove(l, k, removed);
         if (!changed) return std::pair(false, p); // common case
@@ -230,12 +232,12 @@ public:
     node* c = root.load_unprotected(); 
     while (c != nullptr && c->key != key) {
       p = c;
-      c = ((key < c->key) ? c->left.load_unprotected() :
+      c = ((Compare{}(key, c->key)) ? c->left.load_unprotected() :
            c->right.load_unprotected());
     }
     if (p != nullptr) {
       p->removed.validate();
-      if (key < p->key) p->left.validate();
+      if (Compare{}(key, p->key)) p->left.validate();
       else p->right.validate();
     }
     if (c == nullptr) return {};
@@ -286,3 +288,4 @@ public:
     return hrec(root.load(), 0);
   }
 };
+} //end namespace parlay

@@ -7,6 +7,8 @@
 #include <optional>
 #include <vector>
 
+namespace parlay {
+  
 template <typename K_,
           typename V_,
           typename Compare = std::less<K_>>
@@ -229,3 +231,4 @@ struct ordered_map {
       return cnt+1;})) - 1;
   }
 };
+} //end namespace parlay
