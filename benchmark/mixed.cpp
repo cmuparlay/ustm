@@ -164,8 +164,8 @@ double run_mixed_operations(parlay::sequence<K>& all,
         }
         return true; });
         if(abort) {
-          std::abort();
           std::cout << "Error: key found when inserting unique keys" << std::endl;
+          std::abort();
         }
       }, 1000, true);
 

@@ -12,12 +12,12 @@
 
 #ifdef USTM
 #include "../transactions.h"
-#else
+#elif !defined(GCC_TM_ANN)
 #include "../glue/other_glue.h"
 #endif
 
 //We use GCC_TM instead of GCCTM because we want to use libitm's ABI directly
-#ifdef GCC_TM
+#if defined(GCC_TM) || defined(GCC_TM_ANN)
 using array_t = uint64_t;
 #else
 using array_t = stm::atomic<uint64_t>;
@@ -139,6 +139,12 @@ void *thread_main(void *p) {
         v++;
         _ITM_WU8(&shared[idx], v);
         _ITM_commitTransaction();
+#elif GCC_TM_ANN
+        __transaction_atomic {
+            for(int r = 0; r < a->gargs->unnecessary_read_ratio; r++) private_data[r];
+            array_t* v = &shared[idx];
+            (*v)++;
+        }
 #else
         stm::atomic_region([&] () {
             for(int r = 0; r < a->gargs->unnecessary_read_ratio; r++) private_data[r].load();
@@ -197,7 +203,7 @@ int main(int argc, char **argv) {
 
     // Print some array samples to avoid dead-code elimination surprises
     for (int i = 0; i < args.array_size; i++) printf("shared[%d]=%lu ", i,
-#ifdef GCC_TM
+#if defined(GCC_TM) || defined(GCC_TM_ANN)
         (unsigned long)shared[i]);
 #else
         (unsigned long)(shared[i].load()));
