@@ -1,0 +1,27 @@
+Date: 12-10-2025
+Model name: Intel(R) Xeon(R) CPU E7-8867 v4 @ 2.40GHz
+Git branch: 9b327dd
+Compiler: g++ (Ubuntu 9.4.0-1ubuntu1~20.04.2) 9.4.0
+OS: Ubuntu 20.04.6 LTS
+Hugepage: [always] madvise never
+HYTM Threads (capped): 72
+./tpcc_btree_mvustm: mops/sec = 2.659, num_warehouses = 144, %aborts = 2.029
+./tpcc_btree_mvustm: mops/sec = 2.997, num_warehouses = 144, %aborts = 1.937
+./tpcc_btree_mvustm: mops/sec = 3.004, num_warehouses = 144, %aborts = 1.978
+./tpcc_btree_ustm: mops/sec = 3.112, num_warehouses = 144, %aborts = 2.032
+./tpcc_btree_ustm: mops/sec = 3.553, num_warehouses = 144, %aborts = 1.957
+./tpcc_btree_ustm: mops/sec = 3.522, num_warehouses = 144, %aborts = 2.025
+./tpcc_btree_ustm_longjmp_hwstamp: mops/sec = 3.296, num_warehouses = 144, %aborts = 2.197
+./tpcc_btree_ustm_longjmp_hwstamp: mops/sec = 3.815, num_warehouses = 144, %aborts = 2.289
+./tpcc_btree_ustm_longjmp_hwstamp: mops/sec = 3.768, num_warehouses = 144, %aborts = 2.255
+
+
+
+
+
+
+./tpcc_hash_block_mvustm: mops/sec = 4.897, num_warehouses = 144, %aborts = 0.905
+./tpcc_hash_block_mvustm: mops/sec = 5.719, num_warehouses = 144, %aborts = 0.9102
+./tpcc_hash_block_mvustm: mops/sec = 5.981, num_warehouses = 144, %aborts = 0.9099
+./tpcc_hash_block_ustm: mops/sec = 6.661, num_warehouses = 144, %aborts = 0.9497
+./tpcc_hash_block_ustm: mops/sec = 8.158, num_warehouses = 144, %aborts = 0.9912

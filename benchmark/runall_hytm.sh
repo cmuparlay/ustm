@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # tree and hash structures (larger n)
-structs="hash_block btree arttree leaftree skiplist treap avltree"
+structs="btree arttree leaftree skiplist treap avltree"
 sizes="100000 10000000"
 
 # list structures (use smaller n)
@@ -12,7 +12,7 @@ lsizes="100 1000"
 range_structs="btree arttree"
 
 # structures for tpcc
-tpcc_structs="btree arttree hash_block mix"
+tpcc_structs="btree arttree mix"
 
 # require non-trivial types
 xstructs="hash_probe"
@@ -23,7 +23,7 @@ impl="hytm"
 # Individual test parameters (now separated for individual runs)
 update_percents="0 5 50"
 zipfian_params="0 .99"
-trans_size="1"
+trans_size="4"
 rounds="1"
 
 # Range query parameters
@@ -42,7 +42,7 @@ procs=`nproc`
 today=`date +"%m-%d-%Y"`
 machine=`lscpu | grep 'Model name' | rev | cut -c 1-5 | rev`
 machine_nowhite=${machine//[[:space:]]/}
-filename=../../timings/${procs}-${machine}_${today}_hytm
+filename=../../timings/${procs}-${machine}_${today}_hytm_${trans_size}
 
 echo ${filename}
 > ${filename}
