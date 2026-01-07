@@ -53,7 +53,8 @@
 #endif
 
 #ifndef VMEM_POOL_SIZE
-    #define VMEM_POOL_SIZE 4*1024*1024*1024ULL  // 4GB for USTM benchmarks
+    #define VMEM_POOL_SIZE 16*1024*1024*1024ULL  // 16GB for USTM benchmarks
+    // #define VMEM_POOL_SIZE 4*1024*1024*1024ULL  // 4GB (original)
     // #define VMEM_POOL_SIZE 512*1024*1024ULL 
 #endif
 

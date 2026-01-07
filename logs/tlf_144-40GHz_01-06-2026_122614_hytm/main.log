@@ -1,0 +1,77 @@
+[2026-01-06 12:26:14] ==========================================
+[2026-01-06 12:26:14] TLF Paper - Running All Experiments
+[2026-01-06 12:26:14] ==========================================
+[2026-01-06 12:26:14] HYTM_MODE: true
+[2026-01-06 12:26:14] Build directory: /home/zkent/ustm/benchmark/../build/benchmark
+[2026-01-06 12:26:14] Log directory: /home/zkent/ustm/benchmark/../logs/tlf_144-40GHz_01-06-2026_122614_hytm
+[2026-01-06 12:26:14] Machine: 40GHz
+[2026-01-06 12:26:14] Processors: 144
+[2026-01-06 12:26:14] Model name:                           Intel(R) Xeon(R) CPU E7-8867 v4 @ 2.40GHz
+[2026-01-06 12:26:14] ==========================================
+[2026-01-06 12:26:14] 
+[2026-01-06 12:26:14] ----------------------------------------
+[2026-01-06 12:26:14] Starting: Geometric Mean (Figure 1)
+[2026-01-06 12:26:14] Script: exp1_geomean.sh
+[2026-01-06 12:26:14] Log: /home/zkent/ustm/benchmark/../logs/tlf_144-40GHz_01-06-2026_122614_hytm/exp1_geomean.log
+[2026-01-06 12:26:14] ----------------------------------------
+[2026-01-06 18:42:26] COMPLETED: Geometric Mean (Figure 1) (22572s)
+[2026-01-06 18:42:26] 
+[2026-01-06 18:42:26] ----------------------------------------
+[2026-01-06 18:42:26] Starting: Varying Size (Row 1)
+[2026-01-06 18:42:26] Script: exp2_vary_size.sh
+[2026-01-06 18:42:26] Log: /home/zkent/ustm/benchmark/../logs/tlf_144-40GHz_01-06-2026_122614_hytm/exp2_vary_size.log
+[2026-01-06 18:42:26] ----------------------------------------
+[2026-01-06 20:28:47] COMPLETED: Varying Size (Row 1) (6381s)
+[2026-01-06 20:28:47] 
+[2026-01-06 20:28:47] ----------------------------------------
+[2026-01-06 20:28:47] Starting: Varying Threads (Row 2)
+[2026-01-06 20:28:47] Script: exp3_vary_threads.sh
+[2026-01-06 20:28:47] Log: /home/zkent/ustm/benchmark/../logs/tlf_144-40GHz_01-06-2026_122614_hytm/exp3_vary_threads.log
+[2026-01-06 20:28:47] ----------------------------------------
+[2026-01-06 20:43:43] COMPLETED: Varying Threads (Row 2) (896s)
+[2026-01-06 20:43:43] 
+[2026-01-06 20:43:43] ----------------------------------------
+[2026-01-06 20:43:43] Starting: Varying Zipfian (Row 3)
+[2026-01-06 20:43:43] Script: exp4_vary_zipfian.sh
+[2026-01-06 20:43:43] Log: /home/zkent/ustm/benchmark/../logs/tlf_144-40GHz_01-06-2026_122614_hytm/exp4_vary_zipfian.log
+[2026-01-06 20:43:43] ----------------------------------------
+[2026-01-06 20:56:56] COMPLETED: Varying Zipfian (Row 3) (793s)
+[2026-01-06 20:56:56] 
+[2026-01-06 20:56:56] ----------------------------------------
+[2026-01-06 20:56:56] Starting: Varying Transaction Size (Row 4)
+[2026-01-06 20:56:56] Script: exp5_vary_trans.sh
+[2026-01-06 20:56:56] Log: /home/zkent/ustm/benchmark/../logs/tlf_144-40GHz_01-06-2026_122614_hytm/exp5_vary_trans.log
+[2026-01-06 20:56:56] ----------------------------------------
+[2026-01-06 21:08:24] COMPLETED: Varying Transaction Size (Row 4) (688s)
+[2026-01-06 21:08:24] 
+[2026-01-06 21:08:24] ----------------------------------------
+[2026-01-06 21:08:24] Starting: Varying Update Rate (Row 5)
+[2026-01-06 21:08:24] Script: exp6_vary_update.sh
+[2026-01-06 21:08:24] Log: /home/zkent/ustm/benchmark/../logs/tlf_144-40GHz_01-06-2026_122614_hytm/exp6_vary_update.log
+[2026-01-06 21:08:24] ----------------------------------------
+[2026-01-06 21:19:42] COMPLETED: Varying Update Rate (Row 5) (678s)
+[2026-01-06 21:19:42] 
+[2026-01-06 21:19:42] ----------------------------------------
+[2026-01-06 21:19:42] Starting: Range Queries
+[2026-01-06 21:19:42] Script: exp7_range_queries.sh
+[2026-01-06 21:19:42] Log: /home/zkent/ustm/benchmark/../logs/tlf_144-40GHz_01-06-2026_122614_hytm/exp7_range_queries.log
+[2026-01-06 21:19:42] ----------------------------------------
+[2026-01-06 21:25:51] COMPLETED: Range Queries (369s)
+[2026-01-06 21:25:51] 
+[2026-01-06 21:25:51] ==========================================
+[2026-01-06 21:25:51] SUMMARY
+[2026-01-06 21:25:51] ==========================================
+[2026-01-06 21:25:51] Total: 7, Passed: 7, Failed: 0
+[2026-01-06 21:25:51] 
+[2026-01-06 21:25:51]   Geometric Mean (Figure 1): PASSED (22572s)
+[2026-01-06 21:25:51]   Varying Size (Row 1): PASSED (6381s)
+[2026-01-06 21:25:51]   Varying Threads (Row 2): PASSED (896s)
+[2026-01-06 21:25:51]   Varying Zipfian (Row 3): PASSED (793s)
+[2026-01-06 21:25:51]   Varying Transaction Size (Row 4): PASSED (688s)
+[2026-01-06 21:25:51]   Varying Update Rate (Row 5): PASSED (678s)
+[2026-01-06 21:25:51]   Range Queries: PASSED (369s)
+[2026-01-06 21:25:51] 
+[2026-01-06 21:25:51] Logs saved to: /home/zkent/ustm/benchmark/../logs/tlf_144-40GHz_01-06-2026_122614_hytm
+[2026-01-06 21:25:51] Data files saved to: ../../timings/
+[2026-01-06 21:25:51] ==========================================
+[2026-01-06 21:25:51] All experiments completed successfully!

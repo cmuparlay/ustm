@@ -1,0 +1,62 @@
+Date: 01-06-2026
+Experiment: Range Queries
+HYTM_MODE: true
+Model name: Intel(R) Xeon(R) CPU E7-8867 v4 @ 2.40GHz
+Fixed: n=1000000, u=100, trans=4, z=0, p=72, rqp=50
+---
+btree,mvustm,rs=1,rqmops=60.1,mops=60.1
+btree,mvustm,rs=10,rqmops=51.3,mops=51.3
+btree,mvustm,rs=100,rqmops=26.9,mops=26.9
+btree,mvustm,rs=1000,rqmops=5.03,mops=5.03
+btree,mvustm,rs=10000,rqmops=0.535,mops=0.535
+btree,mvustm,rs=100000,rqmops=0.0442,mops=0.0442
+btree,mvustm,rs=1000000,rqmops=0.0034,mops=0.0034
+arttree,mvustm,rs=1,rqmops=62.6,mops=62.6
+arttree,mvustm,rs=10,rqmops=50.7,mops=50.7
+arttree,mvustm,rs=100,rqmops=26.6,mops=26.6
+arttree,mvustm,rs=1000,rqmops=5.24,mops=5.24
+arttree,mvustm,rs=10000,rqmops=0.742,mops=0.742
+arttree,mvustm,rs=100000,rqmops=0.0673,mops=0.0673
+arttree,mvustm,rs=1000000,rqmops=0.00561,mops=0.00561
+btree,mvustm_hwstamp,rs=1,rqmops=71.2,mops=71.2
+btree,mvustm_hwstamp,rs=10,rqmops=61.8,mops=61.8
+btree,mvustm_hwstamp,rs=100,rqmops=28.7,mops=28.7
+btree,mvustm_hwstamp,rs=1000,rqmops=4.78,mops=4.78
+btree,mvustm_hwstamp,rs=10000,rqmops=0.499,mops=0.499
+btree,mvustm_hwstamp,rs=100000,rqmops=0.0373,mops=0.0373
+btree,mvustm_hwstamp,rs=1000000,rqmops=0.00322,mops=0.00322
+arttree,mvustm_hwstamp,rs=1,rqmops=78.2,mops=78.2
+arttree,mvustm_hwstamp,rs=10,rqmops=65.7,mops=65.7
+arttree,mvustm_hwstamp,rs=100,rqmops=28,mops=28
+arttree,mvustm_hwstamp,rs=1000,rqmops=4.76,mops=4.76
+arttree,mvustm_hwstamp,rs=10000,rqmops=0.663,mops=0.663
+arttree,mvustm_hwstamp,rs=100000,rqmops=0.0588,mops=0.0588
+arttree,mvustm_hwstamp,rs=1000000,rqmops=0.00516,mops=0.00516
+btree,mvustm_longjmp,rs=1,rqmops=54.4,mops=54.4
+btree,mvustm_longjmp,rs=10,rqmops=49.4,mops=49.4
+btree,mvustm_longjmp,rs=100,rqmops=25.9,mops=25.9
+btree,mvustm_longjmp,rs=1000,rqmops=5.02,mops=5.02
+btree,mvustm_longjmp,rs=10000,rqmops=0.541,mops=0.541
+btree,mvustm_longjmp,rs=100000,rqmops=0.0433,mops=0.0433
+btree,mvustm_longjmp,rs=1000000,rqmops=0.0038,mops=0.0038
+arttree,mvustm_longjmp,rs=1,rqmops=67.4,mops=67.4
+arttree,mvustm_longjmp,rs=10,rqmops=57.6,mops=57.6
+arttree,mvustm_longjmp,rs=100,rqmops=28.7,mops=28.7
+arttree,mvustm_longjmp,rs=1000,rqmops=5.25,mops=5.25
+arttree,mvustm_longjmp,rs=10000,rqmops=0.72,mops=0.72
+arttree,mvustm_longjmp,rs=100000,rqmops=0.0696,mops=0.0696
+arttree,mvustm_longjmp,rs=1000000,rqmops=0.00562,mops=0.00562
+btree,hytm,rs=1,rqmops=60.9,mops=60.9
+btree,hytm,rs=10,rqmops=52.8,mops=52.8
+btree,hytm,rs=100,rqmops=22.8,mops=22.8
+btree,hytm,rs=1000,rqmops=0.602,mops=0.602
+btree,hytm,rs=10000,rqmops=3.59e-05,mops=3.59
+btree,hytm,rs=100000,rqmops=2.93e-05,mops=2.93
+btree,hytm,rs=1000000,rqmops=2.08e-06,mops=2.08
+arttree,hytm,rs=1,rqmops=63.1,mops=63.1
+arttree,hytm,rs=10,rqmops=54.8,mops=54.8
+arttree,hytm,rs=100,rqmops=24.4,mops=24.4
+arttree,hytm,rs=1000,rqmops=0.54,mops=0.54
+arttree,hytm,rs=10000,rqmops=3.55e-05,mops=3.55
+arttree,hytm,rs=100000,rqmops=2.85e-05,mops=2.85
+arttree,hytm,rs=1000000,rqmops=2.04e-06,mops=2.04

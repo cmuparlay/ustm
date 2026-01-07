@@ -1,0 +1,11 @@
+Output: ../../timings/tlf_range_queries_144-40GHz_01-06-2026_hytm
+HYTM_MODE: true (max_threads=72)
+Structure: btree, Impl: mvustm
+Structure: arttree, Impl: mvustm
+Structure: btree, Impl: mvustm_hwstamp
+Structure: arttree, Impl: mvustm_hwstamp
+Structure: btree, Impl: mvustm_longjmp
+Structure: arttree, Impl: mvustm_longjmp
+Structure: btree, Impl: hytm
+Structure: arttree, Impl: hytm
+Done! Results: ../../timings/tlf_range_queries_144-40GHz_01-06-2026_hytm

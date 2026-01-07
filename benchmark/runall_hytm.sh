@@ -31,7 +31,7 @@ range_sizes="1 10 100 1000 10000 100000 1000000"
 range_n="1000000"
 range_update="100"
 range_zipf="0"
-range_trans="16"
+range_trans="4"
 range_query_percent="50"
 
 # numactl settings for hytm
@@ -42,7 +42,7 @@ procs=`nproc`
 today=`date +"%m-%d-%Y"`
 machine=`lscpu | grep 'Model name' | rev | cut -c 1-5 | rev`
 machine_nowhite=${machine//[[:space:]]/}
-filename=../../timings/${procs}-${machine}_${today}_hytm_${trans_size}
+filename=../../timings/${procs}-${machine}_${today}_hytm_${trans_size}_foo
 
 echo ${filename}
 > ${filename}
@@ -87,14 +87,14 @@ geomean() {
 for struct in ${structs}
 do
     echo "${struct}" >> ${filename}
+    throughputs=()
     for n in ${sizes}
     do
-        throughputs=()
         for u in ${update_percents}
         do
             for z in ${zipfian_params}
             do
-                output=$(${head} ./${struct}_${impl} -n ${n} -u ${u} -z ${z} -r ${rounds} -trans ${trans_size} -p 72)
+                output=$(${head} ./${struct}_${impl} -nowarmup -n ${n} -u ${u} -z ${z} -r ${rounds} -trans ${trans_size} -p 72)
                 result=$(echo "$output" | grep -oP 'mops=\K[0-9.]+' | head -1)
                 result_line=$(echo "$output" | grep 'mops=')
                 if [ ! -z "$result_line" ]; then
@@ -105,25 +105,25 @@ do
                 fi
             done
         done
-        if [ ${#throughputs[@]} -gt 0 ]; then
-            gmean=$(geomean "${throughputs[@]}")
-            echo "n: ${n}, geomean throughput: ${gmean}" >> ${filename}
-        fi
     done
+    if [ ${#throughputs[@]} -gt 0 ]; then
+        gmean=$(geomean "${throughputs[@]}")
+        echo "geomean throughput: ${gmean}" >> ${filename}
+    fi
 done
 
 # list structures - run each configuration individually and compute geomean
 for struct in ${lstructs}
 do
     echo "${struct}" >> ${filename}
+    throughputs=()
     for n in ${lsizes}
     do
-        throughputs=()
         for u in ${update_percents}
         do
             for z in ${zipfian_params}
             do
-                output=$(${head} ./${struct}_${impl} -n ${n} -u ${u} -z ${z} -r ${rounds} -trans ${trans_size} -p 72)
+                output=$(${head} ./${struct}_${impl} -nowarmup -n ${n} -u ${u} -z ${z} -r ${rounds} -trans ${trans_size} -p 72)
                 result=$(echo "$output" | grep -oP 'mops=\K[0-9.]+' | head -1)
                 result_line=$(echo "$output" | grep 'mops=')
                 if [ ! -z "$result_line" ]; then
@@ -134,11 +134,11 @@ do
                 fi
             done
         done
-        if [ ${#throughputs[@]} -gt 0 ]; then
-            gmean=$(geomean "${throughputs[@]}")
-            echo "n: ${n}, geomean throughput: ${gmean}" >> ${filename}
-        fi
     done
+    if [ ${#throughputs[@]} -gt 0 ]; then
+        gmean=$(geomean "${throughputs[@]}")
+        echo "geomean throughput: ${gmean}" >> ${filename}
+    fi
 done
 
 # range queries - run each range size individually

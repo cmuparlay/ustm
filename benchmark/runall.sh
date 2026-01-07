@@ -14,7 +14,7 @@ range_structs="btree arttree"
 
 # structures for tpcc
 tpcc_structs="btree arttree hash_block mix"
-tpcc_impls="mvustm ustm ustm_longjmp_hwstamp 2plsf hytm"
+tpcc_impls="mvustm ustm ustm_longjmp_hwstamp 2plsf"
 
 # require non-trivial types
 xstructs="hash_probe"
@@ -28,15 +28,15 @@ general_impls="mvustm mvustm_hwstamp mvustm_longjmp mvustm_trythrow mvustm_unpro
 
 # arguments that scan over update percent (-u), and zipfian (-z), using
 # transactions of size 16, reporting the geometric mean of throughput
-geomean_args="-u 0,5,50 -z 0,.99 -r 1 -trans 16"
+geomean_args="-u 0,5,50 -z 0,.99 -r 1 -trans 4"
 
 # arguments that scan over different range sizes for half the threads
 # doing range queries (-rqp 50) and the rest just doing updates
-range_args="-n 1000000 -u 100 -z 0 -trans 16 -rs 1,10,100,1000,10000,100000,1000000 -rqp 50"
+range_args="-n 1000000 -u 100 -z 0 -trans 4 -rs 1,10,100,1000,10000,100000,1000000 -rqp 50"
 
 # common header (useful on multinode numa machines)
 #head="timelimit -p -t 200 numactl -i all"
-head="numactl -i all"
+head="numactl --cpunodebind=0,1 --membind=0,1"
 hytm_head="numactl --cpunodebind=0,1 --membind=0,1"
 
 # print various imformation about the machine/compiler/date at head of file
@@ -65,7 +65,7 @@ do
         if [ "${impl}" = "hytm" ]; then
             ${hytm_head} ./tpcc_${struct}_${impl} -nowarmup -r 3 -p 72 >> ${filename}
         else
-            ${head} ./tpcc_${struct}_${impl} -nowarmup -r 3 >> ${filename}
+            ${head} ./tpcc_${struct}_${impl} -nowarmup -r 3 -p 72 >> ${filename}
         fi
     done
 done
@@ -93,7 +93,7 @@ do
         if [ "${impl}" = "hytm" ]; then
             ${hytm_head} ./${struct}_${impl} ${sizes} ${geomean_args} -p 72 >> ${filename}
         else
-            ${head} ./${struct}_${impl} ${sizes} ${geomean_args} >> ${filename}
+            ${head} ./${struct}_${impl} ${sizes} ${geomean_args} -p 72 >> ${filename}
         fi
     done
 done
@@ -104,7 +104,7 @@ do
     echo ${struct}
     for impl in ${tiny_impls}
     do
-        ${head} ./${struct}_${impl} ${sizes} ${geomean_args} >> ${filename}
+        ${head} ./${struct}_${impl} ${sizes} ${geomean_args} -p 72 >> ${filename}
     done
 done
 
@@ -117,7 +117,7 @@ do
         if [ "${impl}" = "hytm" ]; then
             ${hytm_head} ./${struct}_${impl} ${lsizes} ${geomean_args} -p 72 >> ${filename}
         else
-            ${head} ./${struct}_${impl} ${lsizes} ${geomean_args} >> ${filename}
+            ${head} ./${struct}_${impl} ${lsizes} ${geomean_args} -p 72 >> ${filename}
         fi
     done
 done
@@ -130,7 +130,7 @@ do
         if [ "${impl}" = "hytm" ]; then
             ${hytm_head} ./${struct}_${impl} ${range_args} -p 72 >> ${filename}
         else
-            ${head} ./${struct}_${impl} ${range_args} >> ${filename}
+            ${head} ./${struct}_${impl} ${range_args} -p 72 >> ${filename}
         fi
     done
 done
