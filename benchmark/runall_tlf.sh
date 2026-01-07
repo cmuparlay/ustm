@@ -36,7 +36,7 @@ impls="mvustm mvustm_hwstamp mvustm_longjmp 2plsf hytm"
 geomean_sizes="10000 1000000 100000000"  # n ∈ {10^4, 10^6, 10^8}
 list_sizes="100 1000 10000"               # smaller sizes for list
 update_percents="0 5 50"                  # Update % ∈ {0%, 5%, 50%}
-trans_sizes="1 16"                        # Transaction size ∈ {1, 16}
+trans_sizes="1 4 16"                      # Transaction size ∈ {1, 4, 16}
 zipfian_params="0 0.99"                   # Zipfian ∈ {0, 0.99}
 
 # Section 10.2: Varying Parameters experiments

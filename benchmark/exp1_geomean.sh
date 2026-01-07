@@ -7,6 +7,9 @@
 #
 # HYTM_MODE (default: true): All impls capped at 2 sockets/72 threads for fair comparison
 # Set HYTM_MODE=false to run without hytm and use all available resources
+#
+# OUTPUT_DIR: If set, write to ${OUTPUT_DIR}/geomean
+#             Otherwise, write to ../../timings/tlf_geomean_...
 #####################################################################
 
 set -e
@@ -35,7 +38,7 @@ fi
 geomean_sizes="10000 1000000 100000000"  # n ∈ {10^4, 10^6, 10^8}
 list_sizes="100 1000"                     # n ∈ {10^2, 10^3} for list
 update_percents="0 5 50"
-trans_sizes="1 16"
+trans_sizes="1 4 16"
 zipfian_params="0 0.99"
 
 # Fixed
@@ -43,11 +46,16 @@ threads="${max_threads}"
 rounds="3"
 trial_time="1"
 
-# Output file
+# Output file - use OUTPUT_DIR if set, otherwise legacy path
 procs=$(nproc)
 today=$(date +"%m-%d-%Y")
 machine=$(lscpu | grep 'Model name' | rev | cut -c 1-5 | rev | tr -d '[:space:]')
-filename="../../timings/tlf_geomean_${procs}-${machine}_${today}${mode_suffix}"
+
+if [ -n "${OUTPUT_DIR}" ]; then
+    filename="${OUTPUT_DIR}/geomean"
+else
+    filename="../../timings/tlf_geomean_${procs}-${machine}_${today}${mode_suffix}"
+fi
 
 echo "Output: ${filename}"
 echo "HYTM_MODE: ${HYTM_MODE} (max_threads=${max_threads})"

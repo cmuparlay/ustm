@@ -4,6 +4,16 @@
 # TLF Paper - Run All Experiments
 # Runs exp1-exp7 with logging and error reporting
 #
+# Creates a single directory for all experiment results:
+#   timings/<procs>-<machine>_<date>_<mode>/
+#     geomean
+#     vary_size
+#     vary_threads
+#     vary_zipfian
+#     vary_trans
+#     vary_update
+#     range_queries
+#
 # Usage:
 #   ./run_all_tlf.sh              # Run all with HYTM_MODE=true (default)
 #   HYTM_MODE=false ./run_all_tlf.sh  # Run without hytm
@@ -17,7 +27,7 @@ BUILD_DIR="${SCRIPT_DIR}/../build/benchmark"
 # Inherit HYTM_MODE or default to true
 export HYTM_MODE=${HYTM_MODE:-true}
 
-# Create logs directory
+# Create directories
 procs=$(nproc)
 today=$(date +"%m-%d-%Y_%H%M%S")
 machine=$(lscpu | grep 'Model name' | rev | cut -c 1-5 | rev | tr -d '[:space:]')
@@ -28,6 +38,11 @@ else
     mode_suffix=""
 fi
 
+# Create output directory for timing data
+export OUTPUT_DIR="${SCRIPT_DIR}/../timings/${procs}-${machine}_${today}${mode_suffix}"
+mkdir -p "${OUTPUT_DIR}"
+
+# Create logs directory
 LOG_DIR="${SCRIPT_DIR}/../logs/tlf_${procs}-${machine}_${today}${mode_suffix}"
 mkdir -p "${LOG_DIR}"
 
@@ -64,6 +79,7 @@ log "TLF Paper - Running All Experiments"
 log "=========================================="
 log "HYTM_MODE: ${HYTM_MODE}"
 log "Build directory: ${BUILD_DIR}"
+log "Output directory: ${OUTPUT_DIR}"
 log "Log directory: ${LOG_DIR}"
 log "Machine: ${machine}"
 log "Processors: ${procs}"
@@ -149,7 +165,7 @@ done
 
 log ""
 log "Logs saved to: ${LOG_DIR}"
-log "Data files saved to: ../../timings/"
+log "Data files saved to: ${OUTPUT_DIR}"
 log "=========================================="
 
 # Exit with error if any failed

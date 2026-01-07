@@ -93,6 +93,43 @@ def parse_result_line(line):
     """Parse a result line and extract all parameters."""
     result = {}
     
+    # Match compact format: struct,impl,params (e.g., btree,mvustm,p=1,mops=6.4)
+    compact_match = re.match(r'^(\w+),(\w+),(.+)$', line)
+    if compact_match:
+        struct = compact_match.group(1)
+        impl = compact_match.group(2)
+        params_str = compact_match.group(3)
+        
+        # Verify it looks like params (contains =)
+        if '=' in params_str:
+            result['structure'] = struct
+            result['impl'] = impl
+            
+            # Parse parameters
+            param_patterns = {
+                'u': r'u=(\d+)',
+                'trans': r'trans=(\d+)',
+                'n': r'n=(\d+)',
+                'p': r'p=(\d+)',
+                'z': r'z=([\d.]+)',
+                'pa': r'pa=([\d.]+)',
+                'mops': r'mops=([\d.eE+-]+)',
+                'rs': r'rs=(\d+)',
+                'rqp': r'rqp=(\d+)',
+                'rqmops': r'rqmops=([\d.eE+-]+)',
+            }
+            
+            for param, pattern in param_patterns.items():
+                pmatch = re.search(pattern, params_str)
+                if pmatch:
+                    val = pmatch.group(1)
+                    if param in ['u', 'trans', 'n', 'p', 'rs', 'rqp']:
+                        result[param] = int(val)
+                    else:
+                        result[param] = float(val)
+            
+            return result if 'mops' in result else None
+    
     # Match format: ./struct_impl,params,mops=value
     # Also handle prefixed format: ./struct_impl,result_line
     match = re.match(r'^(?:\./)?(\S+?),(.+)$', line)
@@ -148,6 +185,14 @@ def parse_geomean_line(line):
         name = match.group(1)
         gmean = float(match.group(2))
         struct, impl = parse_structure_impl(name)
+        return struct, impl, gmean
+    
+    # Compact format: btree,mvustm,geomean=87.4675
+    match = re.match(r'^(\w+),(\w+),geomean=([\d.eE+-]+)', line)
+    if match:
+        struct = match.group(1)
+        impl = match.group(2)
+        gmean = float(match.group(3))
         return struct, impl, gmean
     
     # HyTM format: geomean throughput: value (preceded by structure name)
@@ -276,7 +321,7 @@ def plot_figure1_geomean_bars(geomean_data, output_dir, filename='figure1_geomea
 
 
 def plot_varying_parameter(results, param_name, param_label, output_dir, 
-                           structures=None, filename_prefix='varying'):
+                           structures=None, filename_prefix='varying', quiet=False):
     """
     Create line plots showing throughput vs a varying parameter.
     One subplot per structure, lines for each implementation.
@@ -290,14 +335,16 @@ def plot_varying_parameter(results, param_name, param_label, output_dir,
     # Filter results by parameter
     param_values = sorted(set(r.get(param_name) for r in results if r.get(param_name) is not None))
     if not param_values:
-        print(f"Warning: No data for parameter {param_name}")
-        return
+        if not quiet:
+            print(f"Warning: No data for parameter {param_name}")
+        return False
     
     # Check if there's meaningful variation (more than 1 unique value)
     if len(param_values) <= 1:
-        print(f"Warning: Parameter {param_name} has only {len(param_values)} unique value(s): {param_values}")
-        print(f"  Skipping plot - need parameter-varying experiment data")
-        return
+        if not quiet:
+            print(f"Warning: Parameter {param_name} has only {len(param_values)} unique value(s): {param_values}")
+            print(f"  Skipping plot - need parameter-varying experiment data")
+        return False
     
     # Organize data: data[struct][impl] = [(param_val, mops), ...]
     # For proper parameter-varying plots, we should average/aggregate results
@@ -361,8 +408,9 @@ def plot_varying_parameter(results, param_name, param_label, output_dir,
     
     # Add legend to first subplot
     handles, labels = axes[0, 0].get_legend_handles_labels()
-    fig.legend(handles, labels, loc='upper center', ncol=len(impls), 
-               fontsize=9, bbox_to_anchor=(0.5, 1.02))
+    if handles:
+        fig.legend(handles, labels, loc='upper center', ncol=max(1, len(impls)), 
+                   fontsize=9, bbox_to_anchor=(0.5, 1.02))
     
     plt.tight_layout(rect=[0, 0, 1, 0.96])
     
@@ -370,50 +418,44 @@ def plot_varying_parameter(results, param_name, param_label, output_dir,
     plt.savefig(output_dir / filename, dpi=300, bbox_inches='tight')
     print(f"Generated: {filename}")
     plt.close()
+    return True
 
 
 def plot_figures_9_10(results, output_dir):
     """
     Recreate Figures 9 and 10 from the paper.
     Five rows: Size, Thread count, Zipfian, Transaction size, Update rate
+    Auto-detects which parameters have varying data and only plots those.
     """
     tree_structs = ['skiplist', 'treap', 'btree']
     binary_structs = ['list', 'avltree', 'leaftree']
     
-    # Row 1: Varying size
-    print("Plotting: Varying Size")
-    plot_varying_parameter(results, 'n', 'Dataset Size (n)', output_dir, 
-                          structures=tree_structs, filename_prefix='fig9_row1')
-    plot_varying_parameter(results, 'n', 'Dataset Size (n)', output_dir,
-                          structures=binary_structs, filename_prefix='fig10_row1')
+    # First, detect which parameters have meaningful variation
+    params_to_plot = []
+    for param in ['n', 'p', 'z', 'trans', 'u']:
+        param_values = sorted(set(r.get(param) for r in results if r.get(param) is not None))
+        if len(param_values) > 1:
+            params_to_plot.append(param)
     
-    # Row 2: Varying thread count
-    print("Plotting: Varying Thread Count")
-    plot_varying_parameter(results, 'p', 'Number of Threads', output_dir,
-                          structures=tree_structs, filename_prefix='fig9_row2')
-    plot_varying_parameter(results, 'p', 'Number of Threads', output_dir,
-                          structures=binary_structs, filename_prefix='fig10_row2')
+    if not params_to_plot:
+        print("Warning: No parameters with varying data found")
+        return
     
-    # Row 3: Varying zipfian
-    print("Plotting: Varying Zipfian")
-    plot_varying_parameter(results, 'z', 'Zipfian Parameter', output_dir,
-                          structures=tree_structs, filename_prefix='fig9_row3')
-    plot_varying_parameter(results, 'z', 'Zipfian Parameter', output_dir,
-                          structures=binary_structs, filename_prefix='fig10_row3')
+    param_info = {
+        'n': ('Varying Size', 'Data Structure Size (n)', 'row1'),
+        'p': ('Varying Thread Count', 'Number of Threads', 'row2'),
+        'z': ('Varying Zipfian', 'Zipfian Parameter', 'row3'),
+        'trans': ('Varying Transaction Size', 'Operations per Transaction', 'row4'),
+        'u': ('Varying Update Rate', 'Update Rate (%)', 'row5'),
+    }
     
-    # Row 4: Varying transaction size
-    print("Plotting: Varying Transaction Size")
-    plot_varying_parameter(results, 'trans', 'Operations per Transaction', output_dir,
-                          structures=tree_structs, filename_prefix='fig9_row4')
-    plot_varying_parameter(results, 'trans', 'Operations per Transaction', output_dir,
-                          structures=binary_structs, filename_prefix='fig10_row4')
-    
-    # Row 5: Varying update rate
-    print("Plotting: Varying Update Rate")
-    plot_varying_parameter(results, 'u', 'Update Rate (%)', output_dir,
-                          structures=tree_structs, filename_prefix='fig9_row5')
-    plot_varying_parameter(results, 'u', 'Update Rate (%)', output_dir,
-                          structures=binary_structs, filename_prefix='fig10_row5')
+    for param in params_to_plot:
+        title, label, row = param_info[param]
+        print(f"Plotting: {title}")
+        plot_varying_parameter(results, param, label, output_dir, 
+                              structures=tree_structs, filename_prefix=f'fig9_{row}', quiet=True)
+        plot_varying_parameter(results, param, label, output_dir,
+                              structures=binary_structs, filename_prefix=f'fig10_{row}', quiet=True)
 
 
 def plot_range_queries(results, output_dir, filename='range_queries.pdf'):
@@ -576,7 +618,8 @@ def plot_combined_grid(results, geomean_data, output_dir, filename='tlf_results_
 
 def main():
     parser = argparse.ArgumentParser(description='Plot TLF paper experiments')
-    parser.add_argument('input_file', type=str, help='Path to timing file')
+    parser.add_argument('input_path', type=str, 
+                       help='Path to timing file or directory containing timing files')
     parser.add_argument('-o', '--output-dir', type=str, default='plots_tlf',
                        help='Output directory for plots (default: plots_tlf)')
     parser.add_argument('--plots', nargs='+', 
@@ -588,30 +631,63 @@ def main():
     
     args = parser.parse_args()
     
-    input_path = Path(args.input_file)
+    input_path = Path(args.input_path)
     if not input_path.exists():
-        print(f"Error: File '{args.input_file}' not found")
+        print(f"Error: Path '{args.input_path}' not found")
         return 1
     
     output_dir = Path(args.output_dir)
     output_dir.mkdir(exist_ok=True)
     
-    print(f"Parsing {input_path}...")
-    results, geomean_data = parse_timing_file(input_path)
+    # Set matplotlib backend for file output
+    plt.switch_backend('Agg')
     
-    print(f"Found {len(results)} benchmark results")
-    print(f"Found {len(geomean_data)} geometric mean summaries")
+    # Determine if input is a directory or file
+    if input_path.is_dir():
+        # New directory-based format
+        print(f"Processing directory: {input_path}")
+        
+        # Expected files in the directory
+        file_mapping = {
+            'geomean': 'figure1',
+            'vary_size': 'figures9_10',
+            'vary_threads': 'figures9_10',
+            'vary_zipfian': 'figures9_10',
+            'vary_trans': 'figures9_10',
+            'vary_update': 'figures9_10',
+            'range_queries': 'range',
+        }
+        
+        all_results = []
+        all_geomean_data = {}
+        
+        for filename, plot_type in file_mapping.items():
+            filepath = input_path / filename
+            if filepath.exists():
+                print(f"  Parsing {filename}...")
+                results, geomean_data = parse_timing_file(filepath)
+                all_results.extend(results)
+                all_geomean_data.update(geomean_data)
+                print(f"    Found {len(results)} results, {len(geomean_data)} geomeans")
+            else:
+                print(f"  Skipping {filename} (not found)")
+        
+        results = all_results
+        geomean_data = all_geomean_data
+    else:
+        # Single file (legacy format)
+        print(f"Parsing {input_path}...")
+        results, geomean_data = parse_timing_file(input_path)
+    
+    print(f"\nTotal: {len(results)} benchmark results, {len(geomean_data)} geometric mean summaries")
     
     if not results and not geomean_data:
-        print("Error: No data found in file")
+        print("Error: No data found")
         return 1
     
     plots = args.plots
     if 'all' in plots:
         plots = ['figure1', 'figures9_10', 'range', 'combined']
-    
-    # Set matplotlib backend for file output
-    plt.switch_backend('Agg')
     
     if 'figure1' in plots and geomean_data:
         print("\nGenerating Figure 1 (Geomean bar chart)...")

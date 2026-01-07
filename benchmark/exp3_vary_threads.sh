@@ -7,6 +7,9 @@
 #
 # HYTM_MODE (default: true): All impls capped at 2 sockets/72 threads for fair comparison
 # Set HYTM_MODE=false to run without hytm and use all available resources
+#
+# OUTPUT_DIR: If set, write to ${OUTPUT_DIR}/vary_threads
+#             Otherwise, write to ../../timings/tlf_vary_threads_...
 #####################################################################
 
 set -e
@@ -45,7 +48,12 @@ trial_time="1"
 procs=$(nproc)
 today=$(date +"%m-%d-%Y")
 machine=$(lscpu | grep 'Model name' | rev | cut -c 1-5 | rev | tr -d '[:space:]')
-filename="../../timings/tlf_vary_threads_${procs}-${machine}_${today}${mode_suffix}"
+
+if [ -n "${OUTPUT_DIR}" ]; then
+    filename="${OUTPUT_DIR}/vary_threads"
+else
+    filename="../../timings/tlf_vary_threads_${procs}-${machine}_${today}${mode_suffix}"
+fi
 
 echo "Output: ${filename}"
 echo "HYTM_MODE: ${HYTM_MODE} (max_threads=${max_threads})"

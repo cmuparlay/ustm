@@ -57,11 +57,28 @@ def parse_timings(filename):
     # geomean throughput: 166.443
     hytm_geomean_pattern = re.compile(r'^geomean throughput:\s*([\d.eE+-]+)', re.IGNORECASE)
     
+    # Pattern for new compact format:
+    # btree,mvustm,geomean=87.4675
+    compact_geomean_pattern = re.compile(r'^(\w+),(\w+),geomean=([\d.eE+-]+)')
+    
     line_num = 0
     current_struct = None
     with open(filename, 'r') as f:
         for line in f:
             line_num += 1
+            
+            # Check for compact geomean format (btree,mvustm,geomean=87.4675)
+            compact_match = compact_geomean_pattern.match(line)
+            if compact_match:
+                structure = compact_match.group(1)
+                impl = compact_match.group(2)
+                try:
+                    geomean = float(compact_match.group(3))
+                except ValueError as e:
+                    print(f"ERROR: Failed to parse compact geomean value at line {line_num}: {line.strip()}")
+                    sys.exit(1)
+                data[structure][impl] = geomean
+                continue
             
             # Check for standard geomean format
             match = geomean_pattern.match(line)
