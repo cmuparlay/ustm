@@ -15,19 +15,22 @@ IMPL_COLORS = {
     'mvustm': '#1f77b4',
     'mvustm_lzstamp': '#ff7f0e',
     'mvustm_hwstamp': '#2ca02c',
+    'ustm': '#d62728',
     'ustm_longjmp': '#d62728',
+    'ustm_longjmp_hwstamp': '#e377c2',
     'mvustm_longjmp': '#9467bd',
     'mvustm_trythrow': '#8c564b',
-    'mvustm_unprotected': '#e377c2',
+    'mvustm_unprotected': '#17becf',
     '2plsf': '#7f7f7f',
     'hytm': '#bcbd22',
-    'tiny': '#17becf',
+    'tiny': '#ff9896',
 }
 
 # Known implementations (order matters - longer matches first)
 KNOWN_IMPLS = [
-    'mvustm_lzstamp', 'mvustm_hwstamp', 'mvustm_longjmp', 'mvustm_trythrow',
-    'mvustm_unprotected', 'ustm_longjmp', 'mvustm', '2plsf', 'hytm', 'tiny'
+    'ustm_longjmp_hwstamp', 'mvustm_lzstamp', 'mvustm_hwstamp', 'mvustm_longjmp', 
+    'mvustm_trythrow', 'mvustm_unprotected', 'ustm_longjmp', 'mvustm', 'ustm',
+    '2plsf', 'hytm', 'tiny'
 ]
 
 def parse_structure_impl(name):

@@ -39,6 +39,11 @@ update_percents="0 5 50"                  # Update % ∈ {0%, 5%, 50%}
 trans_sizes="1 4 16"                      # Transaction size ∈ {1, 4, 16}
 zipfian_params="0 0.99"                   # Zipfian ∈ {0, 0.99}
 
+# Comma-separated args for single-invocation geometric mean (more efficient)
+# Used for non-HyTM implementations which don't have memory leaks
+geomean_args="-n 10000,1000000,100000000 -u 0,5,50 -z 0,0.99 -trans 1,4,16"
+list_geomean_args="-n 100,1000,10000 -u 0,5,50 -z 0,0.99 -trans 1,4,16"
+
 # Section 10.2: Varying Parameters experiments
 scalability_threads="1 4 8 16 32 48 64 96 128 192"
 varying_sizes="1000 10000 100000 1000000 10000000 100000000"
@@ -141,28 +146,41 @@ for struct in ${structs}; do
         fi
         echo "  Implementation: ${impl}"
         
-        throughputs=()
-        for n in ${geomean_sizes}; do
-            for u in ${update_percents}; do
-                for trans in ${trans_sizes}; do
-                    for z in ${zipfian_params}; do
-                        output=$(run_bench "./${struct}_${impl} -nowarmup -n ${n} -u ${u} -z ${z} -r ${default_rounds} -trans ${trans} -p ${default_threads} -t ${trial_time}" "${impl}" 2>&1) || true
-                        result=$(echo "$output" | grep -oP 'mops=\K[0-9.]+' | head -1)
-                        result_line=$(echo "$output" | grep 'mops=')
-                        if [ ! -z "$result_line" ]; then
-                            echo "./${struct}_${impl},${result_line}" >> "${filename}"
-                        fi
-                        if [ ! -z "$result" ]; then
-                            throughputs+=($result)
-                        fi
+        if [ "$impl" = "hytm" ]; then
+            # HyTM has a memory leak, so we must run each parameter combination separately
+            throughputs=()
+            for n in ${geomean_sizes}; do
+                for u in ${update_percents}; do
+                    for trans in ${trans_sizes}; do
+                        for z in ${zipfian_params}; do
+                            output=$(run_bench "./${struct}_${impl} -nowarmup -n ${n} -u ${u} -z ${z} -r ${default_rounds} -trans ${trans} -p ${default_threads} -t ${trial_time}" "${impl}" 2>&1) || true
+                            result=$(echo "$output" | grep -oP 'mops=\K[0-9.]+' | head -1)
+                            result_line=$(echo "$output" | grep 'mops=')
+                            if [ ! -z "$result_line" ]; then
+                                echo "./${struct}_${impl},${result_line}" >> "${filename}"
+                            fi
+                            if [ ! -z "$result" ]; then
+                                throughputs+=($result)
+                            fi
+                        done
                     done
                 done
             done
-        done
-        
-        if [ ${#throughputs[@]} -gt 0 ]; then
-            gmean=$(geomean "${throughputs[@]}")
-            echo "./${struct}_${impl},GEOMETRIC MEAN OF THROUGHPUTS: ${gmean}" >> "${filename}"
+            
+            if [ ${#throughputs[@]} -gt 0 ]; then
+                gmean=$(geomean "${throughputs[@]}")
+                echo "./${struct}_${impl},GEOMETRIC MEAN OF THROUGHPUTS: ${gmean}" >> "${filename}"
+            fi
+        else
+            # Non-HyTM: use single invocation with comma-separated params (more efficient)
+            output=$(run_bench "./${struct}_${impl} ${geomean_args} -r ${default_rounds} -p ${default_threads} -t ${trial_time}" "${impl}" 2>&1) || true
+            echo "$output" | while read -r line; do
+                if echo "$line" | grep -q 'mops='; then
+                    echo "./${struct}_${impl},${line}" >> "${filename}"
+                elif echo "$line" | grep -q 'GEOMETRIC MEAN'; then
+                    echo "./${struct}_${impl},${line}" >> "${filename}"
+                fi
+            done
         fi
     done
 done
@@ -180,28 +198,41 @@ for struct in ${lstructs}; do
         fi
         echo "  Implementation: ${impl}"
         
-        throughputs=()
-        for n in ${list_sizes}; do
-            for u in ${update_percents}; do
-                for trans in ${trans_sizes}; do
-                    for z in ${zipfian_params}; do
-                        output=$(run_bench "./${struct}_${impl} -nowarmup -n ${n} -u ${u} -z ${z} -r ${default_rounds} -trans ${trans} -p ${default_threads} -t ${trial_time}" "${impl}" 2>&1) || true
-                        result=$(echo "$output" | grep -oP 'mops=\K[0-9.]+' | head -1)
-                        result_line=$(echo "$output" | grep 'mops=')
-                        if [ ! -z "$result_line" ]; then
-                            echo "./${struct}_${impl},${result_line}" >> "${filename}"
-                        fi
-                        if [ ! -z "$result" ]; then
-                            throughputs+=($result)
-                        fi
+        if [ "$impl" = "hytm" ]; then
+            # HyTM has a memory leak, so we must run each parameter combination separately
+            throughputs=()
+            for n in ${list_sizes}; do
+                for u in ${update_percents}; do
+                    for trans in ${trans_sizes}; do
+                        for z in ${zipfian_params}; do
+                            output=$(run_bench "./${struct}_${impl} -nowarmup -n ${n} -u ${u} -z ${z} -r ${default_rounds} -trans ${trans} -p ${default_threads} -t ${trial_time}" "${impl}" 2>&1) || true
+                            result=$(echo "$output" | grep -oP 'mops=\K[0-9.]+' | head -1)
+                            result_line=$(echo "$output" | grep 'mops=')
+                            if [ ! -z "$result_line" ]; then
+                                echo "./${struct}_${impl},${result_line}" >> "${filename}"
+                            fi
+                            if [ ! -z "$result" ]; then
+                                throughputs+=($result)
+                            fi
+                        done
                     done
                 done
             done
-        done
-        
-        if [ ${#throughputs[@]} -gt 0 ]; then
-            gmean=$(geomean "${throughputs[@]}")
-            echo "./${struct}_${impl},GEOMETRIC MEAN OF THROUGHPUTS: ${gmean}" >> "${filename}"
+            
+            if [ ${#throughputs[@]} -gt 0 ]; then
+                gmean=$(geomean "${throughputs[@]}")
+                echo "./${struct}_${impl},GEOMETRIC MEAN OF THROUGHPUTS: ${gmean}" >> "${filename}"
+            fi
+        else
+            # Non-HyTM: use single invocation with comma-separated params (more efficient)
+            output=$(run_bench "./${struct}_${impl} ${list_geomean_args} -r ${default_rounds} -p ${default_threads} -t ${trial_time}" "${impl}" 2>&1) || true
+            echo "$output" | while read -r line; do
+                if echo "$line" | grep -q 'mops='; then
+                    echo "./${struct}_${impl},${line}" >> "${filename}"
+                elif echo "$line" | grep -q 'GEOMETRIC MEAN'; then
+                    echo "./${struct}_${impl},${line}" >> "${filename}"
+                fi
+            done
         fi
     done
 done

@@ -17,21 +17,30 @@ IMPL_COLORS = {
     'mvustm': '#1f77b4',
     'mvustm_hwstamp': '#2ca02c',
     'mvustm_lzstamp': '#ff7f0e',
+    'ustm': '#d62728',
     'ustm_longjmp': '#d62728',
+    'ustm_longjmp_hwstamp': '#e377c2',
     'mvustm_longjmp': '#9467bd',
     'mvustm_trythrow': '#8c564b',
-    'mvustm_unprotected': '#e377c2',
+    'mvustm_unprotected': '#17becf',
     '2plsf': '#7f7f7f',
     'hytm': '#bcbd22',
-    'tiny': '#17becf',
+    'tiny': '#ff9896',
 }
 
 IMPL_LABELS = {
-    'mvustm': 'MV-STM',
-    'mvustm_hwstamp': 'MV-TLF',
-    'mvustm_longjmp': 'MV-Longjmp',
+    'mvustm': 'MVUSTM',
+    'mvustm_hwstamp': 'MVUSTM-HWStamp',
+    'mvustm_lzstamp': 'MVUSTM-LZStamp',
+    'ustm': 'USTM',
+    'ustm_longjmp': 'USTM-Longjmp',
+    'ustm_longjmp_hwstamp': 'USTM-Longjmp-HWStamp',
+    'mvustm_longjmp': 'MVUSTM-Longjmp',
+    'mvustm_trythrow': 'MVUSTM-TryThrow',
+    'mvustm_unprotected': 'MVUSTM-Unprotected',
     '2plsf': '2PLSF',
     'hytm': 'HyTM',
+    'tiny': 'TinySTM',
 }
 
 STRUCT_LABELS = {
