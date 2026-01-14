@@ -31,6 +31,11 @@ namespace stm { using versioned = ofwf::tmbase; }
 namespace stm { struct versioned {}; }
 namespace ext_stm = twoplsf;
 
+#elif defined(Fuse)
+#include "fuse_glue.h"
+namespace stm { using versioned = fuse::versioned; }
+// ext_stm is defined in fuse_glue.h
+
 #elif defined(HyTm)
 // HyTm defines - use the volatile (no-phtm) version to avoid PMEM/persistent issues
 #define phytm1_fgl_colocated_locks_no_phtm  // Use tm_volatile.h instead of tm.h

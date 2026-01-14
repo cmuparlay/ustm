@@ -6,8 +6,28 @@ https://doi.org/10.1145/3694906.3743341
 
 Usage:
     ./run_experiment.py <experiment> [options]
+
+Experiments:
+    geomean   - Geometric mean across parameter sweep (Figure 1)
+    size      - Vary data structure size
+    threads   - Vary thread count
+    zipfian   - Vary Zipfian skew parameter
+    trans     - Vary transaction length
+    update    - Vary update percentage
+    range     - Range query experiments
+    all       - Run all experiments
+
+Options:
+    --no-hytm     Exclude HyTM (allows using all threads/sockets)
+    --output DIR  Output directory for results
+
+Implementations tested:
+    mvustm, mvustm_hwstamp, mvustm_longjmp, 2plsf, fuse, hytm (if enabled)
+
+Examples:
     ./run_experiment.py geomean
-    ./run_experiment.py all --no-hytm --output ./results
+    ./run_experiment.py all --no-hytm
+    ./run_experiment.py threads --output ./results
 """
 
 import argparse
@@ -58,12 +78,12 @@ def get_config(include_hytm: bool) -> Config:
     config = Config()
     
     if include_hytm:
-        config.impls = ["mvustm", "mvustm_hwstamp", "mvustm_longjmp", "2plsf", "hytm"]
+        config.impls = ["mvustm", "mvustm_hwstamp", "mvustm_longjmp", "2plsf", "fuse", "hytm"]
         config.max_threads = 72
         config.numa_cmd = "numactl --cpunodebind=0,1 --membind=0,1"
     else:
-        config.impls = ["mvustm", "mvustm_hwstamp", "mvustm_longjmp", "2plsf"]
-        config.max_threads = 191
+        config.impls = ["mvustm", "mvustm_hwstamp", "mvustm_longjmp", "2plsf", "fuse"]
+        config.max_threads = 144
         config.numa_cmd = "numactl -i all"
     
     config.default_p = config.max_threads
@@ -132,6 +152,10 @@ def get_structs_for_impl(config: Config, impl: str) -> List[str]:
     """Get structures compatible with implementation."""
     if impl == "hytm":
         return config.structs_nohash
+    if impl == "fuse":
+        # Fuse/TLF only supports pointer and bool atomics, not int atomics
+        # Exclude: avltree (uses atomic<int> for height), hash_block (uses atomic<V>)
+        return [s for s in config.structs if s not in ["avltree", "hash_block"]]
     return config.structs
 
 

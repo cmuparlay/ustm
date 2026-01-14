@@ -192,16 +192,16 @@ Tests range query performance with varying range sizes:
 
 ## Data Structures
 
-| Structure | Variable | Supports Range Queries |
-|-----------|----------|------------------------|
-| B-tree | `btree` | ✓ |
-| ART Tree | `arttree` | ✓ |
-| AVL Tree | `avltree` | |
-| Leaf Tree | `leaftree` | |
-| Treap | `treap` | |
-| Skip List | `skiplist` | |
-| Linked List | `list` | |
-| Hash Table | `hash_block` | |
+| Structure | Variable | Supports Range Queries | Fuse Compatible |
+|-----------|----------|------------------------|-----------------|
+| B-tree | `btree` | ✓ | ✓ |
+| ART Tree | `arttree` | ✓ | ✓ |
+| AVL Tree | `avltree` | | ✗ (uses atomic\<int\>) |
+| Leaf Tree | `leaftree` | | ✓ |
+| Treap | `treap` | | ✓ |
+| Skip List | `skiplist` | | ✓ |
+| Linked List | `list` | | ✓ |
+| Hash Table | `hash_block` | | ✗ (uses atomic\<V\>) |
 
 ## Implementations
 
@@ -211,7 +211,10 @@ Tests range query performance with varying range sizes:
 | MV-TLF | `mvustm_hwstamp` | MV with hardware timestamps |
 | MV-Longjmp | `mvustm_longjmp` | MV with longjmp abort |
 | 2PLSF | `2plsf` | Two-phase locking with starvation freedom |
+| Fuse/TLF | `fuse` | Transactional Lock Fusion (SPAA '25)¹ |
 | HyTM | `hytm` | Hardware transactional memory |
+
+¹ Fuse only supports pointer and bool atomics; excludes `avltree` and `hash_block`
 
 ---
 

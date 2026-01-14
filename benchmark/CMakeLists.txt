@@ -3,6 +3,7 @@ set(TPCC tpcc.cpp)
 
 set(STRUCT_DIR ${PROJECT_SOURCE_DIR}/structures)
 set(OTHER_DIR ${PROJECT_SOURCE_DIR}/other)
+set(FUSE_DIR ${OTHER_DIR}/fuse)
 
 set(STRUCTS "avltree" "treap" "leaftree" "btree" "arttree" "hash_block" "list" "skiplist")
 
@@ -13,6 +14,12 @@ function(add_benchmark NAME SOURCE STRUCT_NAME DEFS LIB)
   target_compile_definitions(${NAME} PRIVATE ${COMMON_DEFS})
   target_compile_definitions(${NAME} PRIVATE ${DEFS})
   target_link_libraries(${NAME} PRIVATE ustm ${LIB})
+  
+  # Fuse include path must come first to use fuse's parlay
+  if("${DEFS}" MATCHES "Fuse")
+    target_include_directories(${NAME} PRIVATE ${FUSE_DIR}/include)
+  endif()
+  
   target_include_directories(${NAME} PRIVATE ${STRUCT_NAME})
   target_include_directories(${NAME} PRIVATE ${PROJECT_SOURCE_DIR}/benchmark)
   target_include_directories(${NAME} PRIVATE ${OTHER_DIR})
@@ -42,6 +49,7 @@ foreach(bench ${STRUCTS})
   add_benchmark(${bench}_tiny ${MIXED} ${STRUCT_DIR}/${bench} "Other;Tiny" "${PROJECT_SOURCE_DIR}/other/tinystm/lib/libstm.a")
   add_benchmark(${bench}_tl2 ${MIXED} ${STRUCT_DIR}/${bench} "Other;TL2O" "${PROJECT_SOURCE_DIR}/other/tl2-x86/libtl2.a")
   add_benchmark(${bench}_onefile ${MIXED} ${STRUCT_DIR}/${bench} "Other;OneFile" "")
+  add_benchmark(${bench}_fuse ${MIXED} ${STRUCT_DIR}/${bench} "Other;Fuse" "")
 endforeach()
 
 set(TPCC_STRUCTS "btree" "hash_block" "arttree" "avltree")

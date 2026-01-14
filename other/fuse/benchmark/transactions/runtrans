@@ -1,0 +1,96 @@
+#!/usr/bin/python3
+#
+# run all tests
+#
+import sys
+sys.path.insert(1, '..')
+from runtests import *
+
+compile_clear("trans")
+
+class transactions(parameters) :
+    rounds = 1
+    summary = True
+    file_suffix = "trans"
+    lists = ["list"]
+    list_sizes = [100,1000]
+    trees = ["arttree", "btree", "hash_block", "skiplist", "leaftree", "avltree", "treap" ]
+    tree_sizes = [10000,1000000,100000000]
+    zipfians = [0, .99]
+    trans_sizes = [1, 16]
+    mix_percents = [[0,0,0,0], [5,0,0,0], [50,0,0,0]]
+    suffixes_all = ["_mv_stm", "_mv_tlf" , "_mv_tlf_stm", "_2plsf_stm", "_2plsf_tlf", "_2plsf_tlf_stm"]
+
+run_all(transactions)
+
+class defaults(parameters) :
+    rounds = 1
+    summary = True
+    file_suffix = "trans"
+    lists = ["list"]
+    list_sizes = [300]
+    trees = ["btree", "skiplist", "leaftree", "avltree", "treap"]
+    tree_sizes = [100000]
+    zipfians = [.9]
+    trans_sizes = [4]
+    mix_percents = [[5,0,0,0]]
+    suffixes_all = ["_mv_stm", "_mv_tlf", "_2plsf_stm", "_2plsf_tlf_stm"]
+
+# over sizes
+class transactions(defaults) :
+    list_sizes = [30, 100, 300, 1000]
+    tree_sizes = [1000,10000,100000,1000000,10000000]
+
+run_all(transactions)
+
+# over transaction sizes
+class transactions(defaults) :
+    trans_sizes = [1,2,4,8,16,32]
+
+run_all(transactions)
+
+# over zipfians
+class transactions(defaults) :
+    zipfians = [0,.5,.75,.9,.99]
+
+run_all(transactions)
+
+# over update percents
+class transactions(defaults) :
+    mix_percents = [[0,0,0,0],[5,0,0,0],[10,0,0,0],[20,0,0,0],[50,0,0,0],[100,0,0,0]]
+
+run_all(transactions)
+
+# over update percents
+class transactions(defaults) :
+    trans_sizes = [1]
+    mix_percents = [[0,0,0,0],[5,0,0,0],[10,0,0,0],[20,0,0,0],[50,0,0,0],[100,0,0,0]]
+
+run_all(transactions)
+
+# over processors
+class transactions(defaults) :
+    processors = [1,2,4,8,16,maxcpus/2,maxcpus-1]
+
+run_all(transactions)
+
+class other(parameters) :
+    rounds = 1
+    file_suffix = "trans"
+    lists = []
+    trees = ["btree", "leaftree", "skiplist", "avltree", "treap" ]
+    tree_sizes = [10000000]
+    zipfians = [0]
+    trans_sizes = [16]
+    mix_percents = [[0,0,0,0],[5,0,0,0],[10,0,0,0],[20,0,0,0],[50,0,0,0],[100,0,0,0]]
+    suffixes_all = ["", "_versioned", "_mv_tlf", "_mv_tlf_stm", "_mv_stm", "_2plsf_tlf", "_2plsf_tlf_stm", "_2plsf_stm"]
+                    
+run_all(other)
+
+class other(other) :
+    lists = ["list"]
+    list_sizes = [1000]
+    trees = []
+    trans_sizes = [2]
+
+run_all(other)
