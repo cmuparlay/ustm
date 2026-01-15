@@ -37,7 +37,11 @@ namespace stm { using versioned = fuse::versioned; }
 
 #elif defined(HyTm)
 
-#define phytm1_fgl_colocated_locks_no_phtm  // Use tm_volatile.h instead of tm.h
+#ifdef HyTmHTM
+#define phytm1_fgl_colocated_locks_no_pmem  // HTM enabled, no PMEM
+#else
+#define phytm1_fgl_colocated_locks_no_phtm  // Software-only STM
+#endif
 #define DISABLE_ZEROING_MEMORY 
 #define MAX_THREADS_POW2 512 // Increase thread limit for USTM benchmarks
 #define LimitedSTM // Data must be allocated inside transaction

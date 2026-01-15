@@ -76,13 +76,11 @@ cd build/benchmark
 - Non-HyTM implementations use efficient single-invocation mode for geomean
 - HyTM uses separate invocations per parameter combination (due to memory leak)
 
-### Legacy Scripts
+### Other Scripts
 
 | Script | Description |
 |--------|-------------|
-| `runall_tlf.sh` | Runs all experiments (legacy, use `run_experiment.py all` instead) |
-| `runall.sh` | Original benchmark script (all implementations) |
-| `runall_hytm.sh` | HyTM-specific experiments |
+| `runall.sh` | Original benchmark script (all implementations, general purpose) |
 
 ### Default Parameters (from paper Section 10)
 
@@ -152,7 +150,6 @@ python3 plot_tlf.py ../timings/tlf_192-8488C_01-12-2026_143022 --plots figures9_
 | `plot_geomean.py` | Simple geomean bar chart | `python3 plot_geomean.py ../timings/<file>` |
 | `plot_geomean_common.py` | Common configuration comparison | `python3 plot_geomean_common.py ../timings/<file>` |
 | `plot_experiment.py` | Individual experiment plots | `python3 plot_experiment.py <exp_file>` |
-| `benchmark/plot_hytm.py` | HyTM-specific plots | `python3 plot_hytm.py ../timings/<hytm_file>` |
 
 ---
 
