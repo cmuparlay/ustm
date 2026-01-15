@@ -1,13 +1,13 @@
 #pragma once
 
-#include <utility> // for std::pair
-#include <type_traits> // for std::is_void_v
-#include <iostream> // for logging
-#include <thread> // for thread::get_id
-#include <csignal> // for signal handling
-#include <cstdlib> // for exit
-#include <unistd.h> // for dup, dup2, close
-#include <fcntl.h> // for open
+#include <utility>
+#include <type_traits>
+#include <iostream>
+#include <thread>
+#include <csignal>
+#include <cstdlib>
+#include <unistd.h>
+#include <fcntl.h>
 
 #ifdef TL2O
 #include "TL2Orig.hpp"
@@ -34,22 +34,13 @@ namespace ext_stm = twoplsf;
 #elif defined(Fuse)
 #include "fuse_glue.h"
 namespace stm { using versioned = fuse::versioned; }
-// ext_stm is defined in fuse_glue.h
 
 #elif defined(HyTm)
-// HyTm defines - use the volatile (no-phtm) version to avoid PMEM/persistent issues
+
 #define phytm1_fgl_colocated_locks_no_phtm  // Use tm_volatile.h instead of tm.h
-#define DISABLE_ZEROING_MEMORY  // Skip memset operations that cause bus errors
-#define MAX_THREADS_POW2 512   // Increase thread limit for USTM benchmarks
-#define LimitedSTM             // Use transactional allocation like TinySTM
-
-// Uncomment the following line to enable verbose HyTm logging
-// #define HYTM_VERBOSE_LOGGING
-
-// NOTE: Do not override VMEM/PMEM base addresses here.
-// Let the HyTm library provide sensible defaults via its config.h
-// (e.g. VMEM_POOL_BASE_ADDR_NUMA0 / PMEM_POOL_BASE_ADDR_NUMA0). Overriding
-// these hard-coded addresses is non-portable and may cause mmap conflicts.
+#define DISABLE_ZEROING_MEMORY 
+#define MAX_THREADS_POW2 512 // Increase thread limit for USTM benchmarks
+#define LimitedSTM // Data must be allocated inside transaction
 
 #include "../../other/ptmbench/phytmlib/phytm2.h"
 
@@ -222,22 +213,19 @@ namespace stm {
 
   template <typename T>
   struct atomic {
-    tx_field<T> val;  // Remove mutable since it's causing address tracking issues
+    tx_field<T> val;
     
     atomic() : val() {}
-    atomic(T v) : val() { val = v; }  // Use assignment operator which calls store()
-    
-    // Provide the interface the benchmark expects
+    atomic(T v) : val() { val = v; }
     void store(T v) { val.store(v); }
     T load() const { return const_cast<tx_field<T>&>(val).load(); }  // Cast away const for load
-    T load_unprotected() const { return const_cast<tx_field<T>&>(val).load(); }  // Just use regular load
+    T load_unprotected() const { return const_cast<tx_field<T>&>(val).load(); }
     void validate() const { /* no-op */ }
     void init(T x) { val = x; }
     T operator=(T b) { val = b; return b; }
-    operator T() const { return const_cast<tx_field<T>&>(val).load(); }  // Implicit conversion to T
+    operator T() const { return const_cast<tx_field<T>&>(val).load(); }
   };
 
-  // Extension methods for compatibility with benchmark interface
   template <typename T>
   T load_unprotected(const tx_field<T>& field) {
     return field.load();
@@ -254,7 +242,7 @@ namespace stm {
   }
 
   std::pair<long,long> statistics() {
-    return std::pair(0ul,0ul);
+    return {0ul, 0ul};
   }
 }
 

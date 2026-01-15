@@ -28,8 +28,8 @@ range_structs="btree arttree"
 
 # All implementations to test
 # Paper tests: 2PLSF, 2PLSF-TLF-STM, MV-STM, MV-TLF
-# Our implementations: mvustm (MV-STM), mvustm_hwstamp, ustm_longjmp, 2plsf, hytm
-impls="mvustm mvustm_hwstamp mvustm_longjmp 2plsf hytm"
+# Our implementations: mvustm (MV-STM), mvustm_hwstamp, ustm_longjmp, 2plsf, hytm, fuse
+impls="mvustm mvustm_hwstamp mvustm_longjmp fuse 2plsf hytm"
 
 # Experiment parameters from paper
 # Section 10: Geometric Mean Performance experiments

@@ -38,6 +38,7 @@ IMPL_COLORS = {
     '2plsf': '#7f7f7f',
     'hytm': '#bcbd22',
     'tiny': '#ff9896',
+    'fuse': '#e41a1c',
 }
 
 IMPL_LABELS = {
@@ -53,6 +54,7 @@ IMPL_LABELS = {
     '2plsf': '2PLSF',
     'hytm': 'HyTM',
     'tiny': 'TinySTM',
+    'fuse': 'TLF',
 }
 
 STRUCT_LABELS = {
@@ -71,14 +73,14 @@ STRUCT_LABELS = {
 IMPL_ORDER = [
     'mvustm', 'mvustm_hwstamp', 'mvustm_lzstamp', 
     'ustm_longjmp', 'mvustm_longjmp', 'mvustm_trythrow',
-    'mvustm_unprotected', '2plsf', 'hytm', 'tiny'
+    'mvustm_unprotected', '2plsf', 'hytm', 'tiny', 'fuse'
 ]
 
 # Known implementations (longer matches first)
 KNOWN_IMPLS = [
     'ustm_longjmp_hwstamp', 'mvustm_lzstamp', 'mvustm_hwstamp', 'mvustm_longjmp', 
     'mvustm_trythrow', 'mvustm_unprotected', 'ustm_longjmp', 'mvustm', 'ustm',
-    '2plsf', 'hytm', 'tiny'
+    '2plsf', 'hytm', 'tiny', 'fuse'
 ]
 
 
@@ -325,6 +327,20 @@ def plot_figure1_geomean_bars(geomean_data, output_dir, filename='figure1_geomea
     plt.close()
 
 
+def aggregate_points(points):
+    """
+    Aggregate multiple data points with the same x-value by averaging their y-values.
+    Input: list of (x, y) tuples
+    Output: sorted list of (x, avg_y) tuples with unique x values
+    """
+    from collections import defaultdict
+    x_to_ys = defaultdict(list)
+    for x, y in points:
+        x_to_ys[x].append(y)
+    aggregated = [(x, sum(ys) / len(ys)) for x, ys in x_to_ys.items()]
+    return sorted(aggregated, key=lambda p: p[0])
+
+
 def plot_varying_parameter(results, param_name, param_label, output_dir, 
                            structures=None, filename_prefix='varying', quiet=False):
     """
@@ -392,7 +408,7 @@ def plot_varying_parameter(results, param_name, param_label, output_dir,
             for impl in impls:
                 if impl not in data[struct]:
                     continue
-                points = sorted(data[struct][impl], key=lambda x: x[0])
+                points = aggregate_points(data[struct][impl])
                 x_vals = [p[0] for p in points]
                 y_vals = [p[1] for p in points]
                 color = IMPL_COLORS.get(impl, '#333333')
@@ -500,7 +516,7 @@ def plot_range_queries(results, output_dir, filename='range_queries.pdf'):
             for impl in impls:
                 if impl not in data[struct]:
                     continue
-                points = sorted(data[struct][impl], key=lambda x: x[0])
+                points = aggregate_points(data[struct][impl])
                 x_vals = [p[0] for p in points]
                 y_vals = [p[1] for p in points]
                 color = IMPL_COLORS.get(impl, '#333333')
@@ -584,7 +600,7 @@ def plot_combined_grid(results, geomean_data, output_dir, filename='tlf_results_
             for impl in impls:
                 if impl not in impl_data:
                     continue
-                points = sorted(impl_data[impl], key=lambda x: x[0])
+                points = aggregate_points(impl_data[impl])
                 if not points:
                     continue
                 x_vals = [p[0] for p in points]
