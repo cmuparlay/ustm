@@ -1,0 +1,1451 @@
+Date: 12-30-2025
+Model name: Intel(R) Xeon(R) CPU E7-8867 v4 @ 2.40GHz
+Git branch: 9f7eca8
+Compiler: g++ (Ubuntu 9.4.0-1ubuntu1~20.04.2) 9.4.0
+OS: Ubuntu 20.04.6 LTS
+Hugepage: [always] madvise never
+HYTM Threads (capped): 72
+./tpcc_btree_mvustm: mops/sec = 1.907, num_warehouses = 72, %aborts = 1.282
+./tpcc_btree_mvustm: mops/sec = 1.647, num_warehouses = 72, %aborts = 1.22
+./tpcc_btree_mvustm: mops/sec = 1.575, num_warehouses = 72, %aborts = 1.729
+./tpcc_btree_ustm: mops/sec = 2.02, num_warehouses = 72, %aborts = 1.398
+./tpcc_btree_ustm: mops/sec = 1.911, num_warehouses = 72, %aborts = 1.279
+./tpcc_btree_ustm: mops/sec = 1.877, num_warehouses = 72, %aborts = 1.52
+./tpcc_btree_ustm_longjmp_hwstamp: mops/sec = 2.114, num_warehouses = 72, %aborts = 1.151
+./tpcc_btree_ustm_longjmp_hwstamp: mops/sec = 1.934, num_warehouses = 72, %aborts = 1.289
+./tpcc_btree_ustm_longjmp_hwstamp: mops/sec = 1.893, num_warehouses = 72, %aborts = 1.457
+
+./tpcc_arttree_mvustm: mops/sec = 2.328, num_warehouses = 72, %aborts = 0.6837
+./tpcc_arttree_mvustm: mops/sec = 2.249, num_warehouses = 72, %aborts = 0.6907
+./tpcc_arttree_mvustm: mops/sec = 2.249, num_warehouses = 72, %aborts = 1.01
+./tpcc_arttree_ustm: mops/sec = 2.837, num_warehouses = 72, %aborts = 0.7478
+./tpcc_arttree_ustm: mops/sec = 2.776, num_warehouses = 72, %aborts = 0.7229
+./tpcc_arttree_ustm: mops/sec = 2.842, num_warehouses = 72, %aborts = 0.8443
+./tpcc_arttree_ustm_longjmp_hwstamp: mops/sec = 3.029, num_warehouses = 72, %aborts = 0.7387
+./tpcc_arttree_ustm_longjmp_hwstamp: mops/sec = 2.812, num_warehouses = 72, %aborts = 0.7313
+./tpcc_arttree_ustm_longjmp_hwstamp: mops/sec = 2.922, num_warehouses = 72, %aborts = 0.6085
+
+./tpcc_hash_block_mvustm: mops/sec = 3.498, num_warehouses = 72, %aborts = 0.4017
+./tpcc_hash_block_mvustm: mops/sec = 3.43, num_warehouses = 72, %aborts = 0.4739
+./tpcc_hash_block_mvustm: mops/sec = 3.521, num_warehouses = 72, %aborts = 0.3964
+./tpcc_hash_block_ustm: mops/sec = 4.554, num_warehouses = 72, %aborts = 0.4037
+./tpcc_hash_block_ustm: mops/sec = 4.636, num_warehouses = 72, %aborts = 0.4618
+./tpcc_hash_block_ustm: mops/sec = 4.693, num_warehouses = 72, %aborts = 0.4041
+./tpcc_hash_block_ustm_longjmp_hwstamp: mops/sec = 4.766, num_warehouses = 72, %aborts = 0.4057
+./tpcc_hash_block_ustm_longjmp_hwstamp: mops/sec = 4.868, num_warehouses = 72, %aborts = 0.4938
+./tpcc_hash_block_ustm_longjmp_hwstamp: mops/sec = 4.875, num_warehouses = 72, %aborts = 0.4127
+
+./tpcc_mix_mvustm: mops/sec = 2.965, num_warehouses = 72, %aborts = 0.5806
+./tpcc_mix_mvustm: mops/sec = 3.673, num_warehouses = 72, %aborts = 0.4356
+./tpcc_mix_mvustm: mops/sec = 3.669, num_warehouses = 72, %aborts = 0.5663
+./tpcc_mix_ustm: mops/sec = 4.337, num_warehouses = 72, %aborts = 0.6184
+./tpcc_mix_ustm: mops/sec = 4.347, num_warehouses = 72, %aborts = 0.4481
+./tpcc_mix_ustm: mops/sec = 4.367, num_warehouses = 72, %aborts = 0.5491
+./tpcc_mix_ustm_longjmp_hwstamp: mops/sec = 4.479, num_warehouses = 72, %aborts = 0.5846
+./tpcc_mix_ustm_longjmp_hwstamp: mops/sec = 4.347, num_warehouses = 72, %aborts = 0.4442
+./tpcc_mix_ustm_longjmp_hwstamp: mops/sec = 4.182, num_warehouses = 72, %aborts = 0.5273
+
+./hash_probe_mvustm,u=0,trans=4,n=100000,p=144,z=0,pa=0,mops=1.03e+03
+./hash_probe_mvustm,u=5,trans=4,n=100000,p=144,z=0,pa=0,mops=373
+./hash_probe_mvustm,u=50,trans=4,n=100000,p=144,z=0,pa=0.198,mops=94.8
+./hash_probe_mvustm,u=0,trans=4,n=100000,p=144,z=0.99,pa=0,mops=1.11e+03
+./hash_probe_mvustm,u=5,trans=4,n=100000,p=144,z=0.99,pa=5.23,mops=144
+./hash_probe_mvustm,u=50,trans=4,n=100000,p=144,z=0.99,pa=158,mops=17.4
+./hash_probe_mvustm,u=0,trans=4,n=10000000,p=144,z=0,pa=0,mops=205
+./hash_probe_mvustm,u=5,trans=4,n=10000000,p=144,z=0,pa=0,mops=181
+./hash_probe_mvustm,u=50,trans=4,n=10000000,p=144,z=0,pa=0,mops=104
+./hash_probe_mvustm,u=0,trans=4,n=10000000,p=144,z=0.99,pa=0,mops=428
+./hash_probe_mvustm,u=5,trans=4,n=10000000,p=144,z=0.99,pa=2.59,mops=119
+./hash_probe_mvustm,u=50,trans=4,n=10000000,p=144,z=0.99,pa=118,mops=23.5
+./hash_probe_mvustm,GEOMETRIC MEAN OF THROUGHPUTS: 166.8
+./hash_probe_mvustm_hwstamp,u=0,trans=4,n=100000,p=144,z=0,pa=0,mops=1.04e+03
+./hash_probe_mvustm_hwstamp,u=5,trans=4,n=100000,p=144,z=0,pa=0,mops=562
+./hash_probe_mvustm_hwstamp,u=50,trans=4,n=100000,p=144,z=0,pa=0.151,mops=140
+./hash_probe_mvustm_hwstamp,u=0,trans=4,n=100000,p=144,z=0.99,pa=0,mops=1.12e+03
+./hash_probe_mvustm_hwstamp,u=5,trans=4,n=100000,p=144,z=0.99,pa=3.73,mops=206
+./hash_probe_mvustm_hwstamp,u=50,trans=4,n=100000,p=144,z=0.99,pa=108,mops=19.9
+./hash_probe_mvustm_hwstamp,u=0,trans=4,n=10000000,p=144,z=0,pa=0,mops=197
+./hash_probe_mvustm_hwstamp,u=5,trans=4,n=10000000,p=144,z=0,pa=0,mops=187
+./hash_probe_mvustm_hwstamp,u=50,trans=4,n=10000000,p=144,z=0,pa=0,mops=123
+./hash_probe_mvustm_hwstamp,u=0,trans=4,n=10000000,p=144,z=0.99,pa=0,mops=421
+./hash_probe_mvustm_hwstamp,u=5,trans=4,n=10000000,p=144,z=0.99,pa=1.68,mops=158
+./hash_probe_mvustm_hwstamp,u=50,trans=4,n=10000000,p=144,z=0.99,pa=68.9,mops=26.8
+./hash_probe_mvustm_hwstamp,GEOMETRIC MEAN OF THROUGHPUTS: 195
+./hash_probe_mvustm_longjmp,u=0,trans=4,n=100000,p=144,z=0,pa=0,mops=900
+./hash_probe_mvustm_longjmp,u=5,trans=4,n=100000,p=144,z=0,pa=0,mops=347
+./hash_probe_mvustm_longjmp,u=50,trans=4,n=100000,p=144,z=0,pa=0.239,mops=92.4
+./hash_probe_mvustm_longjmp,u=0,trans=4,n=100000,p=144,z=0.99,pa=0,mops=968
+./hash_probe_mvustm_longjmp,u=5,trans=4,n=100000,p=144,z=0.99,pa=24.8,mops=112
+./hash_probe_mvustm_longjmp,u=50,trans=4,n=100000,p=144,z=0.99,pa=186,mops=18.1
+./hash_probe_mvustm_longjmp,u=0,trans=4,n=10000000,p=144,z=0,pa=0,mops=193
+./hash_probe_mvustm_longjmp,u=5,trans=4,n=10000000,p=144,z=0,pa=0,mops=154
+./hash_probe_mvustm_longjmp,u=50,trans=4,n=10000000,p=144,z=0,pa=0,mops=92.5
+./hash_probe_mvustm_longjmp,u=0,trans=4,n=10000000,p=144,z=0.99,pa=0,mops=401
+./hash_probe_mvustm_longjmp,u=5,trans=4,n=10000000,p=144,z=0.99,pa=13.8,mops=133
+./hash_probe_mvustm_longjmp,u=50,trans=4,n=10000000,p=144,z=0.99,pa=130,mops=26
+./hash_probe_mvustm_longjmp,GEOMETRIC MEAN OF THROUGHPUTS: 156.5
+./hash_probe_mvustm_trythrow,u=0,trans=4,n=100000,p=144,z=0,pa=0,mops=1.11e+03
+./hash_probe_mvustm_trythrow,u=5,trans=4,n=100000,p=144,z=0,pa=0,mops=397
+./hash_probe_mvustm_trythrow,u=50,trans=4,n=100000,p=144,z=0,pa=0.246,mops=105
+./hash_probe_mvustm_trythrow,u=0,trans=4,n=100000,p=144,z=0.99,pa=0,mops=1.22e+03
+./hash_probe_mvustm_trythrow,u=5,trans=4,n=100000,p=144,z=0.99,pa=2.57,mops=39.1
+./hash_probe_mvustm_trythrow,u=50,trans=4,n=100000,p=144,z=0.99,pa=10.4,mops=10.8
+./hash_probe_mvustm_trythrow,u=0,trans=4,n=10000000,p=144,z=0,pa=0,mops=211
+./hash_probe_mvustm_trythrow,u=5,trans=4,n=10000000,p=144,z=0,pa=0,mops=170
+./hash_probe_mvustm_trythrow,u=50,trans=4,n=10000000,p=144,z=0,pa=0,mops=94.8
+./hash_probe_mvustm_trythrow,u=0,trans=4,n=10000000,p=144,z=0.99,pa=0,mops=439
+./hash_probe_mvustm_trythrow,u=5,trans=4,n=10000000,p=144,z=0.99,pa=2.15,mops=45.7
+./hash_probe_mvustm_trythrow,u=50,trans=4,n=10000000,p=144,z=0.99,pa=8.7,mops=13
+./hash_probe_mvustm_trythrow,GEOMETRIC MEAN OF THROUGHPUTS: 129
+./hash_probe_mvustm_unprotected,u=0,trans=4,n=100000,p=144,z=0,pa=0,mops=1.02e+03
+./hash_probe_mvustm_unprotected,u=5,trans=4,n=100000,p=144,z=0,pa=0,mops=372
+./hash_probe_mvustm_unprotected,u=50,trans=4,n=100000,p=144,z=0,pa=0.199,mops=93.6
+./hash_probe_mvustm_unprotected,u=0,trans=4,n=100000,p=144,z=0.99,pa=0,mops=1.12e+03
+./hash_probe_mvustm_unprotected,u=5,trans=4,n=100000,p=144,z=0.99,pa=5.34,mops=164
+./hash_probe_mvustm_unprotected,u=50,trans=4,n=100000,p=144,z=0.99,pa=169,mops=15.6
+./hash_probe_mvustm_unprotected,u=0,trans=4,n=10000000,p=144,z=0,pa=0,mops=197
+./hash_probe_mvustm_unprotected,u=5,trans=4,n=10000000,p=144,z=0,pa=0,mops=158
+./hash_probe_mvustm_unprotected,u=50,trans=4,n=10000000,p=144,z=0,pa=0,mops=92.9
+./hash_probe_mvustm_unprotected,u=0,trans=4,n=10000000,p=144,z=0.99,pa=0,mops=468
+./hash_probe_mvustm_unprotected,u=5,trans=4,n=10000000,p=144,z=0.99,pa=2.53,mops=131
+./hash_probe_mvustm_unprotected,u=50,trans=4,n=10000000,p=144,z=0.99,pa=113,mops=22
+./hash_probe_mvustm_unprotected,GEOMETRIC MEAN OF THROUGHPUTS: 164.7
+
+./hash_block_mvustm,u=0,trans=4,n=100000,p=72,z=0,pa=0,mops=1.22e+03
+./hash_block_mvustm,u=5,trans=4,n=100000,p=72,z=0,pa=0,mops=512
+./hash_block_mvustm,u=50,trans=4,n=100000,p=72,z=0,pa=0.847,mops=162
+./hash_block_mvustm,u=0,trans=4,n=100000,p=72,z=0.99,pa=0,mops=1.36e+03
+./hash_block_mvustm,u=5,trans=4,n=100000,p=72,z=0.99,pa=5.33,mops=409
+./hash_block_mvustm,u=50,trans=4,n=100000,p=72,z=0.99,pa=183,mops=56
+./hash_block_mvustm,u=0,trans=4,n=10000000,p=72,z=0,pa=0,mops=218
+./hash_block_mvustm,u=5,trans=4,n=10000000,p=72,z=0,pa=0,mops=175
+./hash_block_mvustm,u=50,trans=4,n=10000000,p=72,z=0,pa=0,mops=115
+./hash_block_mvustm,u=0,trans=4,n=10000000,p=72,z=0.99,pa=0,mops=435
+./hash_block_mvustm,u=5,trans=4,n=10000000,p=72,z=0.99,pa=2.48,mops=279
+./hash_block_mvustm,u=50,trans=4,n=10000000,p=72,z=0.99,pa=125,mops=67.9
+./hash_block_mvustm,GEOMETRIC MEAN OF THROUGHPUTS: 263.8
+./hash_block_mvustm_lzstamp,u=0,trans=4,n=100000,p=72,z=0,pa=0,mops=1.19e+03
+./hash_block_mvustm_lzstamp,u=5,trans=4,n=100000,p=72,z=0,pa=0.474,mops=713
+./hash_block_mvustm_lzstamp,u=50,trans=4,n=100000,p=72,z=0,pa=2.1,mops=237
+./hash_block_mvustm_lzstamp,u=0,trans=4,n=100000,p=72,z=0.99,pa=0,mops=1.32e+03
+./hash_block_mvustm_lzstamp,u=5,trans=4,n=100000,p=72,z=0.99,pa=30.4,mops=353
+./hash_block_mvustm_lzstamp,u=50,trans=4,n=100000,p=72,z=0.99,pa=239,mops=47.2
+./hash_block_mvustm_lzstamp,u=0,trans=4,n=10000000,p=72,z=0,pa=0,mops=218
+./hash_block_mvustm_lzstamp,u=5,trans=4,n=10000000,p=72,z=0,pa=0,mops=203
+./hash_block_mvustm_lzstamp,u=50,trans=4,n=10000000,p=72,z=0,pa=0,mops=155
+./hash_block_mvustm_lzstamp,u=0,trans=4,n=10000000,p=72,z=0.99,pa=0,mops=455
+./hash_block_mvustm_lzstamp,u=5,trans=4,n=10000000,p=72,z=0.99,pa=17.9,mops=273
+./hash_block_mvustm_lzstamp,u=50,trans=4,n=10000000,p=72,z=0.99,pa=157,mops=66.3
+./hash_block_mvustm_lzstamp,GEOMETRIC MEAN OF THROUGHPUTS: 281.9
+./hash_block_mvustm_hwstamp,u=0,trans=4,n=100000,p=72,z=0,pa=0,mops=1.18e+03
+./hash_block_mvustm_hwstamp,u=5,trans=4,n=100000,p=72,z=0,pa=0,mops=782
+./hash_block_mvustm_hwstamp,u=50,trans=4,n=100000,p=72,z=0,pa=0.608,mops=256
+./hash_block_mvustm_hwstamp,u=0,trans=4,n=100000,p=72,z=0.99,pa=0,mops=1.29e+03
+./hash_block_mvustm_hwstamp,u=5,trans=4,n=100000,p=72,z=0.99,pa=4.05,mops=514
+./hash_block_mvustm_hwstamp,u=50,trans=4,n=100000,p=72,z=0.99,pa=130,mops=68.8
+./hash_block_mvustm_hwstamp,u=0,trans=4,n=10000000,p=72,z=0,pa=0,mops=220
+./hash_block_mvustm_hwstamp,u=5,trans=4,n=10000000,p=72,z=0,pa=0,mops=199
+./hash_block_mvustm_hwstamp,u=50,trans=4,n=10000000,p=72,z=0,pa=0,mops=155
+./hash_block_mvustm_hwstamp,u=0,trans=4,n=10000000,p=72,z=0.99,pa=0,mops=463
+./hash_block_mvustm_hwstamp,u=5,trans=4,n=10000000,p=72,z=0.99,pa=1.66,mops=344
+./hash_block_mvustm_hwstamp,u=50,trans=4,n=10000000,p=72,z=0.99,pa=77.7,mops=98.9
+./hash_block_mvustm_hwstamp,GEOMETRIC MEAN OF THROUGHPUTS: 319.9
+./hash_block_ustm_longjmp,u=0,trans=4,n=100000,p=72,z=0,pa=0,mops=1.08e+03
+./hash_block_ustm_longjmp,u=5,trans=4,n=100000,p=72,z=0,pa=0.188,mops=472
+./hash_block_ustm_longjmp,u=50,trans=4,n=100000,p=72,z=0,pa=1.04,mops=157
+./hash_block_ustm_longjmp,u=0,trans=4,n=100000,p=72,z=0.99,pa=0,mops=1.2e+03
+./hash_block_ustm_longjmp,u=5,trans=4,n=100000,p=72,z=0.99,pa=27.9,mops=331
+./hash_block_ustm_longjmp,u=50,trans=4,n=100000,p=72,z=0.99,pa=244,mops=53.5
+./hash_block_ustm_longjmp,u=0,trans=4,n=10000000,p=72,z=0,pa=0,mops=228
+./hash_block_ustm_longjmp,u=5,trans=4,n=10000000,p=72,z=0,pa=0,mops=185
+./hash_block_ustm_longjmp,u=50,trans=4,n=10000000,p=72,z=0,pa=0,mops=122
+./hash_block_ustm_longjmp,u=0,trans=4,n=10000000,p=72,z=0.99,pa=0,mops=471
+./hash_block_ustm_longjmp,u=5,trans=4,n=10000000,p=72,z=0.99,pa=14.4,mops=272
+./hash_block_ustm_longjmp,u=50,trans=4,n=10000000,p=72,z=0.99,pa=153,mops=66.5
+./hash_block_ustm_longjmp,GEOMETRIC MEAN OF THROUGHPUTS: 254.5
+./hash_block_mvustm_longjmp,u=0,trans=4,n=100000,p=72,z=0,pa=0,mops=1.01e+03
+./hash_block_mvustm_longjmp,u=5,trans=4,n=100000,p=72,z=0,pa=0.185,mops=437
+./hash_block_mvustm_longjmp,u=50,trans=4,n=100000,p=72,z=0,pa=1.02,mops=149
+./hash_block_mvustm_longjmp,u=0,trans=4,n=100000,p=72,z=0.99,pa=0,mops=1.09e+03
+./hash_block_mvustm_longjmp,u=5,trans=4,n=100000,p=72,z=0.99,pa=27,mops=318
+./hash_block_mvustm_longjmp,u=50,trans=4,n=100000,p=72,z=0.99,pa=233,mops=52.5
+./hash_block_mvustm_longjmp,u=0,trans=4,n=10000000,p=72,z=0,pa=0,mops=206
+./hash_block_mvustm_longjmp,u=5,trans=4,n=10000000,p=72,z=0,pa=0,mops=183
+./hash_block_mvustm_longjmp,u=50,trans=4,n=10000000,p=72,z=0,pa=0,mops=110
+./hash_block_mvustm_longjmp,u=0,trans=4,n=10000000,p=72,z=0.99,pa=0,mops=450
+./hash_block_mvustm_longjmp,u=5,trans=4,n=10000000,p=72,z=0.99,pa=14.2,mops=255
+./hash_block_mvustm_longjmp,u=50,trans=4,n=10000000,p=72,z=0.99,pa=144,mops=64.3
+./hash_block_mvustm_longjmp,GEOMETRIC MEAN OF THROUGHPUTS: 240
+./hash_block_mvustm_trythrow,u=0,trans=4,n=100000,p=72,z=0,pa=0,mops=1.19e+03
+./hash_block_mvustm_trythrow,u=5,trans=4,n=100000,p=72,z=0,pa=0.182,mops=470
+./hash_block_mvustm_trythrow,u=50,trans=4,n=100000,p=72,z=0,pa=0.773,mops=126
+./hash_block_mvustm_trythrow,u=0,trans=4,n=100000,p=72,z=0.99,pa=0,mops=1.32e+03
+./hash_block_mvustm_trythrow,u=5,trans=4,n=100000,p=72,z=0.99,pa=2.58,mops=38.6
+./hash_block_mvustm_trythrow,u=50,trans=4,n=100000,p=72,z=0.99,pa=10.2,mops=11
+./hash_block_mvustm_trythrow,u=0,trans=4,n=10000000,p=72,z=0,pa=0,mops=218
+./hash_block_mvustm_trythrow,u=5,trans=4,n=10000000,p=72,z=0,pa=0,mops=184
+./hash_block_mvustm_trythrow,u=50,trans=4,n=10000000,p=72,z=0,pa=0,mops=116
+./hash_block_mvustm_trythrow,u=0,trans=4,n=10000000,p=72,z=0.99,pa=0,mops=472
+./hash_block_mvustm_trythrow,u=5,trans=4,n=10000000,p=72,z=0.99,pa=2.16,mops=44.1
+./hash_block_mvustm_trythrow,u=50,trans=4,n=10000000,p=72,z=0.99,pa=8.4,mops=12.6
+./hash_block_mvustm_trythrow,GEOMETRIC MEAN OF THROUGHPUTS: 138.1
+./hash_block_mvustm_unprotected,u=0,trans=4,n=100000,p=72,z=0,pa=0,mops=1.22e+03
+./hash_block_mvustm_unprotected,u=5,trans=4,n=100000,p=72,z=0,pa=0,mops=505
+./hash_block_mvustm_unprotected,u=50,trans=4,n=100000,p=72,z=0,pa=0.846,mops=158
+./hash_block_mvustm_unprotected,u=0,trans=4,n=100000,p=72,z=0.99,pa=0,mops=1.33e+03
+./hash_block_mvustm_unprotected,u=5,trans=4,n=100000,p=72,z=0.99,pa=5.36,mops=400
+./hash_block_mvustm_unprotected,u=50,trans=4,n=100000,p=72,z=0.99,pa=186,mops=54.6
+./hash_block_mvustm_unprotected,u=0,trans=4,n=10000000,p=72,z=0,pa=0,mops=222
+./hash_block_mvustm_unprotected,u=5,trans=4,n=10000000,p=72,z=0,pa=0,mops=178
+./hash_block_mvustm_unprotected,u=50,trans=4,n=10000000,p=72,z=0,pa=0,mops=113
+./hash_block_mvustm_unprotected,u=0,trans=4,n=10000000,p=72,z=0.99,pa=0,mops=440
+./hash_block_mvustm_unprotected,u=5,trans=4,n=10000000,p=72,z=0.99,pa=2.49,mops=277
+./hash_block_mvustm_unprotected,u=50,trans=4,n=10000000,p=72,z=0.99,pa=123,mops=68.7
+./hash_block_mvustm_unprotected,GEOMETRIC MEAN OF THROUGHPUTS: 262.2
+
+./btree_mvustm,u=0,trans=4,n=100000,p=72,z=0,pa=0,mops=329
+./btree_mvustm,u=5,trans=4,n=100000,p=72,z=0,pa=0.645,mops=225
+./btree_mvustm,u=50,trans=4,n=100000,p=72,z=0,pa=20.6,mops=86.3
+./btree_mvustm,u=0,trans=4,n=100000,p=72,z=0.99,pa=0,mops=369
+./btree_mvustm,u=5,trans=4,n=100000,p=72,z=0.99,pa=4.95,mops=218
+./btree_mvustm,u=50,trans=4,n=100000,p=72,z=0.99,pa=189,mops=41.7
+./btree_mvustm,u=0,trans=4,n=10000000,p=72,z=0,pa=0,mops=107
+./btree_mvustm,u=5,trans=4,n=10000000,p=72,z=0,pa=0,mops=95.1
+./btree_mvustm,u=50,trans=4,n=10000000,p=72,z=0,pa=0.387,mops=62.8
+./btree_mvustm,u=0,trans=4,n=10000000,p=72,z=0.99,pa=0,mops=155
+./btree_mvustm,u=5,trans=4,n=10000000,p=72,z=0.99,pa=1.84,mops=124
+./btree_mvustm,u=50,trans=4,n=10000000,p=72,z=0.99,pa=90.5,mops=49
+./btree_mvustm,GEOMETRIC MEAN OF THROUGHPUTS: 123.7
+./btree_mvustm_lzstamp,u=0,trans=4,n=100000,p=72,z=0,pa=0,mops=323
+./btree_mvustm_lzstamp,u=5,trans=4,n=100000,p=72,z=0,pa=4.9,mops=234
+./btree_mvustm_lzstamp,u=50,trans=4,n=100000,p=72,z=0,pa=34.1,mops=92.3
+./btree_mvustm_lzstamp,u=0,trans=4,n=100000,p=72,z=0.99,pa=0,mops=366
+./btree_mvustm_lzstamp,u=5,trans=4,n=100000,p=72,z=0.99,pa=28.2,mops=180
+./btree_mvustm_lzstamp,u=50,trans=4,n=100000,p=72,z=0.99,pa=231,mops=37.7
+./btree_mvustm_lzstamp,u=0,trans=4,n=10000000,p=72,z=0,pa=0,mops=107
+./btree_mvustm_lzstamp,u=5,trans=4,n=10000000,p=72,z=0,pa=0.277,mops=94.2
+./btree_mvustm_lzstamp,u=50,trans=4,n=10000000,p=72,z=0,pa=1.11,mops=66.5
+./btree_mvustm_lzstamp,u=0,trans=4,n=10000000,p=72,z=0.99,pa=0,mops=150
+./btree_mvustm_lzstamp,u=5,trans=4,n=10000000,p=72,z=0.99,pa=13.7,mops=119
+./btree_mvustm_lzstamp,u=50,trans=4,n=10000000,p=72,z=0.99,pa=123,mops=46.2
+./btree_mvustm_lzstamp,GEOMETRIC MEAN OF THROUGHPUTS: 120.6
+./btree_mvustm_hwstamp,u=0,trans=4,n=100000,p=72,z=0,pa=0,mops=327
+./btree_mvustm_hwstamp,u=5,trans=4,n=100000,p=72,z=0,pa=0.45,mops=256
+./btree_mvustm_hwstamp,u=50,trans=4,n=100000,p=72,z=0,pa=16.2,mops=103
+./btree_mvustm_hwstamp,u=0,trans=4,n=100000,p=72,z=0.99,pa=0,mops=362
+./btree_mvustm_hwstamp,u=5,trans=4,n=100000,p=72,z=0.99,pa=3.56,mops=247
+./btree_mvustm_hwstamp,u=50,trans=4,n=100000,p=72,z=0.99,pa=138,mops=51
+./btree_mvustm_hwstamp,u=0,trans=4,n=10000000,p=72,z=0,pa=0,mops=108
+./btree_mvustm_hwstamp,u=5,trans=4,n=10000000,p=72,z=0,pa=0,mops=97.2
+./btree_mvustm_hwstamp,u=50,trans=4,n=10000000,p=72,z=0,pa=0.314,mops=68.2
+./btree_mvustm_hwstamp,u=0,trans=4,n=10000000,p=72,z=0.99,pa=0,mops=152
+./btree_mvustm_hwstamp,u=5,trans=4,n=10000000,p=72,z=0.99,pa=1.37,mops=131
+./btree_mvustm_hwstamp,u=50,trans=4,n=10000000,p=72,z=0.99,pa=62,mops=58.8
+./btree_mvustm_hwstamp,GEOMETRIC MEAN OF THROUGHPUTS: 133.8
+./btree_ustm_longjmp,u=0,trans=4,n=100000,p=72,z=0,pa=0,mops=321
+./btree_ustm_longjmp,u=5,trans=4,n=100000,p=72,z=0,pa=3.15,mops=218
+./btree_ustm_longjmp,u=50,trans=4,n=100000,p=72,z=0,pa=25.6,mops=85.3
+./btree_ustm_longjmp,u=0,trans=4,n=100000,p=72,z=0.99,pa=0,mops=358
+./btree_ustm_longjmp,u=5,trans=4,n=100000,p=72,z=0.99,pa=24.9,mops=191
+./btree_ustm_longjmp,u=50,trans=4,n=100000,p=72,z=0.99,pa=268,mops=40.7
+./btree_ustm_longjmp,u=0,trans=4,n=10000000,p=72,z=0,pa=0,mops=114
+./btree_ustm_longjmp,u=5,trans=4,n=10000000,p=72,z=0,pa=0,mops=97.5
+./btree_ustm_longjmp,u=50,trans=4,n=10000000,p=72,z=0,pa=0.453,mops=64.5
+./btree_ustm_longjmp,u=0,trans=4,n=10000000,p=72,z=0.99,pa=0,mops=155
+./btree_ustm_longjmp,u=5,trans=4,n=10000000,p=72,z=0.99,pa=10.9,mops=124
+./btree_ustm_longjmp,u=50,trans=4,n=10000000,p=72,z=0.99,pa=129,mops=48.2
+./btree_ustm_longjmp,GEOMETRIC MEAN OF THROUGHPUTS: 122.1
+./btree_mvustm_longjmp,u=0,trans=4,n=100000,p=72,z=0,pa=0,mops=307
+./btree_mvustm_longjmp,u=5,trans=4,n=100000,p=72,z=0,pa=3.2,mops=212
+./btree_mvustm_longjmp,u=50,trans=4,n=100000,p=72,z=0,pa=25.5,mops=87.3
+./btree_mvustm_longjmp,u=0,trans=4,n=100000,p=72,z=0.99,pa=0,mops=341
+./btree_mvustm_longjmp,u=5,trans=4,n=100000,p=72,z=0.99,pa=24.7,mops=180
+./btree_mvustm_longjmp,u=50,trans=4,n=100000,p=72,z=0.99,pa=236,mops=42.3
+./btree_mvustm_longjmp,u=0,trans=4,n=10000000,p=72,z=0,pa=0,mops=107
+./btree_mvustm_longjmp,u=5,trans=4,n=10000000,p=72,z=0,pa=0,mops=92.3
+./btree_mvustm_longjmp,u=50,trans=4,n=10000000,p=72,z=0,pa=0.469,mops=63.6
+./btree_mvustm_longjmp,u=0,trans=4,n=10000000,p=72,z=0.99,pa=0,mops=148
+./btree_mvustm_longjmp,u=5,trans=4,n=10000000,p=72,z=0.99,pa=10.8,mops=118
+./btree_mvustm_longjmp,u=50,trans=4,n=10000000,p=72,z=0.99,pa=120,mops=48.4
+./btree_mvustm_longjmp,GEOMETRIC MEAN OF THROUGHPUTS: 118.6
+./btree_mvustm_trythrow,u=0,trans=4,n=100000,p=72,z=0,pa=0,mops=326
+./btree_mvustm_trythrow,u=5,trans=4,n=100000,p=72,z=0,pa=1.17,mops=84.6
+./btree_mvustm_trythrow,u=50,trans=4,n=100000,p=72,z=0,pa=4.69,mops=21.1
+./btree_mvustm_trythrow,u=0,trans=4,n=100000,p=72,z=0.99,pa=0,mops=362
+./btree_mvustm_trythrow,u=5,trans=4,n=100000,p=72,z=0.99,pa=3.63,mops=27.2
+./btree_mvustm_trythrow,u=50,trans=4,n=100000,p=72,z=0.99,pa=14.5,mops=6.82
+./btree_mvustm_trythrow,u=0,trans=4,n=10000000,p=72,z=0,pa=0,mops=110
+./btree_mvustm_trythrow,u=5,trans=4,n=10000000,p=72,z=0,pa=0,mops=93.4
+./btree_mvustm_trythrow,u=50,trans=4,n=10000000,p=72,z=0,pa=0.445,mops=62.7
+./btree_mvustm_trythrow,u=0,trans=4,n=10000000,p=72,z=0.99,pa=0,mops=151
+./btree_mvustm_trythrow,u=5,trans=4,n=10000000,p=72,z=0.99,pa=2.93,mops=31.8
+./btree_mvustm_trythrow,u=50,trans=4,n=10000000,p=72,z=0.99,pa=12.3,mops=7.83
+./btree_mvustm_trythrow,GEOMETRIC MEAN OF THROUGHPUTS: 55.96
+./btree_mvustm_unprotected,u=0,trans=4,n=100000,p=72,z=0,pa=0,mops=281
+./btree_mvustm_unprotected,u=5,trans=4,n=100000,p=72,z=0,pa=0.581,mops=202
+./btree_mvustm_unprotected,u=50,trans=4,n=100000,p=72,z=0,pa=20.4,mops=82.6
+./btree_mvustm_unprotected,u=0,trans=4,n=100000,p=72,z=0.99,pa=0,mops=306
+./btree_mvustm_unprotected,u=5,trans=4,n=100000,p=72,z=0.99,pa=4.53,mops=196
+./btree_mvustm_unprotected,u=50,trans=4,n=100000,p=72,z=0.99,pa=181,mops=39.9
+./btree_mvustm_unprotected,u=0,trans=4,n=10000000,p=72,z=0,pa=0,mops=100
+./btree_mvustm_unprotected,u=5,trans=4,n=10000000,p=72,z=0,pa=0,mops=88
+./btree_mvustm_unprotected,u=50,trans=4,n=10000000,p=72,z=0,pa=0.324,mops=60.4
+./btree_mvustm_unprotected,u=0,trans=4,n=10000000,p=72,z=0.99,pa=0,mops=137
+./btree_mvustm_unprotected,u=5,trans=4,n=10000000,p=72,z=0.99,pa=1.73,mops=114
+./btree_mvustm_unprotected,u=50,trans=4,n=10000000,p=72,z=0.99,pa=84.7,mops=47.1
+./btree_mvustm_unprotected,GEOMETRIC MEAN OF THROUGHPUTS: 113.1
+
+phytm1_fgl_colocated_locks_no_phtm system ready
+
+TM: phytm1_fgl_colocated_locks_no_phtm
+HTM ENABLED
+PMEM DISABLED
+SIMPLE TM ALLOCATOR ENABLED
+TM FREE ENABLED
+Phytm colocated locks enabled
+Size of tx_tuple<vLock> 24
+Max software path retries: 10000000
+TM Alloc Init:
+
+
+Aligned base addr=0x7fe235800000
+
+
+
+INIT: TM alloc with baseAddr=0x7fe235800000 and mmapSize=4292870144, up to 0x7fe335600000
+
+Page size: 4194304
+Page count: 1023
+Page mask: 0xffffffffffc00000
+Size of page meta data 1024
+Size of thread data 8904
+
+
+TM Alloc Init:
+
+
+Aligned base addr=0x7fe135800000
+
+
+
+INIT: TM alloc with baseAddr=0x7fe135800000 and mmapSize=4292870144, up to 0x7fe235600000
+
+Page size: 4194304
+Page count: 1023
+Page mask: 0xffffffffffc00000
+Size of page meta data 1024
+Size of thread data 8904
+
+
+./btree_hytm,u=0,trans=4,n=100000,p=72,z=0,pa=0,mops=260
+./btree_hytm,u=5,trans=4,n=100000,p=72,z=0,pa=0,mops=130
+ERROR WE ARE OUT OF MEMORY IN THIS MAPPING!
+EXITING
+phytm1_fgl_colocated_locks_no_phtm system shutdown:
+    HTM_ATTEMPT_THRESH=40
+phytm1_fgl_colocated_locks_no_phtm system shutdown:
+    HTM_ATTEMPT_THRESH=40
+./arttree_mvustm,u=0,trans=4,n=100000,p=72,z=0,pa=0,mops=623
+./arttree_mvustm,u=5,trans=4,n=100000,p=72,z=0,pa=0.105,mops=359
+./arttree_mvustm,u=50,trans=4,n=100000,p=72,z=0,pa=2.84,mops=133
+./arttree_mvustm,u=0,trans=4,n=100000,p=72,z=0.99,pa=0,mops=695
+./arttree_mvustm,u=5,trans=4,n=100000,p=72,z=0.99,pa=4.99,mops=314
+./arttree_mvustm,u=50,trans=4,n=100000,p=72,z=0.99,pa=192,mops=48.3
+./arttree_mvustm,u=0,trans=4,n=10000000,p=72,z=0,pa=0,mops=144
+./arttree_mvustm,u=5,trans=4,n=10000000,p=72,z=0,pa=0,mops=129
+./arttree_mvustm,u=50,trans=4,n=10000000,p=72,z=0,pa=0,mops=86.2
+./arttree_mvustm,u=0,trans=4,n=10000000,p=72,z=0.99,pa=0,mops=257
+./arttree_mvustm,u=5,trans=4,n=10000000,p=72,z=0.99,pa=1.94,mops=199
+./arttree_mvustm,u=50,trans=4,n=10000000,p=72,z=0.99,pa=133,mops=57.5
+./arttree_mvustm,GEOMETRIC MEAN OF THROUGHPUTS: 183.7
+./arttree_mvustm_lzstamp,u=0,trans=4,n=100000,p=72,z=0,pa=0,mops=633
+./arttree_mvustm_lzstamp,u=5,trans=4,n=100000,p=72,z=0,pa=1.05,mops=443
+./arttree_mvustm_lzstamp,u=50,trans=4,n=100000,p=72,z=0,pa=5.9,mops=163
+./arttree_mvustm_lzstamp,u=0,trans=4,n=100000,p=72,z=0.99,pa=0,mops=702
+./arttree_mvustm_lzstamp,u=5,trans=4,n=100000,p=72,z=0.99,pa=28.3,mops=283
+./arttree_mvustm_lzstamp,u=50,trans=4,n=100000,p=72,z=0.99,pa=199,mops=37.4
+./arttree_mvustm_lzstamp,u=0,trans=4,n=10000000,p=72,z=0,pa=0,mops=145
+./arttree_mvustm_lzstamp,u=5,trans=4,n=10000000,p=72,z=0,pa=0,mops=137
+./arttree_mvustm_lzstamp,u=50,trans=4,n=10000000,p=72,z=0,pa=0.144,mops=110
+./arttree_mvustm_lzstamp,u=0,trans=4,n=10000000,p=72,z=0.99,pa=0,mops=253
+./arttree_mvustm_lzstamp,u=5,trans=4,n=10000000,p=72,z=0.99,pa=15.3,mops=197
+./arttree_mvustm_lzstamp,u=50,trans=4,n=10000000,p=72,z=0.99,pa=153,mops=56.4
+./arttree_mvustm_lzstamp,GEOMETRIC MEAN OF THROUGHPUTS: 189.1
+./arttree_mvustm_hwstamp,u=0,trans=4,n=100000,p=72,z=0,pa=0,mops=621
+./arttree_mvustm_hwstamp,u=5,trans=4,n=100000,p=72,z=0,pa=0,mops=458
+./arttree_mvustm_hwstamp,u=50,trans=4,n=100000,p=72,z=0,pa=2.16,mops=193
+./arttree_mvustm_hwstamp,u=0,trans=4,n=100000,p=72,z=0.99,pa=0,mops=692
+./arttree_mvustm_hwstamp,u=5,trans=4,n=100000,p=72,z=0.99,pa=3.45,mops=384
+./arttree_mvustm_hwstamp,u=50,trans=4,n=100000,p=72,z=0.99,pa=126,mops=66.3
+./arttree_mvustm_hwstamp,u=0,trans=4,n=10000000,p=72,z=0,pa=0,mops=143
+./arttree_mvustm_hwstamp,u=5,trans=4,n=10000000,p=72,z=0,pa=0,mops=135
+./arttree_mvustm_hwstamp,u=50,trans=4,n=10000000,p=72,z=0,pa=0,mops=108
+./arttree_mvustm_hwstamp,u=0,trans=4,n=10000000,p=72,z=0.99,pa=0,mops=258
+./arttree_mvustm_hwstamp,u=5,trans=4,n=10000000,p=72,z=0.99,pa=1.31,mops=214
+./arttree_mvustm_hwstamp,u=50,trans=4,n=10000000,p=72,z=0.99,pa=75.4,mops=80.9
+./arttree_mvustm_hwstamp,GEOMETRIC MEAN OF THROUGHPUTS: 213.6
+./arttree_ustm_longjmp,u=0,trans=4,n=100000,p=72,z=0,pa=0,mops=596
+./arttree_ustm_longjmp,u=5,trans=4,n=100000,p=72,z=0,pa=0.574,mops=344
+./arttree_ustm_longjmp,u=50,trans=4,n=100000,p=72,z=0,pa=3.5,mops=125
+./arttree_ustm_longjmp,u=0,trans=4,n=100000,p=72,z=0.99,pa=0,mops=661
+./arttree_ustm_longjmp,u=5,trans=4,n=100000,p=72,z=0.99,pa=26.8,mops=266
+./arttree_ustm_longjmp,u=50,trans=4,n=100000,p=72,z=0.99,pa=246,mops=50.4
+./arttree_ustm_longjmp,u=0,trans=4,n=10000000,p=72,z=0,pa=0,mops=149
+./arttree_ustm_longjmp,u=5,trans=4,n=10000000,p=72,z=0,pa=0,mops=133
+./arttree_ustm_longjmp,u=50,trans=4,n=10000000,p=72,z=0,pa=0,mops=94.2
+./arttree_ustm_longjmp,u=0,trans=4,n=10000000,p=72,z=0.99,pa=0,mops=257
+./arttree_ustm_longjmp,u=5,trans=4,n=10000000,p=72,z=0.99,pa=12.5,mops=186
+./arttree_ustm_longjmp,u=50,trans=4,n=10000000,p=72,z=0.99,pa=167,mops=60.7
+./arttree_ustm_longjmp,GEOMETRIC MEAN OF THROUGHPUTS: 181
+./arttree_mvustm_longjmp,u=0,trans=4,n=100000,p=72,z=0,pa=0,mops=571
+./arttree_mvustm_longjmp,u=5,trans=4,n=100000,p=72,z=0,pa=0.574,mops=342
+./arttree_mvustm_longjmp,u=50,trans=4,n=100000,p=72,z=0,pa=3.47,mops=128
+./arttree_mvustm_longjmp,u=0,trans=4,n=100000,p=72,z=0.99,pa=0,mops=616
+./arttree_mvustm_longjmp,u=5,trans=4,n=100000,p=72,z=0.99,pa=26.2,mops=264
+./arttree_mvustm_longjmp,u=50,trans=4,n=100000,p=72,z=0.99,pa=229,mops=49.4
+./arttree_mvustm_longjmp,u=0,trans=4,n=10000000,p=72,z=0,pa=0,mops=143
+./arttree_mvustm_longjmp,u=5,trans=4,n=10000000,p=72,z=0,pa=0,mops=129
+./arttree_mvustm_longjmp,u=50,trans=4,n=10000000,p=72,z=0,pa=0,mops=90.8
+./arttree_mvustm_longjmp,u=0,trans=4,n=10000000,p=72,z=0.99,pa=0,mops=256
+./arttree_mvustm_longjmp,u=5,trans=4,n=10000000,p=72,z=0.99,pa=12.2,mops=185
+./arttree_mvustm_longjmp,u=50,trans=4,n=10000000,p=72,z=0.99,pa=153,mops=61.7
+./arttree_mvustm_longjmp,GEOMETRIC MEAN OF THROUGHPUTS: 177.6
+./arttree_mvustm_trythrow,u=0,trans=4,n=100000,p=72,z=0,pa=0,mops=613
+./arttree_mvustm_trythrow,u=5,trans=4,n=100000,p=72,z=0,pa=0.387,mops=250
+./arttree_mvustm_trythrow,u=50,trans=4,n=100000,p=72,z=0,pa=1.52,mops=65.3
+./arttree_mvustm_trythrow,u=0,trans=4,n=100000,p=72,z=0.99,pa=0,mops=696
+./arttree_mvustm_trythrow,u=5,trans=4,n=100000,p=72,z=0.99,pa=2.98,mops=33.2
+./arttree_mvustm_trythrow,u=50,trans=4,n=100000,p=72,z=0.99,pa=11.6,mops=8.91
+./arttree_mvustm_trythrow,u=0,trans=4,n=10000000,p=72,z=0,pa=0,mops=145
+./arttree_mvustm_trythrow,u=5,trans=4,n=10000000,p=72,z=0,pa=0,mops=129
+./arttree_mvustm_trythrow,u=50,trans=4,n=10000000,p=72,z=0,pa=0,mops=88.5
+./arttree_mvustm_trythrow,u=0,trans=4,n=10000000,p=72,z=0.99,pa=0,mops=260
+./arttree_mvustm_trythrow,u=5,trans=4,n=10000000,p=72,z=0.99,pa=2.52,mops=38.3
+./arttree_mvustm_trythrow,u=50,trans=4,n=10000000,p=72,z=0.99,pa=9.9,mops=10.2
+./arttree_mvustm_trythrow,GEOMETRIC MEAN OF THROUGHPUTS: 91.54
+./arttree_mvustm_unprotected,u=0,trans=4,n=100000,p=72,z=0,pa=0,mops=521
+./arttree_mvustm_unprotected,u=5,trans=4,n=100000,p=72,z=0,pa=0.144,mops=322
+./arttree_mvustm_unprotected,u=50,trans=4,n=100000,p=72,z=0,pa=3.66,mops=129
+./arttree_mvustm_unprotected,u=0,trans=4,n=100000,p=72,z=0.99,pa=0,mops=565
+./arttree_mvustm_unprotected,u=5,trans=4,n=100000,p=72,z=0.99,pa=5,mops=282
+./arttree_mvustm_unprotected,u=50,trans=4,n=100000,p=72,z=0.99,pa=198,mops=44.8
+./arttree_mvustm_unprotected,u=0,trans=4,n=10000000,p=72,z=0,pa=0,mops=127
+./arttree_mvustm_unprotected,u=5,trans=4,n=10000000,p=72,z=0,pa=0,mops=113
+./arttree_mvustm_unprotected,u=50,trans=4,n=10000000,p=72,z=0,pa=0,mops=82.8
+./arttree_mvustm_unprotected,u=0,trans=4,n=10000000,p=72,z=0.99,pa=0,mops=209
+./arttree_mvustm_unprotected,u=5,trans=4,n=10000000,p=72,z=0.99,pa=1.79,mops=168
+./arttree_mvustm_unprotected,u=50,trans=4,n=10000000,p=72,z=0.99,pa=135,mops=51.7
+./arttree_mvustm_unprotected,GEOMETRIC MEAN OF THROUGHPUTS: 162.3
+
+phytm1_fgl_colocated_locks_no_phtm system ready
+
+TM: phytm1_fgl_colocated_locks_no_phtm
+HTM ENABLED
+PMEM DISABLED
+SIMPLE TM ALLOCATOR ENABLED
+TM FREE ENABLED
+Phytm colocated locks enabled
+Size of tx_tuple<vLock> 24
+Max software path retries: 10000000
+TM Alloc Init:
+
+
+Aligned base addr=0x7fd90e000000
+
+
+
+INIT: TM alloc with baseAddr=0x7fd90e000000 and mmapSize=4290772992, up to 0x7fda0dc00000
+
+Page size: 4194304
+Page count: 1023
+Page mask: 0xffffffffffc00000
+Size of page meta data 1024
+Size of thread data 8904
+
+
+TM Alloc Init:
+
+
+Aligned base addr=0x7fd80e000000
+
+
+
+INIT: TM alloc with baseAddr=0x7fd80e000000 and mmapSize=4290772992, up to 0x7fd90dc00000
+
+Page size: 4194304
+Page count: 1023
+Page mask: 0xffffffffffc00000
+Size of page meta data 1024
+Size of thread data 8904
+
+
+./arttree_hytm,u=0,trans=4,n=100000,p=72,z=0,pa=0,mops=403
+./arttree_hytm,u=5,trans=4,n=100000,p=72,z=0,pa=0,mops=320
+ERROR WE ARE OUT OF MEMORY IN THIS MAPPING!
+EXITING
+ERROR WE ARE OUT OF MEMORY IN THIS MAPPING!
+EXITING
+phytm1_fgl_colocated_locks_no_phtm system shutdown:
+    HTM_ATTEMPT_THRESH=40
+phytm1_fgl_colocated_locks_no_phtm system shutdown:
+    HTM_ATTEMPT_THRESH=40
+ERROR WE ARE OUT OF MEMORY IN THIS MAPPING!
+EXITING
+ERROR WE ARE OUT OF MEMORY IN THIS MAPPING!
+EXITING
+phytm1_fgl_colocated_locks_no_phtm system shutdown:
+    HTM_ATTEMPT_THRESH=40
+phytm1_fgl_colocated_locks_no_phtm system shutdown:
+    HTM_ATTEMPT_THRESH=40
+./leaftree_mvustm,u=0,trans=4,n=100000,p=72,z=0,pa=0,mops=112
+./leaftree_mvustm,u=5,trans=4,n=100000,p=72,z=0,pa=0,mops=104
+./leaftree_mvustm,u=50,trans=4,n=100000,p=72,z=0,pa=0.948,mops=66.9
+./leaftree_mvustm,u=0,trans=4,n=100000,p=72,z=0.99,pa=0,mops=120
+./leaftree_mvustm,u=5,trans=4,n=100000,p=72,z=0.99,pa=3.19,mops=102
+./leaftree_mvustm,u=50,trans=4,n=100000,p=72,z=0.99,pa=215,mops=25.4
+./leaftree_mvustm,u=0,trans=4,n=10000000,p=72,z=0,pa=0,mops=20.6
+./leaftree_mvustm,u=5,trans=4,n=10000000,p=72,z=0,pa=0,mops=19.7
+./leaftree_mvustm,u=50,trans=4,n=10000000,p=72,z=0,pa=0.139,mops=17.8
+./leaftree_mvustm,u=0,trans=4,n=10000000,p=72,z=0.99,pa=0,mops=30.9
+./leaftree_mvustm,u=5,trans=4,n=10000000,p=72,z=0.99,pa=1.22,mops=29.3
+./leaftree_mvustm,u=50,trans=4,n=10000000,p=72,z=0.99,pa=76.3,mops=21.5
+./leaftree_mvustm,GEOMETRIC MEAN OF THROUGHPUTS: 42.46
+./leaftree_mvustm_lzstamp,u=0,trans=4,n=100000,p=72,z=0,pa=0,mops=108
+./leaftree_mvustm_lzstamp,u=5,trans=4,n=100000,p=72,z=0,pa=0.445,mops=106
+./leaftree_mvustm_lzstamp,u=50,trans=4,n=100000,p=72,z=0,pa=2.29,mops=71.7
+./leaftree_mvustm_lzstamp,u=0,trans=4,n=100000,p=72,z=0.99,pa=0,mops=121
+./leaftree_mvustm_lzstamp,u=5,trans=4,n=100000,p=72,z=0.99,pa=25.6,mops=89.3
+./leaftree_mvustm_lzstamp,u=50,trans=4,n=100000,p=72,z=0.99,pa=282,mops=22.9
+./leaftree_mvustm_lzstamp,u=0,trans=4,n=10000000,p=72,z=0,pa=0,mops=21.3
+./leaftree_mvustm_lzstamp,u=5,trans=4,n=10000000,p=72,z=0,pa=0.112,mops=20.5
+./leaftree_mvustm_lzstamp,u=50,trans=4,n=10000000,p=72,z=0,pa=0.478,mops=19.1
+./leaftree_mvustm_lzstamp,u=0,trans=4,n=10000000,p=72,z=0.99,pa=0,mops=31.4
+./leaftree_mvustm_lzstamp,u=5,trans=4,n=10000000,p=72,z=0.99,pa=11,mops=29
+./leaftree_mvustm_lzstamp,u=50,trans=4,n=10000000,p=72,z=0.99,pa=123,mops=18.5
+./leaftree_mvustm_lzstamp,GEOMETRIC MEAN OF THROUGHPUTS: 41.81
+./leaftree_mvustm_hwstamp,u=0,trans=4,n=100000,p=72,z=0,pa=0,mops=110
+./leaftree_mvustm_hwstamp,u=5,trans=4,n=100000,p=72,z=0,pa=0,mops=106
+./leaftree_mvustm_hwstamp,u=50,trans=4,n=100000,p=72,z=0,pa=0.789,mops=71.6
+./leaftree_mvustm_hwstamp,u=0,trans=4,n=100000,p=72,z=0.99,pa=0,mops=122
+./leaftree_mvustm_hwstamp,u=5,trans=4,n=100000,p=72,z=0.99,pa=2.37,mops=104
+./leaftree_mvustm_hwstamp,u=50,trans=4,n=100000,p=72,z=0.99,pa=169,mops=31.1
+./leaftree_mvustm_hwstamp,u=0,trans=4,n=10000000,p=72,z=0,pa=0,mops=20.2
+./leaftree_mvustm_hwstamp,u=5,trans=4,n=10000000,p=72,z=0,pa=0,mops=19.4
+./leaftree_mvustm_hwstamp,u=50,trans=4,n=10000000,p=72,z=0,pa=0.131,mops=17.2
+./leaftree_mvustm_hwstamp,u=0,trans=4,n=10000000,p=72,z=0.99,pa=0,mops=30.5
+./leaftree_mvustm_hwstamp,u=5,trans=4,n=10000000,p=72,z=0.99,pa=1.02,mops=28.9
+./leaftree_mvustm_hwstamp,u=50,trans=4,n=10000000,p=72,z=0.99,pa=56.1,mops=21.8
+./leaftree_mvustm_hwstamp,GEOMETRIC MEAN OF THROUGHPUTS: 43.24
+./leaftree_ustm_longjmp,u=0,trans=4,n=100000,p=72,z=0,pa=0,mops=110
+./leaftree_ustm_longjmp,u=5,trans=4,n=100000,p=72,z=0,pa=0.136,mops=103
+./leaftree_ustm_longjmp,u=50,trans=4,n=100000,p=72,z=0,pa=1.22,mops=70.5
+./leaftree_ustm_longjmp,u=0,trans=4,n=100000,p=72,z=0.99,pa=0,mops=121
+./leaftree_ustm_longjmp,u=5,trans=4,n=100000,p=72,z=0.99,pa=22.1,mops=91.2
+./leaftree_ustm_longjmp,u=50,trans=4,n=100000,p=72,z=0.99,pa=305,mops=27
+./leaftree_ustm_longjmp,u=0,trans=4,n=10000000,p=72,z=0,pa=0,mops=24.3
+./leaftree_ustm_longjmp,u=5,trans=4,n=10000000,p=72,z=0,pa=0,mops=23.5
+./leaftree_ustm_longjmp,u=50,trans=4,n=10000000,p=72,z=0,pa=0.173,mops=21.9
+./leaftree_ustm_longjmp,u=0,trans=4,n=10000000,p=72,z=0.99,pa=0,mops=38.1
+./leaftree_ustm_longjmp,u=5,trans=4,n=10000000,p=72,z=0.99,pa=8.4,mops=34.9
+./leaftree_ustm_longjmp,u=50,trans=4,n=10000000,p=72,z=0.99,pa=130,mops=22.8
+./leaftree_ustm_longjmp,GEOMETRIC MEAN OF THROUGHPUTS: 46.01
+./leaftree_mvustm_longjmp,u=0,trans=4,n=100000,p=72,z=0,pa=0,mops=97.8
+./leaftree_mvustm_longjmp,u=5,trans=4,n=100000,p=72,z=0,pa=0.135,mops=91.6
+./leaftree_mvustm_longjmp,u=50,trans=4,n=100000,p=72,z=0,pa=1.21,mops=62
+./leaftree_mvustm_longjmp,u=0,trans=4,n=100000,p=72,z=0.99,pa=0,mops=107
+./leaftree_mvustm_longjmp,u=5,trans=4,n=100000,p=72,z=0.99,pa=21.2,mops=84.7
+./leaftree_mvustm_longjmp,u=50,trans=4,n=100000,p=72,z=0.99,pa=278,mops=25
+./leaftree_mvustm_longjmp,u=0,trans=4,n=10000000,p=72,z=0,pa=0,mops=21.6
+./leaftree_mvustm_longjmp,u=5,trans=4,n=10000000,p=72,z=0,pa=0,mops=20.5
+./leaftree_mvustm_longjmp,u=50,trans=4,n=10000000,p=72,z=0,pa=0.174,mops=18.8
+./leaftree_mvustm_longjmp,u=0,trans=4,n=10000000,p=72,z=0.99,pa=0,mops=32.1
+./leaftree_mvustm_longjmp,u=5,trans=4,n=10000000,p=72,z=0.99,pa=8.2,mops=30.3
+./leaftree_mvustm_longjmp,u=50,trans=4,n=10000000,p=72,z=0.99,pa=121,mops=19.1
+./leaftree_mvustm_longjmp,GEOMETRIC MEAN OF THROUGHPUTS: 40.5
+./leaftree_mvustm_trythrow,u=0,trans=4,n=100000,p=72,z=0,pa=0,mops=109
+./leaftree_mvustm_trythrow,u=5,trans=4,n=100000,p=72,z=0,pa=0.128,mops=99.9
+./leaftree_mvustm_trythrow,u=50,trans=4,n=100000,p=72,z=0,pa=1.14,mops=64.5
+./leaftree_mvustm_trythrow,u=0,trans=4,n=100000,p=72,z=0.99,pa=0,mops=118
+./leaftree_mvustm_trythrow,u=5,trans=4,n=100000,p=72,z=0.99,pa=4.85,mops=20.4
+./leaftree_mvustm_trythrow,u=50,trans=4,n=100000,p=72,z=0.99,pa=20.1,mops=5.32
+./leaftree_mvustm_trythrow,u=0,trans=4,n=10000000,p=72,z=0,pa=0,mops=21.8
+./leaftree_mvustm_trythrow,u=5,trans=4,n=10000000,p=72,z=0,pa=0,mops=20.5
+./leaftree_mvustm_trythrow,u=50,trans=4,n=10000000,p=72,z=0,pa=0.17,mops=18.6
+./leaftree_mvustm_trythrow,u=0,trans=4,n=10000000,p=72,z=0.99,pa=0,mops=32.1
+./leaftree_mvustm_trythrow,u=5,trans=4,n=10000000,p=72,z=0.99,pa=4.97,mops=18.5
+./leaftree_mvustm_trythrow,u=50,trans=4,n=10000000,p=72,z=0.99,pa=21.2,mops=5.12
+./leaftree_mvustm_trythrow,GEOMETRIC MEAN OF THROUGHPUTS: 27.95
+./leaftree_mvustm_unprotected,u=0,trans=4,n=100000,p=72,z=0,pa=0,mops=108
+./leaftree_mvustm_unprotected,u=5,trans=4,n=100000,p=72,z=0,pa=0,mops=102
+./leaftree_mvustm_unprotected,u=50,trans=4,n=100000,p=72,z=0,pa=0.605,mops=64
+./leaftree_mvustm_unprotected,u=0,trans=4,n=100000,p=72,z=0.99,pa=0,mops=120
+./leaftree_mvustm_unprotected,u=5,trans=4,n=100000,p=72,z=0.99,pa=3.05,mops=99.1
+./leaftree_mvustm_unprotected,u=50,trans=4,n=100000,p=72,z=0.99,pa=168,mops=27
+./leaftree_mvustm_unprotected,u=0,trans=4,n=10000000,p=72,z=0,pa=0,mops=21.5
+./leaftree_mvustm_unprotected,u=5,trans=4,n=10000000,p=72,z=0,pa=0,mops=20.4
+./leaftree_mvustm_unprotected,u=50,trans=4,n=10000000,p=72,z=0,pa=0,mops=18.7
+./leaftree_mvustm_unprotected,u=0,trans=4,n=10000000,p=72,z=0.99,pa=0,mops=31.6
+./leaftree_mvustm_unprotected,u=5,trans=4,n=10000000,p=72,z=0.99,pa=1.18,mops=29.3
+./leaftree_mvustm_unprotected,u=50,trans=4,n=10000000,p=72,z=0.99,pa=66.3,mops=22.1
+./leaftree_mvustm_unprotected,GEOMETRIC MEAN OF THROUGHPUTS: 42.79
+
+phytm1_fgl_colocated_locks_no_phtm system ready
+
+TM: phytm1_fgl_colocated_locks_no_phtm
+HTM ENABLED
+PMEM DISABLED
+SIMPLE TM ALLOCATOR ENABLED
+TM FREE ENABLED
+Phytm colocated locks enabled
+Size of tx_tuple<vLock> 24
+Max software path retries: 10000000
+TM Alloc Init:
+
+
+Aligned base addr=0x7fb0ae800000
+
+
+
+INIT: TM alloc with baseAddr=0x7fb0ae800000 and mmapSize=4290772992, up to 0x7fb1ae400000
+
+Page size: 4194304
+Page count: 1023
+Page mask: 0xffffffffffc00000
+Size of page meta data 1024
+Size of thread data 8904
+
+
+TM Alloc Init:
+
+
+Aligned base addr=0x7fafae800000
+
+
+
+INIT: TM alloc with baseAddr=0x7fafae800000 and mmapSize=4290772992, up to 0x7fb0ae400000
+
+Page size: 4194304
+Page count: 1023
+Page mask: 0xffffffffffc00000
+Size of page meta data 1024
+Size of thread data 8904
+
+
+./leaftree_hytm,u=0,trans=4,n=100000,p=72,z=0,pa=0,mops=56.1
+./leaftree_hytm,u=5,trans=4,n=100000,p=72,z=0,pa=0,mops=32.3
+./leaftree_hytm,u=50,trans=4,n=100000,p=72,z=0,pa=0,mops=17
+./leaftree_hytm,u=0,trans=4,n=100000,p=72,z=0.99,pa=0,mops=71.1
+./leaftree_hytm,u=5,trans=4,n=100000,p=72,z=0.99,pa=0,mops=27.3
+./leaftree_hytm,u=50,trans=4,n=100000,p=72,z=0.99,pa=0,mops=3.88
+./leaftree_hytm,u=0,trans=4,n=10000000,p=72,z=0,pa=0,mops=4.37
+./leaftree_hytm,u=5,trans=4,n=10000000,p=72,z=0,pa=0,mops=3.88
+./leaftree_hytm,u=50,trans=4,n=10000000,p=72,z=0,pa=0,mops=3.21
+./leaftree_hytm,u=0,trans=4,n=10000000,p=72,z=0.99,pa=0,mops=6.71
+./leaftree_hytm,u=5,trans=4,n=10000000,p=72,z=0.99,pa=0,mops=4.05
+./leaftree_hytm,u=50,trans=4,n=10000000,p=72,z=0.99,pa=0,mops=2.21
+./leaftree_hytm,GEOMETRIC MEAN OF THROUGHPUTS: 9.776
+phytm1_fgl_colocated_locks_no_phtm system shutdown:
+    HTM_ATTEMPT_THRESH=40
+phytm1_fgl_colocated_locks_no_phtm system shutdown:
+    HTM_ATTEMPT_THRESH=40
+./skiplist_mvustm,u=0,trans=4,n=100000,p=72,z=0,pa=0,mops=85.3
+./skiplist_mvustm,u=5,trans=4,n=100000,p=72,z=0,pa=0.209,mops=75.2
+./skiplist_mvustm,u=50,trans=4,n=100000,p=72,z=0,pa=9.11,mops=43.8
+./skiplist_mvustm,u=0,trans=4,n=100000,p=72,z=0.99,pa=0,mops=93.1
+./skiplist_mvustm,u=5,trans=4,n=100000,p=72,z=0.99,pa=3.55,mops=73.2
+./skiplist_mvustm,u=50,trans=4,n=100000,p=72,z=0.99,pa=179,mops=16.8
+./skiplist_mvustm,u=0,trans=4,n=10000000,p=72,z=0,pa=0,mops=18.4
+./skiplist_mvustm,u=5,trans=4,n=10000000,p=72,z=0,pa=0,mops=17.8
+./skiplist_mvustm,u=50,trans=4,n=10000000,p=72,z=0,pa=0.354,mops=16.6
+./skiplist_mvustm,u=0,trans=4,n=10000000,p=72,z=0.99,pa=0,mops=26.9
+./skiplist_mvustm,u=5,trans=4,n=10000000,p=72,z=0.99,pa=1.26,mops=25.8
+./skiplist_mvustm,u=50,trans=4,n=10000000,p=72,z=0.99,pa=86.7,mops=17.2
+./skiplist_mvustm,GEOMETRIC MEAN OF THROUGHPUTS: 33.61
+./skiplist_mvustm_lzstamp,u=0,trans=4,n=100000,p=72,z=0,pa=0,mops=85
+./skiplist_mvustm_lzstamp,u=5,trans=4,n=100000,p=72,z=0,pa=1.87,mops=72.5
+./skiplist_mvustm_lzstamp,u=50,trans=4,n=100000,p=72,z=0,pa=15.5,mops=44.6
+./skiplist_mvustm_lzstamp,u=0,trans=4,n=100000,p=72,z=0.99,pa=0,mops=93.2
+./skiplist_mvustm_lzstamp,u=5,trans=4,n=100000,p=72,z=0.99,pa=25.8,mops=64
+./skiplist_mvustm_lzstamp,u=50,trans=4,n=100000,p=72,z=0.99,pa=255,mops=13.6
+./skiplist_mvustm_lzstamp,u=0,trans=4,n=10000000,p=72,z=0,pa=0,mops=18.1
+./skiplist_mvustm_lzstamp,u=5,trans=4,n=10000000,p=72,z=0,pa=0.18,mops=17.5
+./skiplist_mvustm_lzstamp,u=50,trans=4,n=10000000,p=72,z=0,pa=0.925,mops=16.7
+./skiplist_mvustm_lzstamp,u=0,trans=4,n=10000000,p=72,z=0.99,pa=0,mops=26.9
+./skiplist_mvustm_lzstamp,u=5,trans=4,n=10000000,p=72,z=0.99,pa=11.4,mops=25.7
+./skiplist_mvustm_lzstamp,u=50,trans=4,n=10000000,p=72,z=0.99,pa=135,mops=14.4
+./skiplist_mvustm_lzstamp,GEOMETRIC MEAN OF THROUGHPUTS: 32.05
+./skiplist_mvustm_hwstamp,u=0,trans=4,n=100000,p=72,z=0,pa=0,mops=85.8
+./skiplist_mvustm_hwstamp,u=5,trans=4,n=100000,p=72,z=0,pa=0.152,mops=77
+./skiplist_mvustm_hwstamp,u=50,trans=4,n=100000,p=72,z=0,pa=7.56,mops=46.6
+./skiplist_mvustm_hwstamp,u=0,trans=4,n=100000,p=72,z=0.99,pa=0,mops=94.3
+./skiplist_mvustm_hwstamp,u=5,trans=4,n=100000,p=72,z=0.99,pa=2.69,mops=76.2
+./skiplist_mvustm_hwstamp,u=50,trans=4,n=100000,p=72,z=0.99,pa=136,mops=20.1
+./skiplist_mvustm_hwstamp,u=0,trans=4,n=10000000,p=72,z=0,pa=0,mops=18.4
+./skiplist_mvustm_hwstamp,u=5,trans=4,n=10000000,p=72,z=0,pa=0,mops=18.1
+./skiplist_mvustm_hwstamp,u=50,trans=4,n=10000000,p=72,z=0,pa=0.331,mops=16.9
+./skiplist_mvustm_hwstamp,u=0,trans=4,n=10000000,p=72,z=0.99,pa=0,mops=26.8
+./skiplist_mvustm_hwstamp,u=5,trans=4,n=10000000,p=72,z=0.99,pa=1.05,mops=25.7
+./skiplist_mvustm_hwstamp,u=50,trans=4,n=10000000,p=72,z=0.99,pa=62.9,mops=18.5
+./skiplist_mvustm_hwstamp,GEOMETRIC MEAN OF THROUGHPUTS: 34.83
+./skiplist_ustm_longjmp,u=0,trans=4,n=100000,p=72,z=0,pa=0,mops=83.1
+./skiplist_ustm_longjmp,u=5,trans=4,n=100000,p=72,z=0,pa=1.09,mops=74.3
+./skiplist_ustm_longjmp,u=50,trans=4,n=100000,p=72,z=0,pa=11.5,mops=48.4
+./skiplist_ustm_longjmp,u=0,trans=4,n=100000,p=72,z=0.99,pa=0,mops=88.8
+./skiplist_ustm_longjmp,u=5,trans=4,n=100000,p=72,z=0.99,pa=22.2,mops=69.5
+./skiplist_ustm_longjmp,u=50,trans=4,n=100000,p=72,z=0.99,pa=226,mops=22.7
+./skiplist_ustm_longjmp,u=0,trans=4,n=10000000,p=72,z=0,pa=0,mops=19.8
+./skiplist_ustm_longjmp,u=5,trans=4,n=10000000,p=72,z=0,pa=0,mops=19.4
+./skiplist_ustm_longjmp,u=50,trans=4,n=10000000,p=72,z=0,pa=0.436,mops=18.2
+./skiplist_ustm_longjmp,u=0,trans=4,n=10000000,p=72,z=0.99,pa=0,mops=30.5
+./skiplist_ustm_longjmp,u=5,trans=4,n=10000000,p=72,z=0.99,pa=8.58,mops=28.8
+./skiplist_ustm_longjmp,u=50,trans=4,n=10000000,p=72,z=0.99,pa=143,mops=18.3
+./skiplist_ustm_longjmp,GEOMETRIC MEAN OF THROUGHPUTS: 35.95
+./skiplist_mvustm_longjmp,u=0,trans=4,n=100000,p=72,z=0,pa=0,mops=75.9
+./skiplist_mvustm_longjmp,u=5,trans=4,n=100000,p=72,z=0,pa=1.15,mops=67.1
+./skiplist_mvustm_longjmp,u=50,trans=4,n=100000,p=72,z=0,pa=11,mops=43
+./skiplist_mvustm_longjmp,u=0,trans=4,n=100000,p=72,z=0.99,pa=0,mops=79.3
+./skiplist_mvustm_longjmp,u=5,trans=4,n=100000,p=72,z=0.99,pa=20.7,mops=60.5
+./skiplist_mvustm_longjmp,u=50,trans=4,n=100000,p=72,z=0.99,pa=204,mops=18.9
+./skiplist_mvustm_longjmp,u=0,trans=4,n=10000000,p=72,z=0,pa=0,mops=17.8
+./skiplist_mvustm_longjmp,u=5,trans=4,n=10000000,p=72,z=0,pa=0,mops=17.4
+./skiplist_mvustm_longjmp,u=50,trans=4,n=10000000,p=72,z=0,pa=0.447,mops=16.3
+./skiplist_mvustm_longjmp,u=0,trans=4,n=10000000,p=72,z=0.99,pa=0,mops=26.9
+./skiplist_mvustm_longjmp,u=5,trans=4,n=10000000,p=72,z=0.99,pa=8.71,mops=25.6
+./skiplist_mvustm_longjmp,u=50,trans=4,n=10000000,p=72,z=0.99,pa=144,mops=15.2
+./skiplist_mvustm_longjmp,GEOMETRIC MEAN OF THROUGHPUTS: 31.74
+./skiplist_mvustm_trythrow,u=0,trans=4,n=100000,p=72,z=0,pa=0,mops=80.3
+./skiplist_mvustm_trythrow,u=5,trans=4,n=100000,p=72,z=0,pa=0.952,mops=63.5
+./skiplist_mvustm_trythrow,u=50,trans=4,n=100000,p=72,z=0,pa=5.91,mops=23.5
+./skiplist_mvustm_trythrow,u=0,trans=4,n=100000,p=72,z=0.99,pa=0,mops=88.3
+./skiplist_mvustm_trythrow,u=5,trans=4,n=100000,p=72,z=0.99,pa=6.16,mops=16.2
+./skiplist_mvustm_trythrow,u=50,trans=4,n=100000,p=72,z=0.99,pa=28.6,mops=4.5
+./skiplist_mvustm_trythrow,u=0,trans=4,n=10000000,p=72,z=0,pa=0,mops=18.2
+./skiplist_mvustm_trythrow,u=5,trans=4,n=10000000,p=72,z=0,pa=0,mops=17.4
+./skiplist_mvustm_trythrow,u=50,trans=4,n=10000000,p=72,z=0,pa=0.427,mops=16.5
+./skiplist_mvustm_trythrow,u=0,trans=4,n=10000000,p=72,z=0.99,pa=0,mops=26.9
+./skiplist_mvustm_trythrow,u=5,trans=4,n=10000000,p=72,z=0.99,pa=5.64,mops=16.8
+./skiplist_mvustm_trythrow,u=50,trans=4,n=10000000,p=72,z=0.99,pa=26.9,mops=5.01
+./skiplist_mvustm_trythrow,GEOMETRIC MEAN OF THROUGHPUTS: 21.38
+./skiplist_mvustm_unprotected,u=0,trans=4,n=100000,p=72,z=0,pa=0,mops=95.3
+./skiplist_mvustm_unprotected,u=5,trans=4,n=100000,p=72,z=0,pa=0,mops=82
+./skiplist_mvustm_unprotected,u=50,trans=4,n=100000,p=72,z=0,pa=0.781,mops=50.8
+./skiplist_mvustm_unprotected,u=0,trans=4,n=100000,p=72,z=0.99,pa=0,mops=105
+./skiplist_mvustm_unprotected,u=5,trans=4,n=100000,p=72,z=0.99,pa=3.1,mops=82.1
+./skiplist_mvustm_unprotected,u=50,trans=4,n=100000,p=72,z=0.99,pa=138,mops=19.8
+./skiplist_mvustm_unprotected,u=0,trans=4,n=10000000,p=72,z=0,pa=0,mops=18.6
+./skiplist_mvustm_unprotected,u=5,trans=4,n=10000000,p=72,z=0,pa=0,mops=18.1
+./skiplist_mvustm_unprotected,u=50,trans=4,n=10000000,p=72,z=0,pa=0,mops=16.5
+./skiplist_mvustm_unprotected,u=0,trans=4,n=10000000,p=72,z=0.99,pa=0,mops=27.5
+./skiplist_mvustm_unprotected,u=5,trans=4,n=10000000,p=72,z=0.99,pa=1.2,mops=25.9
+./skiplist_mvustm_unprotected,u=50,trans=4,n=10000000,p=72,z=0.99,pa=65.9,mops=19.1
+./skiplist_mvustm_unprotected,GEOMETRIC MEAN OF THROUGHPUTS: 36.23
+
+phytm1_fgl_colocated_locks_no_phtm system ready
+
+TM: phytm1_fgl_colocated_locks_no_phtm
+HTM ENABLED
+PMEM DISABLED
+SIMPLE TM ALLOCATOR ENABLED
+TM FREE ENABLED
+Phytm colocated locks enabled
+Size of tx_tuple<vLock> 24
+Max software path retries: 10000000
+TM Alloc Init:
+
+
+Aligned base addr=0x7f7c6d800000
+
+
+
+INIT: TM alloc with baseAddr=0x7f7c6d800000 and mmapSize=4292870144, up to 0x7f7d6d600000
+
+Page size: 4194304
+Page count: 1023
+Page mask: 0xffffffffffc00000
+Size of page meta data 1024
+Size of thread data 8904
+
+
+TM Alloc Init:
+
+
+Aligned base addr=0x7f7b6d800000
+
+
+
+INIT: TM alloc with baseAddr=0x7f7b6d800000 and mmapSize=4292870144, up to 0x7f7c6d600000
+
+Page size: 4194304
+Page count: 1023
+Page mask: 0xffffffffffc00000
+Size of page meta data 1024
+Size of thread data 8904
+
+
+./skiplist_hytm,u=0,trans=4,n=100000,p=72,z=0,pa=0,mops=3.45
+./skiplist_hytm,u=5,trans=4,n=100000,p=72,z=0,pa=0,mops=3.31
+./skiplist_hytm,u=50,trans=4,n=100000,p=72,z=0,pa=0,mops=2.84
+./skiplist_hytm,u=0,trans=4,n=100000,p=72,z=0.99,pa=0,mops=3.79
+./skiplist_hytm,u=5,trans=4,n=100000,p=72,z=0.99,pa=0,mops=2.97
+./skiplist_hytm,u=50,trans=4,n=100000,p=72,z=0.99,pa=0,mops=1.73
+./skiplist_hytm,u=0,trans=4,n=10000000,p=72,z=0,pa=0,mops=1.79
+./skiplist_hytm,u=5,trans=4,n=10000000,p=72,z=0,pa=0,mops=1.8
+./skiplist_hytm,u=50,trans=4,n=10000000,p=72,z=0,pa=0,mops=1.82
+./skiplist_hytm,u=0,trans=4,n=10000000,p=72,z=0.99,pa=0,mops=1.95
+./skiplist_hytm,u=5,trans=4,n=10000000,p=72,z=0.99,pa=0,mops=1.88
+./skiplist_hytm,u=50,trans=4,n=10000000,p=72,z=0.99,pa=0,mops=0.955
+./skiplist_hytm,GEOMETRIC MEAN OF THROUGHPUTS: 2.202
+phytm1_fgl_colocated_locks_no_phtm system shutdown:
+    HTM_ATTEMPT_THRESH=40
+phytm1_fgl_colocated_locks_no_phtm system shutdown:
+    HTM_ATTEMPT_THRESH=40
+./treap_mvustm,u=0,trans=4,n=100000,p=72,z=0,pa=0,mops=180
+./treap_mvustm,u=5,trans=4,n=100000,p=72,z=0,pa=0.214,mops=149
+./treap_mvustm,u=50,trans=4,n=100000,p=72,z=0,pa=7.54,mops=74.2
+./treap_mvustm,u=0,trans=4,n=100000,p=72,z=0.99,pa=0,mops=197
+./treap_mvustm,u=5,trans=4,n=100000,p=72,z=0.99,pa=3.96,mops=149
+./treap_mvustm,u=50,trans=4,n=100000,p=72,z=0.99,pa=183,mops=33.9
+./treap_mvustm,u=0,trans=4,n=10000000,p=72,z=0,pa=0,mops=47.8
+./treap_mvustm,u=5,trans=4,n=10000000,p=72,z=0,pa=0,mops=43.3
+./treap_mvustm,u=50,trans=4,n=10000000,p=72,z=0,pa=0.162,mops=33
+./treap_mvustm,u=0,trans=4,n=10000000,p=72,z=0.99,pa=0,mops=67.5
+./treap_mvustm,u=5,trans=4,n=10000000,p=72,z=0.99,pa=1.47,mops=62.1
+./treap_mvustm,u=50,trans=4,n=10000000,p=72,z=0.99,pa=93.5,mops=31.5
+./treap_mvustm,GEOMETRIC MEAN OF THROUGHPUTS: 71.5
+./treap_mvustm_lzstamp,u=0,trans=4,n=100000,p=72,z=0,pa=0,mops=186
+./treap_mvustm_lzstamp,u=5,trans=4,n=100000,p=72,z=0,pa=2.03,mops=154
+./treap_mvustm_lzstamp,u=50,trans=4,n=100000,p=72,z=0,pa=14.3,mops=79.4
+./treap_mvustm_lzstamp,u=0,trans=4,n=100000,p=72,z=0.99,pa=0,mops=200
+./treap_mvustm_lzstamp,u=5,trans=4,n=100000,p=72,z=0.99,pa=26.3,mops=128
+./treap_mvustm_lzstamp,u=50,trans=4,n=100000,p=72,z=0.99,pa=253,mops=28.8
+./treap_mvustm_lzstamp,u=0,trans=4,n=10000000,p=72,z=0,pa=0,mops=47.3
+./treap_mvustm_lzstamp,u=5,trans=4,n=10000000,p=72,z=0,pa=0.142,mops=42.7
+./treap_mvustm_lzstamp,u=50,trans=4,n=10000000,p=72,z=0,pa=0.64,mops=35.2
+./treap_mvustm_lzstamp,u=0,trans=4,n=10000000,p=72,z=0.99,pa=0,mops=68.2
+./treap_mvustm_lzstamp,u=5,trans=4,n=10000000,p=72,z=0.99,pa=12.6,mops=55.4
+./treap_mvustm_lzstamp,u=50,trans=4,n=10000000,p=72,z=0.99,pa=139,mops=27.7
+./treap_mvustm_lzstamp,GEOMETRIC MEAN OF THROUGHPUTS: 69.37
+./treap_mvustm_hwstamp,u=0,trans=4,n=100000,p=72,z=0,pa=0,mops=184
+./treap_mvustm_hwstamp,u=5,trans=4,n=100000,p=72,z=0,pa=0.149,mops=160
+./treap_mvustm_hwstamp,u=50,trans=4,n=100000,p=72,z=0,pa=6.14,mops=84.6
+./treap_mvustm_hwstamp,u=0,trans=4,n=100000,p=72,z=0.99,pa=0,mops=201
+./treap_mvustm_hwstamp,u=5,trans=4,n=100000,p=72,z=0.99,pa=2.96,mops=155
+./treap_mvustm_hwstamp,u=50,trans=4,n=100000,p=72,z=0.99,pa=140,mops=40.8
+./treap_mvustm_hwstamp,u=0,trans=4,n=10000000,p=72,z=0,pa=0,mops=48.3
+./treap_mvustm_hwstamp,u=5,trans=4,n=10000000,p=72,z=0,pa=0,mops=44.2
+./treap_mvustm_hwstamp,u=50,trans=4,n=10000000,p=72,z=0,pa=0.149,mops=36.3
+./treap_mvustm_hwstamp,u=0,trans=4,n=10000000,p=72,z=0.99,pa=0,mops=70.7
+./treap_mvustm_hwstamp,u=5,trans=4,n=10000000,p=72,z=0.99,pa=1.18,mops=63.9
+./treap_mvustm_hwstamp,u=50,trans=4,n=10000000,p=72,z=0.99,pa=71.1,mops=34.1
+./treap_mvustm_hwstamp,GEOMETRIC MEAN OF THROUGHPUTS: 76.13
+./treap_ustm_longjmp,u=0,trans=4,n=100000,p=72,z=0,pa=0,mops=178
+./treap_ustm_longjmp,u=5,trans=4,n=100000,p=72,z=0,pa=1.2,mops=146
+./treap_ustm_longjmp,u=50,trans=4,n=100000,p=72,z=0,pa=9.43,mops=75.4
+./treap_ustm_longjmp,u=0,trans=4,n=100000,p=72,z=0.99,pa=0,mops=190
+./treap_ustm_longjmp,u=5,trans=4,n=100000,p=72,z=0.99,pa=22.1,mops=131
+./treap_ustm_longjmp,u=50,trans=4,n=100000,p=72,z=0.99,pa=277,mops=33.7
+./treap_ustm_longjmp,u=0,trans=4,n=10000000,p=72,z=0,pa=0,mops=57.7
+./treap_ustm_longjmp,u=5,trans=4,n=10000000,p=72,z=0,pa=0,mops=52.1
+./treap_ustm_longjmp,u=50,trans=4,n=10000000,p=72,z=0,pa=0.17,mops=39.6
+./treap_ustm_longjmp,u=0,trans=4,n=10000000,p=72,z=0.99,pa=0,mops=72.5
+./treap_ustm_longjmp,u=5,trans=4,n=10000000,p=72,z=0.99,pa=9.52,mops=66.3
+./treap_ustm_longjmp,u=50,trans=4,n=10000000,p=72,z=0.99,pa=124,mops=34.4
+./treap_ustm_longjmp,GEOMETRIC MEAN OF THROUGHPUTS: 75.11
+./treap_mvustm_longjmp,u=0,trans=4,n=100000,p=72,z=0,pa=0,mops=157
+./treap_mvustm_longjmp,u=5,trans=4,n=100000,p=72,z=0,pa=1.19,mops=132
+./treap_mvustm_longjmp,u=50,trans=4,n=100000,p=72,z=0,pa=9.27,mops=72.3
+./treap_mvustm_longjmp,u=0,trans=4,n=100000,p=72,z=0.99,pa=0,mops=171
+./treap_mvustm_longjmp,u=5,trans=4,n=100000,p=72,z=0.99,pa=22,mops=122
+./treap_mvustm_longjmp,u=50,trans=4,n=100000,p=72,z=0.99,pa=226,mops=34.7
+./treap_mvustm_longjmp,u=0,trans=4,n=10000000,p=72,z=0,pa=0,mops=48.1
+./treap_mvustm_longjmp,u=5,trans=4,n=10000000,p=72,z=0,pa=0,mops=43.7
+./treap_mvustm_longjmp,u=50,trans=4,n=10000000,p=72,z=0,pa=0.272,mops=35
+./treap_mvustm_longjmp,u=0,trans=4,n=10000000,p=72,z=0.99,pa=0,mops=65.3
+./treap_mvustm_longjmp,u=5,trans=4,n=10000000,p=72,z=0.99,pa=9.53,mops=58.6
+./treap_mvustm_longjmp,u=50,trans=4,n=10000000,p=72,z=0.99,pa=117,mops=28.8
+./treap_mvustm_longjmp,GEOMETRIC MEAN OF THROUGHPUTS: 67.37
+./treap_mvustm_trythrow,u=0,trans=4,n=100000,p=72,z=0,pa=0,mops=178
+./treap_mvustm_trythrow,u=5,trans=4,n=100000,p=72,z=0,pa=0.852,mops=114
+./treap_mvustm_trythrow,u=50,trans=4,n=100000,p=72,z=0,pa=3.48,mops=29.6
+./treap_mvustm_trythrow,u=0,trans=4,n=100000,p=72,z=0.99,pa=0,mops=192
+./treap_mvustm_trythrow,u=5,trans=4,n=100000,p=72,z=0.99,pa=4.18,mops=23.4
+./treap_mvustm_trythrow,u=50,trans=4,n=100000,p=72,z=0.99,pa=18,mops=5.75
+./treap_mvustm_trythrow,u=0,trans=4,n=10000000,p=72,z=0,pa=0,mops=47.7
+./treap_mvustm_trythrow,u=5,trans=4,n=10000000,p=72,z=0,pa=0,mops=42.9
+./treap_mvustm_trythrow,u=50,trans=4,n=10000000,p=72,z=0,pa=0.22,mops=34.3
+./treap_mvustm_trythrow,u=0,trans=4,n=10000000,p=72,z=0.99,pa=0,mops=70
+./treap_mvustm_trythrow,u=5,trans=4,n=10000000,p=72,z=0.99,pa=3.86,mops=24.8
+./treap_mvustm_trythrow,u=50,trans=4,n=10000000,p=72,z=0.99,pa=16.7,mops=6.24
+./treap_mvustm_trythrow,GEOMETRIC MEAN OF THROUGHPUTS: 38.84
+./treap_mvustm_unprotected,u=0,trans=4,n=100000,p=72,z=0,pa=0,mops=166
+./treap_mvustm_unprotected,u=5,trans=4,n=100000,p=72,z=0,pa=0.197,mops=139
+./treap_mvustm_unprotected,u=50,trans=4,n=100000,p=72,z=0,pa=7.27,mops=69
+./treap_mvustm_unprotected,u=0,trans=4,n=100000,p=72,z=0.99,pa=0,mops=179
+./treap_mvustm_unprotected,u=5,trans=4,n=100000,p=72,z=0.99,pa=3.65,mops=138
+./treap_mvustm_unprotected,u=50,trans=4,n=100000,p=72,z=0.99,pa=165,mops=34.2
+./treap_mvustm_unprotected,u=0,trans=4,n=10000000,p=72,z=0,pa=0,mops=47.9
+./treap_mvustm_unprotected,u=5,trans=4,n=10000000,p=72,z=0,pa=0,mops=43.4
+./treap_mvustm_unprotected,u=50,trans=4,n=10000000,p=72,z=0,pa=0.101,mops=33.8
+./treap_mvustm_unprotected,u=0,trans=4,n=10000000,p=72,z=0.99,pa=0,mops=66.9
+./treap_mvustm_unprotected,u=5,trans=4,n=10000000,p=72,z=0.99,pa=1.39,mops=59.7
+./treap_mvustm_unprotected,u=50,trans=4,n=10000000,p=72,z=0.99,pa=77,mops=31.7
+./treap_mvustm_unprotected,GEOMETRIC MEAN OF THROUGHPUTS: 69.18
+
+phytm1_fgl_colocated_locks_no_phtm system ready
+
+TM: phytm1_fgl_colocated_locks_no_phtm
+HTM ENABLED
+PMEM DISABLED
+SIMPLE TM ALLOCATOR ENABLED
+TM FREE ENABLED
+Phytm colocated locks enabled
+Size of tx_tuple<vLock> 24
+Max software path retries: 10000000
+TM Alloc Init:
+
+
+Aligned base addr=0x7f443cc00000
+
+
+
+INIT: TM alloc with baseAddr=0x7f443cc00000 and mmapSize=4292870144, up to 0x7f453ca00000
+
+Page size: 4194304
+Page count: 1023
+Page mask: 0xffffffffffc00000
+Size of page meta data 1024
+Size of thread data 8904
+
+
+TM Alloc Init:
+
+
+Aligned base addr=0x7f433cc00000
+
+
+
+INIT: TM alloc with baseAddr=0x7f433cc00000 and mmapSize=4292870144, up to 0x7f443ca00000
+
+Page size: 4194304
+Page count: 1023
+Page mask: 0xffffffffffc00000
+Size of page meta data 1024
+Size of thread data 8904
+
+
+./treap_hytm,u=0,trans=4,n=100000,p=72,z=0,pa=0,mops=141
+./treap_hytm,u=5,trans=4,n=100000,p=72,z=0,pa=0,mops=56
+ERROR WE ARE OUT OF MEMORY IN THIS MAPPING!
+EXITING
+ERROR WE ARE OUT OF MEMORY IN THIS MAPPING!
+EXITING
+phytm1_fgl_colocated_locks_no_phtm system shutdown:
+    HTM_ATTEMPT_THRESH=40
+phytm1_fgl_colocated_locks_no_phtm system shutdown:
+    HTM_ATTEMPT_THRESH=40
+./avltree_mvustm,u=0,trans=4,n=100000,p=72,z=0,pa=0,mops=162
+./avltree_mvustm,u=5,trans=4,n=100000,p=72,z=0,pa=0.276,mops=121
+./avltree_mvustm,u=50,trans=4,n=100000,p=72,z=0,pa=9.5,mops=43.5
+./avltree_mvustm,u=0,trans=4,n=100000,p=72,z=0.99,pa=0,mops=161
+./avltree_mvustm,u=5,trans=4,n=100000,p=72,z=0.99,pa=4.52,mops=104
+./avltree_mvustm,u=50,trans=4,n=100000,p=72,z=0.99,pa=215,mops=14.7
+./avltree_mvustm,u=0,trans=4,n=10000000,p=72,z=0,pa=0,mops=30
+./avltree_mvustm,u=5,trans=4,n=10000000,p=72,z=0,pa=0,mops=28.1
+./avltree_mvustm,u=50,trans=4,n=10000000,p=72,z=0,pa=0.438,mops=20.1
+./avltree_mvustm,u=0,trans=4,n=10000000,p=72,z=0.99,pa=0,mops=48.1
+./avltree_mvustm,u=5,trans=4,n=10000000,p=72,z=0.99,pa=1.59,mops=43
+./avltree_mvustm,u=50,trans=4,n=10000000,p=72,z=0.99,pa=118,mops=15.3
+./avltree_mvustm,GEOMETRIC MEAN OF THROUGHPUTS: 46.88
+./avltree_mvustm_lzstamp,u=0,trans=4,n=100000,p=72,z=0,pa=0,mops=161
+./avltree_mvustm_lzstamp,u=5,trans=4,n=100000,p=72,z=0,pa=2.01,mops=121
+./avltree_mvustm_lzstamp,u=50,trans=4,n=100000,p=72,z=0,pa=15.7,mops=43.3
+./avltree_mvustm_lzstamp,u=0,trans=4,n=100000,p=72,z=0.99,pa=0,mops=159
+./avltree_mvustm_lzstamp,u=5,trans=4,n=100000,p=72,z=0.99,pa=26.5,mops=89.2
+./avltree_mvustm_lzstamp,u=50,trans=4,n=100000,p=72,z=0.99,pa=299,mops=10.9
+./avltree_mvustm_lzstamp,u=0,trans=4,n=10000000,p=72,z=0,pa=0,mops=30.8
+./avltree_mvustm_lzstamp,u=5,trans=4,n=10000000,p=72,z=0,pa=0.195,mops=28.3
+./avltree_mvustm_lzstamp,u=50,trans=4,n=10000000,p=72,z=0,pa=1.07,mops=21.2
+./avltree_mvustm_lzstamp,u=0,trans=4,n=10000000,p=72,z=0.99,pa=0,mops=48.8
+./avltree_mvustm_lzstamp,u=5,trans=4,n=10000000,p=72,z=0.99,pa=12.3,mops=43.2
+./avltree_mvustm_lzstamp,u=50,trans=4,n=10000000,p=72,z=0.99,pa=164,mops=14.1
+./avltree_mvustm_lzstamp,GEOMETRIC MEAN OF THROUGHPUTS: 45.15
+./avltree_mvustm_hwstamp,u=0,trans=4,n=100000,p=72,z=0,pa=0,mops=160
+./avltree_mvustm_hwstamp,u=5,trans=4,n=100000,p=72,z=0,pa=0.202,mops=124
+./avltree_mvustm_hwstamp,u=50,trans=4,n=100000,p=72,z=0,pa=7.91,mops=45.4
+./avltree_mvustm_hwstamp,u=0,trans=4,n=100000,p=72,z=0.99,pa=0,mops=159
+./avltree_mvustm_hwstamp,u=5,trans=4,n=100000,p=72,z=0.99,pa=3.64,mops=106
+./avltree_mvustm_hwstamp,u=50,trans=4,n=100000,p=72,z=0.99,pa=167,mops=17.5
+./avltree_mvustm_hwstamp,u=0,trans=4,n=10000000,p=72,z=0,pa=0,mops=30.9
+./avltree_mvustm_hwstamp,u=5,trans=4,n=10000000,p=72,z=0,pa=0,mops=28.6
+./avltree_mvustm_hwstamp,u=50,trans=4,n=10000000,p=72,z=0,pa=0.38,mops=21.3
+./avltree_mvustm_hwstamp,u=0,trans=4,n=10000000,p=72,z=0.99,pa=0,mops=49
+./avltree_mvustm_hwstamp,u=5,trans=4,n=10000000,p=72,z=0.99,pa=1.32,mops=44.7
+./avltree_mvustm_hwstamp,u=50,trans=4,n=10000000,p=72,z=0.99,pa=90.1,mops=18.7
+./avltree_mvustm_hwstamp,GEOMETRIC MEAN OF THROUGHPUTS: 49.26
+./avltree_ustm_longjmp,u=0,trans=4,n=100000,p=72,z=0,pa=0,mops=153
+./avltree_ustm_longjmp,u=5,trans=4,n=100000,p=72,z=0,pa=1.12,mops=121
+./avltree_ustm_longjmp,u=50,trans=4,n=100000,p=72,z=0,pa=10.8,mops=49.9
+./avltree_ustm_longjmp,u=0,trans=4,n=100000,p=72,z=0.99,pa=0,mops=154
+./avltree_ustm_longjmp,u=5,trans=4,n=100000,p=72,z=0.99,pa=22.2,mops=102
+./avltree_ustm_longjmp,u=50,trans=4,n=100000,p=72,z=0.99,pa=273,mops=19.2
+./avltree_ustm_longjmp,u=0,trans=4,n=10000000,p=72,z=0,pa=0,mops=35.8
+./avltree_ustm_longjmp,u=5,trans=4,n=10000000,p=72,z=0,pa=0,mops=33.2
+./avltree_ustm_longjmp,u=50,trans=4,n=10000000,p=72,z=0,pa=0.507,mops=25.4
+./avltree_ustm_longjmp,u=0,trans=4,n=10000000,p=72,z=0.99,pa=0,mops=56.6
+./avltree_ustm_longjmp,u=5,trans=4,n=10000000,p=72,z=0.99,pa=9.33,mops=48.7
+./avltree_ustm_longjmp,u=50,trans=4,n=10000000,p=72,z=0.99,pa=156,mops=19.6
+./avltree_ustm_longjmp,GEOMETRIC MEAN OF THROUGHPUTS: 52.69
+./avltree_mvustm_longjmp,u=0,trans=4,n=100000,p=72,z=0,pa=0,mops=130
+./avltree_mvustm_longjmp,u=5,trans=4,n=100000,p=72,z=0,pa=1.04,mops=102
+./avltree_mvustm_longjmp,u=50,trans=4,n=100000,p=72,z=0,pa=10.5,mops=43.2
+./avltree_mvustm_longjmp,u=0,trans=4,n=100000,p=72,z=0.99,pa=0,mops=131
+./avltree_mvustm_longjmp,u=5,trans=4,n=100000,p=72,z=0.99,pa=21.5,mops=87.2
+./avltree_mvustm_longjmp,u=50,trans=4,n=100000,p=72,z=0.99,pa=254,mops=15.6
+./avltree_mvustm_longjmp,u=0,trans=4,n=10000000,p=72,z=0,pa=0,mops=30.6
+./avltree_mvustm_longjmp,u=5,trans=4,n=10000000,p=72,z=0,pa=0,mops=28.4
+./avltree_mvustm_longjmp,u=50,trans=4,n=10000000,p=72,z=0,pa=0.528,mops=21.5
+./avltree_mvustm_longjmp,u=0,trans=4,n=10000000,p=72,z=0.99,pa=0,mops=48.4
+./avltree_mvustm_longjmp,u=5,trans=4,n=10000000,p=72,z=0.99,pa=9.55,mops=42.4
+./avltree_mvustm_longjmp,u=50,trans=4,n=10000000,p=72,z=0.99,pa=146,mops=16.9
+./avltree_mvustm_longjmp,GEOMETRIC MEAN OF THROUGHPUTS: 44.85
+./avltree_mvustm_trythrow,u=0,trans=4,n=100000,p=72,z=0,pa=0,mops=153
+./avltree_mvustm_trythrow,u=5,trans=4,n=100000,p=72,z=0,pa=0.946,mops=87.3
+./avltree_mvustm_trythrow,u=50,trans=4,n=100000,p=72,z=0,pa=3.65,mops=15.5
+./avltree_mvustm_trythrow,u=0,trans=4,n=100000,p=72,z=0.99,pa=0,mops=164
+./avltree_mvustm_trythrow,u=5,trans=4,n=100000,p=72,z=0.99,pa=4.44,mops=17.3
+./avltree_mvustm_trythrow,u=50,trans=4,n=100000,p=72,z=0.99,pa=13.3,mops=2.92
+./avltree_mvustm_trythrow,u=0,trans=4,n=10000000,p=72,z=0,pa=0,mops=31.2
+./avltree_mvustm_trythrow,u=5,trans=4,n=10000000,p=72,z=0,pa=0,mops=29
+./avltree_mvustm_trythrow,u=50,trans=4,n=10000000,p=72,z=0,pa=0.509,mops=21
+./avltree_mvustm_trythrow,u=0,trans=4,n=10000000,p=72,z=0.99,pa=0,mops=50.3
+./avltree_mvustm_trythrow,u=5,trans=4,n=10000000,p=72,z=0.99,pa=3.91,mops=17.5
+./avltree_mvustm_trythrow,u=50,trans=4,n=10000000,p=72,z=0.99,pa=10.9,mops=2.86
+./avltree_mvustm_trythrow,GEOMETRIC MEAN OF THROUGHPUTS: 25.67
+./avltree_mvustm_unprotected,u=0,trans=4,n=100000,p=72,z=0,pa=0,mops=158
+./avltree_mvustm_unprotected,u=5,trans=4,n=100000,p=72,z=0,pa=0.143,mops=117
+./avltree_mvustm_unprotected,u=50,trans=4,n=100000,p=72,z=0,pa=7.02,mops=39.8
+./avltree_mvustm_unprotected,u=0,trans=4,n=100000,p=72,z=0.99,pa=0,mops=160
+./avltree_mvustm_unprotected,u=5,trans=4,n=100000,p=72,z=0.99,pa=4.37,mops=100
+./avltree_mvustm_unprotected,u=50,trans=4,n=100000,p=72,z=0.99,pa=190,mops=13.5
+./avltree_mvustm_unprotected,u=0,trans=4,n=10000000,p=72,z=0,pa=0,mops=29.2
+./avltree_mvustm_unprotected,u=5,trans=4,n=10000000,p=72,z=0,pa=0,mops=26
+./avltree_mvustm_unprotected,u=50,trans=4,n=10000000,p=72,z=0,pa=0.417,mops=20.4
+./avltree_mvustm_unprotected,u=0,trans=4,n=10000000,p=72,z=0.99,pa=0,mops=49.5
+./avltree_mvustm_unprotected,u=5,trans=4,n=10000000,p=72,z=0.99,pa=1.63,mops=43.8
+./avltree_mvustm_unprotected,u=50,trans=4,n=10000000,p=72,z=0.99,pa=92.5,mops=17.1
+./avltree_mvustm_unprotected,GEOMETRIC MEAN OF THROUGHPUTS: 46.08
+
+phytm1_fgl_colocated_locks_no_phtm system ready
+
+TM: phytm1_fgl_colocated_locks_no_phtm
+HTM ENABLED
+PMEM DISABLED
+SIMPLE TM ALLOCATOR ENABLED
+TM FREE ENABLED
+Phytm colocated locks enabled
+Size of tx_tuple<vLock> 24
+Max software path retries: 10000000
+TM Alloc Init:
+
+
+Aligned base addr=0x7ffaf7000000
+
+
+
+INIT: TM alloc with baseAddr=0x7ffaf7000000 and mmapSize=4290772992, up to 0x7ffbf6c00000
+
+Page size: 4194304
+Page count: 1023
+Page mask: 0xffffffffffc00000
+Size of page meta data 1024
+Size of thread data 8904
+
+
+TM Alloc Init:
+
+
+Aligned base addr=0x7ff9f7000000
+
+
+
+INIT: TM alloc with baseAddr=0x7ff9f7000000 and mmapSize=4290772992, up to 0x7ffaf6c00000
+
+Page size: 4194304
+Page count: 1023
+Page mask: 0xffffffffffc00000
+Size of page meta data 1024
+Size of thread data 8904
+
+
+./avltree_hytm,u=0,trans=4,n=100000,p=72,z=0,pa=0,mops=115
+./avltree_hytm,u=5,trans=4,n=100000,p=72,z=0,pa=0,mops=44.1
+./avltree_hytm,u=50,trans=4,n=100000,p=72,z=0,pa=0,mops=7.52
+./avltree_hytm,u=0,trans=4,n=100000,p=72,z=0.99,pa=0,mops=86.6
+./avltree_hytm,u=5,trans=4,n=100000,p=72,z=0.99,pa=0,mops=31.8
+./avltree_hytm,u=50,trans=4,n=100000,p=72,z=0.99,pa=0,mops=4
+ERROR WE ARE OUT OF MEMORY IN THIS MAPPING!
+EXITING
+phytm1_fgl_colocated_locks_no_phtm system shutdown:
+    HTM_ATTEMPT_THRESH=40
+phytm1_fgl_colocated_locks_no_phtm system shutdown:
+    HTM_ATTEMPT_THRESH=40
+
+
+
+
+
+./list_mvustm,u=0,trans=4,n=100,p=72,z=0,pa=0,mops=115
+./list_mvustm,u=5,trans=4,n=100,p=72,z=0,pa=496,mops=8.14
+./list_mvustm,u=50,trans=4,n=100,p=72,z=0,pa=4.44e+03,mops=0.779
+./list_mvustm,u=0,trans=4,n=100,p=72,z=0.99,pa=0,mops=118
+./list_mvustm,u=5,trans=4,n=100,p=72,z=0.99,pa=377,mops=9.68
+./list_mvustm,u=50,trans=4,n=100,p=72,z=0.99,pa=3.31e+03,mops=1.14
+./list_mvustm,u=0,trans=4,n=1000,p=72,z=0,pa=0,mops=10.6
+./list_mvustm,u=5,trans=4,n=1000,p=72,z=0,pa=461,mops=1.02
+./list_mvustm,u=50,trans=4,n=1000,p=72,z=0,pa=3.75e+03,mops=0.132
+./list_mvustm,u=0,trans=4,n=1000,p=72,z=0.99,pa=0,mops=11.6
+./list_mvustm,u=5,trans=4,n=1000,p=72,z=0.99,pa=389,mops=1.22
+./list_mvustm,u=50,trans=4,n=1000,p=72,z=0.99,pa=3.25e+03,mops=0.164
+./list_mvustm,GEOMETRIC MEAN OF THROUGHPUTS: 3.477
+./list_mvustm_lzstamp,u=0,trans=4,n=100,p=72,z=0,pa=0,mops=120
+./list_mvustm_lzstamp,u=5,trans=4,n=100,p=72,z=0,pa=574,mops=8.11
+./list_mvustm_lzstamp,u=50,trans=4,n=100,p=72,z=0,pa=5.14e+03,mops=0.72
+./list_mvustm_lzstamp,u=0,trans=4,n=100,p=72,z=0.99,pa=0,mops=118
+./list_mvustm_lzstamp,u=5,trans=4,n=100,p=72,z=0.99,pa=489,mops=8.94
+./list_mvustm_lzstamp,u=50,trans=4,n=100,p=72,z=0.99,pa=3.97e+03,mops=0.991
+./list_mvustm_lzstamp,u=0,trans=4,n=1000,p=72,z=0,pa=0,mops=10.6
+./list_mvustm_lzstamp,u=5,trans=4,n=1000,p=72,z=0,pa=537,mops=0.946
+./list_mvustm_lzstamp,u=50,trans=4,n=1000,p=72,z=0,pa=4.28e+03,mops=0.115
+./list_mvustm_lzstamp,u=0,trans=4,n=1000,p=72,z=0.99,pa=0,mops=10.8
+./list_mvustm_lzstamp,u=5,trans=4,n=1000,p=72,z=0.99,pa=490,mops=1.1
+./list_mvustm_lzstamp,u=50,trans=4,n=1000,p=72,z=0.99,pa=3.93e+03,mops=0.138
+./list_mvustm_lzstamp,GEOMETRIC MEAN OF THROUGHPUTS: 3.249
+./list_mvustm_hwstamp,u=0,trans=4,n=100,p=72,z=0,pa=0,mops=119
+./list_mvustm_hwstamp,u=5,trans=4,n=100,p=72,z=0,pa=424,mops=8.96
+./list_mvustm_hwstamp,u=50,trans=4,n=100,p=72,z=0,pa=4.03e+03,mops=0.82
+./list_mvustm_hwstamp,u=0,trans=4,n=100,p=72,z=0.99,pa=0,mops=118
+./list_mvustm_hwstamp,u=5,trans=4,n=100,p=72,z=0.99,pa=324,mops=10.4
+./list_mvustm_hwstamp,u=50,trans=4,n=100,p=72,z=0.99,pa=2.88e+03,mops=1.2
+./list_mvustm_hwstamp,u=0,trans=4,n=1000,p=72,z=0,pa=0,mops=11.2
+./list_mvustm_hwstamp,u=5,trans=4,n=1000,p=72,z=0,pa=421,mops=1.09
+./list_mvustm_hwstamp,u=50,trans=4,n=1000,p=72,z=0,pa=3.55e+03,mops=0.14
+./list_mvustm_hwstamp,u=0,trans=4,n=1000,p=72,z=0.99,pa=0,mops=11.8
+./list_mvustm_hwstamp,u=5,trans=4,n=1000,p=72,z=0.99,pa=351,mops=1.34
+./list_mvustm_hwstamp,u=50,trans=4,n=1000,p=72,z=0.99,pa=3.15e+03,mops=0.17
+./list_mvustm_hwstamp,GEOMETRIC MEAN OF THROUGHPUTS: 3.662
+./list_ustm_longjmp,u=0,trans=4,n=100,p=72,z=0,pa=0,mops=97
+./list_ustm_longjmp,u=5,trans=4,n=100,p=72,z=0,pa=730,mops=6.58
+./list_ustm_longjmp,u=50,trans=4,n=100,p=72,z=0,pa=7.09e+03,mops=0.561
+./list_ustm_longjmp,u=0,trans=4,n=100,p=72,z=0.99,pa=0,mops=99.8
+./list_ustm_longjmp,u=5,trans=4,n=100,p=72,z=0.99,pa=642,mops=7
+./list_ustm_longjmp,u=50,trans=4,n=100,p=72,z=0.99,pa=5.52e+03,mops=0.853
+./list_ustm_longjmp,u=0,trans=4,n=1000,p=72,z=0,pa=0,mops=9.95
+./list_ustm_longjmp,u=5,trans=4,n=1000,p=72,z=0,pa=737,mops=1.03
+./list_ustm_longjmp,u=50,trans=4,n=1000,p=72,z=0,pa=6.57e+03,mops=0.12
+./list_ustm_longjmp,u=0,trans=4,n=1000,p=72,z=0.99,pa=0,mops=10.7
+./list_ustm_longjmp,u=5,trans=4,n=1000,p=72,z=0.99,pa=661,mops=1.21
+./list_ustm_longjmp,u=50,trans=4,n=1000,p=72,z=0.99,pa=5.84e+03,mops=0.149
+./list_ustm_longjmp,GEOMETRIC MEAN OF THROUGHPUTS: 2.985
+./list_mvustm_longjmp,u=0,trans=4,n=100,p=72,z=0,pa=0,mops=80
+./list_mvustm_longjmp,u=5,trans=4,n=100,p=72,z=0,pa=753,mops=6.32
+./list_mvustm_longjmp,u=50,trans=4,n=100,p=72,z=0,pa=7.09e+03,mops=0.547
+./list_mvustm_longjmp,u=0,trans=4,n=100,p=72,z=0.99,pa=0,mops=84.1
+./list_mvustm_longjmp,u=5,trans=4,n=100,p=72,z=0.99,pa=629,mops=6.86
+./list_mvustm_longjmp,u=50,trans=4,n=100,p=72,z=0.99,pa=5.51e+03,mops=0.781
+./list_mvustm_longjmp,u=0,trans=4,n=1000,p=72,z=0,pa=0,mops=8.35
+./list_mvustm_longjmp,u=5,trans=4,n=1000,p=72,z=0,pa=728,mops=0.887
+./list_mvustm_longjmp,u=50,trans=4,n=1000,p=72,z=0,pa=6.31e+03,mops=0.107
+./list_mvustm_longjmp,u=0,trans=4,n=1000,p=72,z=0.99,pa=0,mops=9.02
+./list_mvustm_longjmp,u=5,trans=4,n=1000,p=72,z=0.99,pa=647,mops=1.06
+./list_mvustm_longjmp,u=50,trans=4,n=1000,p=72,z=0.99,pa=5.67e+03,mops=0.134
+./list_mvustm_longjmp,GEOMETRIC MEAN OF THROUGHPUTS: 2.661
+./list_mvustm_trythrow,u=0,trans=4,n=100,p=72,z=0,pa=0,mops=111
+./list_mvustm_trythrow,u=5,trans=4,n=100,p=72,z=0,pa=27.3,mops=3.61
+./list_mvustm_trythrow,u=50,trans=4,n=100,p=72,z=0,pa=97.5,mops=1.13
+./list_mvustm_trythrow,u=0,trans=4,n=100,p=72,z=0.99,pa=0,mops=108
+./list_mvustm_trythrow,u=5,trans=4,n=100,p=72,z=0.99,pa=28.4,mops=3.47
+./list_mvustm_trythrow,u=50,trans=4,n=100,p=72,z=0.99,pa=99.8,mops=1.1
+./list_mvustm_trythrow,u=0,trans=4,n=1000,p=72,z=0,pa=0,mops=10.9
+./list_mvustm_trythrow,u=5,trans=4,n=1000,p=72,z=0,pa=128,mops=0.759
+./list_mvustm_trythrow,u=50,trans=4,n=1000,p=72,z=0,pa=679,mops=0.148
+./list_mvustm_trythrow,u=0,trans=4,n=1000,p=72,z=0.99,pa=0,mops=11.3
+./list_mvustm_trythrow,u=5,trans=4,n=1000,p=72,z=0.99,pa=117,mops=0.829
+./list_mvustm_trythrow,u=50,trans=4,n=1000,p=72,z=0.99,pa=608,mops=0.166
+./list_mvustm_trythrow,GEOMETRIC MEAN OF THROUGHPUTS: 2.899
+./list_mvustm_unprotected,u=0,trans=4,n=100,p=72,z=0,pa=0,mops=92
+./list_mvustm_unprotected,u=5,trans=4,n=100,p=72,z=0,pa=9.88,mops=46.1
+./list_mvustm_unprotected,u=50,trans=4,n=100,p=72,z=0,pa=242,mops=7.6
+./list_mvustm_unprotected,u=0,trans=4,n=100,p=72,z=0.99,pa=0,mops=131
+./list_mvustm_unprotected,u=5,trans=4,n=100,p=72,z=0.99,pa=16.1,mops=46.2
+./list_mvustm_unprotected,u=50,trans=4,n=100,p=72,z=0.99,pa=454,mops=5.59
+./list_mvustm_unprotected,u=0,trans=4,n=1000,p=72,z=0,pa=0,mops=11.7
+./list_mvustm_unprotected,u=5,trans=4,n=1000,p=72,z=0,pa=0.655,mops=9.93
+./list_mvustm_unprotected,u=50,trans=4,n=1000,p=72,z=0,pa=39.6,mops=5.29
+./list_mvustm_unprotected,u=0,trans=4,n=1000,p=72,z=0.99,pa=0,mops=14.6
+./list_mvustm_unprotected,u=5,trans=4,n=1000,p=72,z=0.99,pa=5.37,mops=9.94
+./list_mvustm_unprotected,u=50,trans=4,n=1000,p=72,z=0.99,pa=305,mops=1.92
+./list_mvustm_unprotected,GEOMETRIC MEAN OF THROUGHPUTS: 15.46
+
+phytm1_fgl_colocated_locks_no_phtm system ready
+
+TM: phytm1_fgl_colocated_locks_no_phtm
+HTM ENABLED
+PMEM DISABLED
+SIMPLE TM ALLOCATOR ENABLED
+TM FREE ENABLED
+Phytm colocated locks enabled
+Size of tx_tuple<vLock> 24
+Max software path retries: 10000000
+TM Alloc Init:
+
+
+Aligned base addr=0x7fba99800000
+
+
+
+INIT: TM alloc with baseAddr=0x7fba99800000 and mmapSize=4292870144, up to 0x7fbb99600000
+
+Page size: 4194304
+Page count: 1023
+Page mask: 0xffffffffffc00000
+Size of page meta data 1024
+Size of thread data 8904
+
+
+TM Alloc Init:
+
+
+Aligned base addr=0x7fb999800000
+
+
+
+INIT: TM alloc with baseAddr=0x7fb999800000 and mmapSize=4292870144, up to 0x7fba99600000
+
+Page size: 4194304
+Page count: 1023
+Page mask: 0xffffffffffc00000
+Size of page meta data 1024
+Size of thread data 8904
+
+
+./list_hytm,u=0,trans=4,n=100,p=72,z=0,pa=0,mops=243
+./list_hytm,u=5,trans=4,n=100,p=72,z=0,pa=0,mops=0.618
+./list_hytm,u=50,trans=4,n=100,p=72,z=0,pa=0,mops=0.0655
+./list_hytm,u=0,trans=4,n=100,p=72,z=0.99,pa=0,mops=253
+./list_hytm,u=5,trans=4,n=100,p=72,z=0.99,pa=0,mops=0.516
+./list_hytm,u=50,trans=4,n=100,p=72,z=0.99,pa=0,mops=0.075
+./list_hytm,u=0,trans=4,n=1000,p=72,z=0,pa=0,mops=0.0317
+long duration: 2.39
+./list_hytm,u=5,trans=4,n=1000,p=72,z=0,pa=0,mops=0.00541
+long duration: 12.2
+./list_hytm,u=50,trans=4,n=1000,p=72,z=0,pa=0,mops=0.000724
+long duration: 1.49
+long duration: 1.47
+./list_hytm,u=0,trans=4,n=1000,p=72,z=0.99,pa=0,mops=0.0361
+long duration: 1.76
+./list_hytm,u=5,trans=4,n=1000,p=72,z=0.99,pa=0,mops=0.00579
+long duration: 8.76
+./list_hytm,u=50,trans=4,n=1000,p=72,z=0.99,pa=0,mops=0.000778
+./list_hytm,GEOMETRIC MEAN OF THROUGHPUTS: 0.1057
+phytm1_fgl_colocated_locks_no_phtm system shutdown:
+    HTM_ATTEMPT_THRESH=40
+phytm1_fgl_colocated_locks_no_phtm system shutdown:
+    HTM_ATTEMPT_THRESH=40
+./btree_mvustm,u=100,trans=4,n=1000000,p=72,z=0,pa=0.346,rs=1,rqp=50,rqmops=56.2,mops=33.1
+./btree_mvustm,u=100,trans=4,n=1000000,p=72,z=0,pa=0.376,rs=10,rqp=50,rqmops=48.5,mops=31.5
+./btree_mvustm,u=100,trans=4,n=1000000,p=72,z=0,pa=0.641,rs=100,rqp=50,rqmops=25.3,mops=31.8
+./btree_mvustm,u=100,trans=4,n=1000000,p=72,z=0,pa=1.68,rs=1000,rqp=50,rqmops=4.67,mops=31.9
+./btree_mvustm,u=100,trans=4,n=1000000,p=72,z=0,pa=2.48,rs=10000,rqp=50,rqmops=0.505,mops=30.9
+./btree_mvustm,u=100,trans=4,n=1000000,p=72,z=0,pa=2.68,rs=100000,rqp=50,rqmops=0.0403,mops=27.1
+./btree_mvustm,u=100,trans=4,n=1000000,p=72,z=0,pa=2.66,rs=1000000,rqp=50,rqmops=0.00337,mops=22.3
+./btree_mvustm_lzstamp,u=100,trans=4,n=1000000,p=72,z=0,pa=0.991,rs=1,rqp=50,rqmops=67.4,mops=37.4
+./btree_mvustm_lzstamp,u=100,trans=4,n=1000000,p=72,z=0,pa=1.11,rs=10,rqp=50,rqmops=57.4,mops=36.4
+./btree_mvustm_lzstamp,u=100,trans=4,n=1000000,p=72,z=0,pa=2.09,rs=100,rqp=50,rqmops=26.4,mops=35.5
+./btree_mvustm_lzstamp,u=100,trans=4,n=1000000,p=72,z=0,pa=6.86,rs=1000,rqp=50,rqmops=4.28,mops=35.5
+./btree_mvustm_lzstamp,u=100,trans=4,n=1000000,p=72,z=0,pa=7.36,rs=10000,rqp=50,rqmops=0.324,mops=35.9
+./btree_mvustm_lzstamp,u=100,trans=4,n=1000000,p=72,z=0,pa=5.52,rs=100000,rqp=50,rqmops=0.0182,mops=28.5
+./btree_mvustm_lzstamp,u=100,trans=4,n=1000000,p=72,z=0,pa=5.37,rs=1000000,rqp=50,rqmops=0.00159,mops=23
+./btree_mvustm_hwstamp,u=100,trans=4,n=1000000,p=72,z=0,pa=0.265,rs=1,rqp=50,rqmops=72.1,mops=38.9
+./btree_mvustm_hwstamp,u=100,trans=4,n=1000000,p=72,z=0,pa=0.35,rs=10,rqp=50,rqmops=60.9,mops=37.9
+./btree_mvustm_hwstamp,u=100,trans=4,n=1000000,p=72,z=0,pa=0.56,rs=100,rqp=50,rqmops=27,mops=36.3
+./btree_mvustm_hwstamp,u=100,trans=4,n=1000000,p=72,z=0,pa=1.5,rs=1000,rqp=50,rqmops=4.53,mops=35.7
+./btree_mvustm_hwstamp,u=100,trans=4,n=1000000,p=72,z=0,pa=2.1,rs=10000,rqp=50,rqmops=0.475,mops=34.5
+./btree_mvustm_hwstamp,u=100,trans=4,n=1000000,p=72,z=0,pa=2.22,rs=100000,rqp=50,rqmops=0.0346,mops=29.2
+./btree_mvustm_hwstamp,u=100,trans=4,n=1000000,p=72,z=0,pa=2.3,rs=1000000,rqp=50,rqmops=0.00301,mops=22.8
+./btree_ustm_longjmp,u=100,trans=4,n=1000000,p=72,z=0,pa=0.617,rs=1,rqp=50,rqmops=52,mops=34.2
+./btree_ustm_longjmp,u=100,trans=4,n=1000000,p=72,z=0,pa=0.658,rs=10,rqp=50,rqmops=46.5,mops=34
+./btree_ustm_longjmp,u=100,trans=4,n=1000000,p=72,z=0,pa=1.18,rs=100,rqp=50,rqmops=25.5,mops=33.8
+./btree_ustm_longjmp,u=100,trans=4,n=1000000,p=72,z=0,pa=5.39,rs=1000,rqp=50,rqmops=4.49,mops=33
+./btree_ustm_longjmp,u=100,trans=4,n=1000000,p=72,z=0,pa=23.5,rs=10000,rqp=50,rqmops=0.0359,mops=34
+./btree_ustm_longjmp,u=100,trans=4,n=1000000,p=72,z=0,pa=24.4,rs=100000,rqp=50,rqmops=3.59e-05,mops=36.6
+./btree_ustm_longjmp,u=100,trans=4,n=1000000,p=72,z=0,pa=24,rs=1000000,rqp=50,rqmops=3.54e-05,mops=35.1
+./btree_mvustm_longjmp,u=100,trans=4,n=1000000,p=72,z=0,pa=0.371,rs=1,rqp=50,rqmops=52.5,mops=32.1
+./btree_mvustm_longjmp,u=100,trans=4,n=1000000,p=72,z=0,pa=0.418,rs=10,rqp=50,rqmops=47.2,mops=32.7
+./btree_mvustm_longjmp,u=100,trans=4,n=1000000,p=72,z=0,pa=0.688,rs=100,rqp=50,rqmops=25.3,mops=32.6
+./btree_mvustm_longjmp,u=100,trans=4,n=1000000,p=72,z=0,pa=1.77,rs=1000,rqp=50,rqmops=4.71,mops=32.4
+./btree_mvustm_longjmp,u=100,trans=4,n=1000000,p=72,z=0,pa=2.65,rs=10000,rqp=50,rqmops=0.509,mops=32.1
+./btree_mvustm_longjmp,u=100,trans=4,n=1000000,p=72,z=0,pa=2.81,rs=100000,rqp=50,rqmops=0.0399,mops=27.1
+./btree_mvustm_longjmp,u=100,trans=4,n=1000000,p=72,z=0,pa=2.84,rs=1000000,rqp=50,rqmops=0.00356,mops=22.6
+./btree_mvustm_trythrow,u=100,trans=4,n=1000000,p=72,z=0,pa=0.256,rs=1,rqp=50,rqmops=63.9,mops=30.3
+./btree_mvustm_trythrow,u=100,trans=4,n=1000000,p=72,z=0,pa=0.297,rs=10,rqp=50,rqmops=53.2,mops=29.8
+./btree_mvustm_trythrow,u=100,trans=4,n=1000000,p=72,z=0,pa=0.496,rs=100,rqp=50,rqmops=27.6,mops=29.1
+./btree_mvustm_trythrow,u=100,trans=4,n=1000000,p=72,z=0,pa=1.42,rs=1000,rqp=50,rqmops=5.05,mops=29.9
+./btree_mvustm_trythrow,u=100,trans=4,n=1000000,p=72,z=0,pa=2.23,rs=10000,rqp=50,rqmops=0.55,mops=29.5
+./btree_mvustm_trythrow,u=100,trans=4,n=1000000,p=72,z=0,pa=2.34,rs=100000,rqp=50,rqmops=0.0463,mops=25.7
+./btree_mvustm_trythrow,u=100,trans=4,n=1000000,p=72,z=0,pa=2.41,rs=1000000,rqp=50,rqmops=0.0037,mops=21.4
+./btree_mvustm_unprotected,u=100,trans=4,n=1000000,p=72,z=0,pa=0.338,rs=1,rqp=50,rqmops=57.8,mops=33.2
+./btree_mvustm_unprotected,u=100,trans=4,n=1000000,p=72,z=0,pa=0.367,rs=10,rqp=50,rqmops=51.7,mops=32.6
+./btree_mvustm_unprotected,u=100,trans=4,n=1000000,p=72,z=0,pa=0.64,rs=100,rqp=50,rqmops=26,mops=32.3
+./btree_mvustm_unprotected,u=100,trans=4,n=1000000,p=72,z=0,pa=1.68,rs=1000,rqp=50,rqmops=4.68,mops=31.7
+./btree_mvustm_unprotected,u=100,trans=4,n=1000000,p=72,z=0,pa=2.49,rs=10000,rqp=50,rqmops=0.512,mops=31.5
+./btree_mvustm_unprotected,u=100,trans=4,n=1000000,p=72,z=0,pa=2.61,rs=100000,rqp=50,rqmops=0.0398,mops=27
+./btree_mvustm_unprotected,u=100,trans=4,n=1000000,p=72,z=0,pa=2.64,rs=1000000,rqp=50,rqmops=0.00339,mops=22.4
+
+phytm1_fgl_colocated_locks_no_phtm system ready
+
+TM: phytm1_fgl_colocated_locks_no_phtm
+HTM ENABLED
+PMEM DISABLED
+SIMPLE TM ALLOCATOR ENABLED
+TM FREE ENABLED
+Phytm colocated locks enabled
+Size of tx_tuple<vLock> 24
+Max software path retries: 10000000
+TM Alloc Init:
+
+
+Aligned base addr=0x7fa65e000000
+
+
+
+INIT: TM alloc with baseAddr=0x7fa65e000000 and mmapSize=4292870144, up to 0x7fa75de00000
+
+Page size: 4194304
+Page count: 1023
+Page mask: 0xffffffffffc00000
+Size of page meta data 1024
+Size of thread data 8904
+
+
+TM Alloc Init:
+
+
+Aligned base addr=0x7fa55e000000
+
+
+
+INIT: TM alloc with baseAddr=0x7fa55e000000 and mmapSize=4292870144, up to 0x7fa65de00000
+
+Page size: 4194304
+Page count: 1023
+Page mask: 0xffffffffffc00000
+Size of page meta data 1024
+Size of thread data 8904
+
+
+ERROR WE ARE OUT OF MEMORY IN THIS MAPPING!
+EXITING
+ERROR WE ARE OUT OF MEMORY IN THIS MAPPING!
+EXITING
+phytm1_fgl_colocated_locks_no_phtm system shutdown:
+    HTM_ATTEMPT_THRESH=40
+phytm1_fgl_colocated_locks_no_phtm system shutdown:
+    HTM_ATTEMPT_THRESH=40
+./arttree_mvustm,u=100,trans=4,n=1000000,p=72,z=0,pa=0.422,rs=1,rqp=50,rqmops=60.6,mops=38.7
+./arttree_mvustm,u=100,trans=4,n=1000000,p=72,z=0,pa=0.484,rs=10,rqp=50,rqmops=52,mops=38.8
+./arttree_mvustm,u=100,trans=4,n=1000000,p=72,z=0,pa=0.816,rs=100,rqp=50,rqmops=26.6,mops=38.7
+./arttree_mvustm,u=100,trans=4,n=1000000,p=72,z=0,pa=2,rs=1000,rqp=50,rqmops=5.01,mops=39.1
+./arttree_mvustm,u=100,trans=4,n=1000000,p=72,z=0,pa=2.75,rs=10000,rqp=50,rqmops=0.651,mops=39.1
+./arttree_mvustm,u=100,trans=4,n=1000000,p=72,z=0,pa=2.81,rs=100000,rqp=50,rqmops=0.0645,mops=35.3
+./arttree_mvustm,u=100,trans=4,n=1000000,p=72,z=0,pa=2.77,rs=1000000,rqp=50,rqmops=0.00503,mops=27.4
+./arttree_mvustm_lzstamp,u=100,trans=4,n=1000000,p=72,z=0,pa=1.17,rs=1,rqp=50,rqmops=74.2,mops=42.9
+./arttree_mvustm_lzstamp,u=100,trans=4,n=1000000,p=72,z=0,pa=1.37,rs=10,rqp=50,rqmops=60.6,mops=43.5
+./arttree_mvustm_lzstamp,u=100,trans=4,n=1000000,p=72,z=0,pa=2.53,rs=100,rqp=50,rqmops=26.5,mops=43.2
+./arttree_mvustm_lzstamp,u=100,trans=4,n=1000000,p=72,z=0,pa=7.03,rs=1000,rqp=50,rqmops=4.45,mops=45.1
+./arttree_mvustm_lzstamp,u=100,trans=4,n=1000000,p=72,z=0,pa=7.95,rs=10000,rqp=50,rqmops=0.426,mops=44.9
+./arttree_mvustm_lzstamp,u=100,trans=4,n=1000000,p=72,z=0,pa=6.02,rs=100000,rqp=50,rqmops=0.0288,mops=37.2
+./arttree_mvustm_lzstamp,u=100,trans=4,n=1000000,p=72,z=0,pa=5.77,rs=1000000,rqp=50,rqmops=0.00235,mops=28.8
+./arttree_mvustm_hwstamp,u=100,trans=4,n=1000000,p=72,z=0,pa=0.316,rs=1,rqp=50,rqmops=78.2,mops=44.8
+./arttree_mvustm_hwstamp,u=100,trans=4,n=1000000,p=72,z=0,pa=0.401,rs=10,rqp=50,rqmops=61,mops=45.9
+./arttree_mvustm_hwstamp,u=100,trans=4,n=1000000,p=72,z=0,pa=0.745,rs=100,rqp=50,rqmops=26.6,mops=45.6
+./arttree_mvustm_hwstamp,u=100,trans=4,n=1000000,p=72,z=0,pa=1.76,rs=1000,rqp=50,rqmops=4.74,mops=46.6
+./arttree_mvustm_hwstamp,u=100,trans=4,n=1000000,p=72,z=0,pa=2.23,rs=10000,rqp=50,rqmops=0.597,mops=44.8
+./arttree_mvustm_hwstamp,u=100,trans=4,n=1000000,p=72,z=0,pa=2.4,rs=100000,rqp=50,rqmops=0.0533,mops=38.1
+./arttree_mvustm_hwstamp,u=100,trans=4,n=1000000,p=72,z=0,pa=2.17,rs=1000000,rqp=50,rqmops=0.00618,mops=22.6
+./arttree_ustm_longjmp,u=100,trans=4,n=1000000,p=72,z=0,pa=0.688,rs=1,rqp=50,rqmops=61.8,mops=40
+./arttree_ustm_longjmp,u=100,trans=4,n=1000000,p=72,z=0,pa=0.769,rs=10,rqp=50,rqmops=53.3,mops=39.6
+./arttree_ustm_longjmp,u=100,trans=4,n=1000000,p=72,z=0,pa=1.44,rs=100,rqp=50,rqmops=26.2,mops=40.2
+./arttree_ustm_longjmp,u=100,trans=4,n=1000000,p=72,z=0,pa=5.89,rs=1000,rqp=50,rqmops=4.75,mops=40.3
+./arttree_ustm_longjmp,u=100,trans=4,n=1000000,p=72,z=0,pa=23.8,rs=10000,rqp=50,rqmops=0.0601,mops=45
+./arttree_ustm_longjmp,u=100,trans=4,n=1000000,p=72,z=0,pa=25.9,rs=100000,rqp=50,rqmops=3.59e-05,mops=47.2
+./arttree_ustm_longjmp,u=100,trans=4,n=1000000,p=72,z=0,pa=26,rs=1000000,rqp=50,rqmops=3.64e-05,mops=44.9
+./arttree_mvustm_longjmp,u=100,trans=4,n=1000000,p=72,z=0,pa=0.404,rs=1,rqp=50,rqmops=68.5,mops=39.3
+./arttree_mvustm_longjmp,u=100,trans=4,n=1000000,p=72,z=0,pa=0.462,rs=10,rqp=50,rqmops=56.4,mops=38
+./arttree_mvustm_longjmp,u=100,trans=4,n=1000000,p=72,z=0,pa=0.813,rs=100,rqp=50,rqmops=28,mops=38.6
+./arttree_mvustm_longjmp,u=100,trans=4,n=1000000,p=72,z=0,pa=2.07,rs=1000,rqp=50,rqmops=5.02,mops=39.1
+./arttree_mvustm_longjmp,u=100,trans=4,n=1000000,p=72,z=0,pa=2.83,rs=10000,rqp=50,rqmops=0.648,mops=39.3
+./arttree_mvustm_longjmp,u=100,trans=4,n=1000000,p=72,z=0,pa=3,rs=100000,rqp=50,rqmops=0.0624,mops=34.1
+./arttree_mvustm_longjmp,u=100,trans=4,n=1000000,p=72,z=0,pa=2.91,rs=1000000,rqp=50,rqmops=0.00536,mops=27.2
+./arttree_mvustm_trythrow,u=100,trans=4,n=1000000,p=72,z=0,pa=0.27,rs=1,rqp=50,rqmops=64.8,mops=33
+./arttree_mvustm_trythrow,u=100,trans=4,n=1000000,p=72,z=0,pa=0.305,rs=10,rqp=50,rqmops=57.2,mops=33.2
+./arttree_mvustm_trythrow,u=100,trans=4,n=1000000,p=72,z=0,pa=0.547,rs=100,rqp=50,rqmops=28.5,mops=32.9
+./arttree_mvustm_trythrow,u=100,trans=4,n=1000000,p=72,z=0,pa=1.5,rs=1000,rqp=50,rqmops=5.48,mops=34.5
+./arttree_mvustm_trythrow,u=100,trans=4,n=1000000,p=72,z=0,pa=2.27,rs=10000,rqp=50,rqmops=0.697,mops=34
+./arttree_mvustm_trythrow,u=100,trans=4,n=1000000,p=72,z=0,pa=2.41,rs=100000,rqp=50,rqmops=0.072,mops=30.6
+./arttree_mvustm_trythrow,u=100,trans=4,n=1000000,p=72,z=0,pa=2.61,rs=1000000,rqp=50,rqmops=0.00606,mops=26.1
+./arttree_mvustm_unprotected,u=100,trans=4,n=1000000,p=72,z=0,pa=0.417,rs=1,rqp=50,rqmops=60.8,mops=38.4
+./arttree_mvustm_unprotected,u=100,trans=4,n=1000000,p=72,z=0,pa=0.483,rs=10,rqp=50,rqmops=53.2,mops=39.4
+./arttree_mvustm_unprotected,u=100,trans=4,n=1000000,p=72,z=0,pa=0.816,rs=100,rqp=50,rqmops=26.4,mops=38.6
+./arttree_mvustm_unprotected,u=100,trans=4,n=1000000,p=72,z=0,pa=2.03,rs=1000,rqp=50,rqmops=4.9,mops=39.5
+./arttree_mvustm_unprotected,u=100,trans=4,n=1000000,p=72,z=0,pa=2.71,rs=10000,rqp=50,rqmops=0.627,mops=37.8
+./arttree_mvustm_unprotected,u=100,trans=4,n=1000000,p=72,z=0,pa=2.8,rs=100000,rqp=50,rqmops=0.0601,mops=34.8
+./arttree_mvustm_unprotected,u=100,trans=4,n=1000000,p=72,z=0,pa=2.72,rs=1000000,rqp=50,rqmops=0.00512,mops=27.9
+
+phytm1_fgl_colocated_locks_no_phtm system ready
+
+TM: phytm1_fgl_colocated_locks_no_phtm
+HTM ENABLED
+PMEM DISABLED
+SIMPLE TM ALLOCATOR ENABLED
+TM FREE ENABLED
+Phytm colocated locks enabled
+Size of tx_tuple<vLock> 24
+Max software path retries: 10000000
+TM Alloc Init:
+
+
+Aligned base addr=0x7fa900800000
+
+
+
+INIT: TM alloc with baseAddr=0x7fa900800000 and mmapSize=4292870144, up to 0x7faa00600000
+
+Page size: 4194304
+Page count: 1023
+Page mask: 0xffffffffffc00000
+Size of page meta data 1024
+Size of thread data 8904
+
+
+TM Alloc Init:
+
+
+Aligned base addr=0x7fa800800000
+
+
+
+INIT: TM alloc with baseAddr=0x7fa800800000 and mmapSize=4292870144, up to 0x7fa900600000
+
+Page size: 4194304
+Page count: 1023
+Page mask: 0xffffffffffc00000
+Size of page meta data 1024
+Size of thread data 8904
+
+
+ERROR WE ARE OUT OF MEMORY IN THIS MAPPING!
+EXITING
+phytm1_fgl_colocated_locks_no_phtm system shutdown:
+    HTM_ATTEMPT_THRESH=40
+phytm1_fgl_colocated_locks_no_phtm system shutdown:
+    HTM_ATTEMPT_THRESH=40

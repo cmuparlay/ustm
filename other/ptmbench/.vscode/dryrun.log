@@ -1,0 +1,9 @@
+make --dry-run --always-make --keep-going --print-directory
+make: Entering directory '/home/gccoccim/research/nvram_research/ptmbench'
+ 
+mkdir -p bin
+g++-10 setbench/microbench/main.cpp -o bin/brown_ext_bst_ptm_auto.debra.buffered_durable_tl2 -DUSE_GSTATS_USER_HANDLER_H_FILE -Iptmlib -Ids_ptm/brown_ext_bst_ptm_auto -DDS_TYPENAME=brown_ext_bst_ptm_auto -DRECLAIM_TYPE=debra -Dbuffered_durable_tl2  -DUSE_PAPI -DUSE_LIBNUMA -DNDEBUG -fopenmp -O0 -fno-inline-functions -fno-inline-functions-called-once -fno-optimize-sibling-calls -fno-default-inline -fno-inline -fno-omit-frame-pointer -mcx16  -DMAX_THREADS_POW2=512 -DCPU_FREQ_GHZ=2.1  -DMEMORY_STATS=if\(0\) -DMEMORY_STATS2=if\(0\) -std=c++17 -g -DNO_CLEANUP_AFTER_WORKLOAD  -DRECORD_ABORTS -DGSTATS_MAX_THREAD_BUF_SIZE=524288 -DDEBRA_ORIGINAL_FREE -DUSE_TREE_STATS   -lpapi -lnuma -Lsetbench/lib -I. -Isetbench/microbench `find setbench/common -type d | sed s/^/-I/` -lpthread -latomic -ldl -mrtm
+ 
+g++-10 setbench/microbench/main.cpp -o bin/brown_ext_bst_ptm_auto.none.buffered_durable_tl2 -DUSE_GSTATS_USER_HANDLER_H_FILE -Iptmlib -Ids_ptm/brown_ext_bst_ptm_auto -DDS_TYPENAME=brown_ext_bst_ptm_auto -DRECLAIM_TYPE=none -Dbuffered_durable_tl2  -DUSE_PAPI -DUSE_LIBNUMA -DNDEBUG -fopenmp -O0 -fno-inline-functions -fno-inline-functions-called-once -fno-optimize-sibling-calls -fno-default-inline -fno-inline -fno-omit-frame-pointer -mcx16  -DMAX_THREADS_POW2=512 -DCPU_FREQ_GHZ=2.1  -DMEMORY_STATS=if\(0\) -DMEMORY_STATS2=if\(0\) -std=c++17 -g -DNO_CLEANUP_AFTER_WORKLOAD  -DRECORD_ABORTS -DGSTATS_MAX_THREAD_BUF_SIZE=524288 -DDEBRA_ORIGINAL_FREE -DUSE_TREE_STATS   -lpapi -lnuma -Lsetbench/lib -I. -Isetbench/microbench `find setbench/common -type d | sed s/^/-I/` -lpthread -latomic -ldl -mrtm
+make: Leaving directory '/home/gccoccim/research/nvram_research/ptmbench'
+ 

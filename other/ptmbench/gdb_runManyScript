@@ -1,0 +1,11 @@
+set $n = 1000
+while $n-- > 0
+  printf "starting program\n"
+  run -nwork 72 -nprefill 72 -insdel 5.0 5.0 -k 100000 -t 1000 -pin 0-23,48-71,24-47,72-95
+  if $_siginfo
+    printf "Received signal %d, stopping\n", $_siginfo.si_signo
+    loop_break
+  else
+    printf "program exited\n"
+  end
+end

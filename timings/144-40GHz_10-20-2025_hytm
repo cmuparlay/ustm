@@ -1,0 +1,537 @@
+Date: 10-20-2025
+Model name: Intel(R) Xeon(R) CPU E7-8867 v4 @ 2.40GHz
+Git branch: fb32054
+Compiler: g++ (Ubuntu 9.4.0-1ubuntu1~20.04.2) 9.4.0
+OS: Ubuntu 20.04.6 LTS
+Hugepage: [always] madvise never
+Threads (capped): 72
+phytm1_fgl_colocated_locks_no_phtm system ready
+
+TM: phytm1_fgl_colocated_locks_no_phtm
+HTM ENABLED
+PMEM DISABLED
+SIMPLE TM ALLOCATOR ENABLED
+TM FREE ENABLED
+Phytm colocated locks enabled
+Size of tx_tuple<vLock> 24
+Max software path retries: 10000000
+TM Alloc Init:
+
+
+Aligned base addr=0x7f123d800000
+
+
+
+INIT: TM alloc with baseAddr=0x7f123d800000 and mmapSize=4292190208, up to 0x7f133d55a000
+
+Page size: 4194304
+Page count: 1023
+Page mask: 0xffffffffffc00000
+Size of page meta data 1024
+Size of thread data 8904
+
+
+TM Alloc Init:
+
+
+Aligned base addr=0x7f113d800000
+
+
+
+INIT: TM alloc with baseAddr=0x7f113d800000 and mmapSize=4292190208, up to 0x7f123d55a000
+
+Page size: 4194304
+Page count: 1023
+Page mask: 0xffffffffffc00000
+Size of page meta data 1024
+Size of thread data 8904
+
+
+./btree_hytm,u=0,trans=16,n=100000,p=72,z=0,pa=0,mops=3.95
+./btree_hytm,u=5,trans=16,n=100000,p=72,z=0,pa=0,mops=3.78
+./btree_hytm,u=50,trans=16,n=100000,p=72,z=0,pa=0,mops=3.45
+./btree_hytm,u=0,trans=16,n=100000,p=72,z=0.99,pa=0,mops=3.7
+./btree_hytm,u=5,trans=16,n=100000,p=72,z=0.99,pa=0,mops=2.95
+./btree_hytm,u=50,trans=16,n=100000,p=72,z=0.99,pa=0,mops=0.476
+ERROR WE ARE OUT OF MEMORY IN THIS MAPPING!
+EXITING
+ERROR WE ARE OUT OF MEMORY IN THIS MAPPING!
+EXITING
+ERROR WE ARE OUT OF MEMORY IN THIS MAPPING!
+EXITING
+phytm1_fgl_colocated_locks_no_phtm system shutdown:
+    HTM_ATTEMPT_THRESH=40
+phytm1_fgl_colocated_locks_no_phtm system shutdown:
+    HTM_ATTEMPT_THRESH=40
+ERROR WE ARE OUT OF MEMORY IN THIS MAPPING!
+EXITING
+phytm1_fgl_colocated_locks_no_phtm system ready
+
+TM: phytm1_fgl_colocated_locks_no_phtm
+HTM ENABLED
+PMEM DISABLED
+SIMPLE TM ALLOCATOR ENABLED
+TM FREE ENABLED
+Phytm colocated locks enabled
+Size of tx_tuple<vLock> 24
+Max software path retries: 10000000
+TM Alloc Init:
+
+
+Aligned base addr=0x7fa8ddc00000
+
+
+
+INIT: TM alloc with baseAddr=0x7fa8ddc00000 and mmapSize=4293943296, up to 0x7fa9ddb06000
+
+Page size: 4194304
+Page count: 1023
+Page mask: 0xffffffffffc00000
+Size of page meta data 1024
+Size of thread data 8904
+
+
+TM Alloc Init:
+
+
+Aligned base addr=0x7fa7ddc00000
+
+
+
+INIT: TM alloc with baseAddr=0x7fa7ddc00000 and mmapSize=4293943296, up to 0x7fa8ddb06000
+
+Page size: 4194304
+Page count: 1023
+Page mask: 0xffffffffffc00000
+Size of page meta data 1024
+Size of thread data 8904
+
+
+./arttree_hytm,u=0,trans=16,n=100000,p=72,z=0,pa=0,mops=7.12
+./arttree_hytm,u=5,trans=16,n=100000,p=72,z=0,pa=0,mops=7.21
+./arttree_hytm,u=50,trans=16,n=100000,p=72,z=0,pa=0,mops=5.79
+./arttree_hytm,u=0,trans=16,n=100000,p=72,z=0.99,pa=0,mops=7.49
+./arttree_hytm,u=5,trans=16,n=100000,p=72,z=0.99,pa=0,mops=6.12
+./arttree_hytm,u=50,trans=16,n=100000,p=72,z=0.99,pa=0,mops=1.05
+ERROR WE ARE OUT OF MEMORY IN THIS MAPPING!
+EXITING
+ERROR WE ARE OUT OF MEMORY IN THIS MAPPING!
+EXITING
+phytm1_fgl_colocated_locks_no_phtm system shutdown:
+    HTM_ATTEMPT_THRESH=40
+phytm1_fgl_colocated_locks_no_phtm system shutdown:
+    HTM_ATTEMPT_THRESH=40
+phytm1_fgl_colocated_locks_no_phtm system ready
+
+TM: phytm1_fgl_colocated_locks_no_phtm
+HTM ENABLED
+PMEM DISABLED
+SIMPLE TM ALLOCATOR ENABLED
+TM FREE ENABLED
+Phytm colocated locks enabled
+Size of tx_tuple<vLock> 24
+Max software path retries: 10000000
+TM Alloc Init:
+
+
+Aligned base addr=0x7f0f01000000
+
+
+
+INIT: TM alloc with baseAddr=0x7f0f01000000 and mmapSize=4293419008, up to 0x7f1000e86000
+
+Page size: 4194304
+Page count: 1023
+Page mask: 0xffffffffffc00000
+Size of page meta data 1024
+Size of thread data 8904
+
+
+TM Alloc Init:
+
+
+Aligned base addr=0x7f0e01000000
+
+
+
+INIT: TM alloc with baseAddr=0x7f0e01000000 and mmapSize=4293419008, up to 0x7f0f00e86000
+
+Page size: 4194304
+Page count: 1023
+Page mask: 0xffffffffffc00000
+Size of page meta data 1024
+Size of thread data 8904
+
+
+long duration: 1.19267
+./leaftree_hytm,u=0,trans=16,n=100000,p=72,z=0,pa=0,mops=0.301
+./leaftree_hytm,u=5,trans=16,n=100000,p=72,z=0,pa=0,mops=0.289
+long duration: 1.23
+./leaftree_hytm,u=50,trans=16,n=100000,p=72,z=0,pa=0,mops=0.266
+./leaftree_hytm,u=0,trans=16,n=100000,p=72,z=0.99,pa=0,mops=0.292
+./leaftree_hytm,u=5,trans=16,n=100000,p=72,z=0.99,pa=0,mops=0.119
+long duration: 2.21
+./leaftree_hytm,u=50,trans=16,n=100000,p=72,z=0.99,pa=0,mops=0.0205
+long duration: 1.44
+long duration: 1.43
+./leaftree_hytm,u=0,trans=16,n=10000000,p=72,z=0,pa=0,mops=0.144
+./leaftree_hytm,u=5,trans=16,n=10000000,p=72,z=0,pa=0,mops=0.14
+ERROR WE ARE OUT OF MEMORY IN THIS MAPPING!
+EXITING
+ERROR WE ARE OUT OF MEMORY IN THIS MAPPING!
+EXITING
+phytm1_fgl_colocated_locks_no_phtm system shutdown:
+    HTM_ATTEMPT_THRESH=40
+phytm1_fgl_colocated_locks_no_phtm system shutdown:
+    HTM_ATTEMPT_THRESH=40
+phytm1_fgl_colocated_locks_no_phtm system ready
+
+TM: phytm1_fgl_colocated_locks_no_phtm
+HTM ENABLED
+PMEM DISABLED
+SIMPLE TM ALLOCATOR ENABLED
+TM FREE ENABLED
+Phytm colocated locks enabled
+Size of tx_tuple<vLock> 24
+Max software path retries: 10000000
+TM Alloc Init:
+
+
+Aligned base addr=0x7fedf3000000
+
+
+
+INIT: TM alloc with baseAddr=0x7fedf3000000 and mmapSize=4294844416, up to 0x7feef2fe2000
+
+Page size: 4194304
+Page count: 1023
+Page mask: 0xffffffffffc00000
+Size of page meta data 1024
+Size of thread data 8904
+
+
+TM Alloc Init:
+
+
+Aligned base addr=0x7fecf3000000
+
+
+
+INIT: TM alloc with baseAddr=0x7fecf3000000 and mmapSize=4294844416, up to 0x7fedf2fe2000
+
+Page size: 4194304
+Page count: 1023
+Page mask: 0xffffffffffc00000
+Size of page meta data 1024
+Size of thread data 8904
+
+
+long duration: 1.65189
+./skiplist_hytm,u=0,trans=16,n=100000,p=72,z=0,pa=0,mops=0.134
+long duration: 1.73
+./skiplist_hytm,u=5,trans=16,n=100000,p=72,z=0,pa=0,mops=0.128
+./skiplist_hytm,u=50,trans=16,n=100000,p=72,z=0,pa=0,mops=0.0973
+long duration: 1.52
+./skiplist_hytm,u=0,trans=16,n=100000,p=72,z=0.99,pa=0,mops=0.142
+long duration: 1.31
+./skiplist_hytm,u=5,trans=16,n=100000,p=72,z=0.99,pa=0,mops=0.0631
+long duration: 3.84
+./skiplist_hytm,u=50,trans=16,n=100000,p=72,z=0.99,pa=0,mops=0.0117
+long duration: 1.39
+ERROR WE ARE OUT OF MEMORY IN THIS MAPPING!
+EXITING
+ERROR WE ARE OUT OF MEMORY IN THIS MAPPING!
+EXITING
+phytm1_fgl_colocated_locks_no_phtm system shutdown:
+    HTM_ATTEMPT_THRESH=40
+phytm1_fgl_colocated_locks_no_phtm system shutdown:
+    HTM_ATTEMPT_THRESH=40
+phytm1_fgl_colocated_locks_no_phtm system ready
+
+TM: phytm1_fgl_colocated_locks_no_phtm
+HTM ENABLED
+PMEM DISABLED
+SIMPLE TM ALLOCATOR ENABLED
+TM FREE ENABLED
+Phytm colocated locks enabled
+Size of tx_tuple<vLock> 24
+Max software path retries: 10000000
+TM Alloc Init:
+
+
+Aligned base addr=0x7fb712000000
+
+
+
+INIT: TM alloc with baseAddr=0x7fb712000000 and mmapSize=4292423680, up to 0x7fb811d93000
+
+Page size: 4194304
+Page count: 1023
+Page mask: 0xffffffffffc00000
+Size of page meta data 1024
+Size of thread data 8904
+
+
+TM Alloc Init:
+
+
+Aligned base addr=0x7fb612000000
+
+
+
+INIT: TM alloc with baseAddr=0x7fb612000000 and mmapSize=4292423680, up to 0x7fb711d93000
+
+Page size: 4194304
+Page count: 1023
+Page mask: 0xffffffffffc00000
+Size of page meta data 1024
+Size of thread data 8904
+
+
+./treap_hytm,u=0,trans=16,n=100000,p=72,z=0,pa=0,mops=0.835
+./treap_hytm,u=5,trans=16,n=100000,p=72,z=0,pa=0,mops=0.776
+./treap_hytm,u=50,trans=16,n=100000,p=72,z=0,pa=0,mops=0.628
+./treap_hytm,u=0,trans=16,n=100000,p=72,z=0.99,pa=0,mops=0.812
+./treap_hytm,u=5,trans=16,n=100000,p=72,z=0.99,pa=0,mops=0.35
+long duration: 1.12
+./treap_hytm,u=50,trans=16,n=100000,p=72,z=0.99,pa=0,mops=0.061
+ERROR WE ARE OUT OF MEMORY IN THIS MAPPING!
+EXITING
+ERROR WE ARE OUT OF MEMORY IN THIS MAPPING!
+EXITING
+phytm1_fgl_colocated_locks_no_phtm system shutdown:
+    HTM_ATTEMPT_THRESH=40
+phytm1_fgl_colocated_locks_no_phtm system shutdown:
+    HTM_ATTEMPT_THRESH=40
+phytm1_fgl_colocated_locks_no_phtm system ready
+
+TM: phytm1_fgl_colocated_locks_no_phtm
+HTM ENABLED
+PMEM DISABLED
+SIMPLE TM ALLOCATOR ENABLED
+TM FREE ENABLED
+Phytm colocated locks enabled
+Size of tx_tuple<vLock> 24
+Max software path retries: 10000000
+TM Alloc Init:
+
+
+Aligned base addr=0x7f0dfa000000
+
+
+
+INIT: TM alloc with baseAddr=0x7f0dfa000000 and mmapSize=4292231168, up to 0x7f0ef9d64000
+
+Page size: 4194304
+Page count: 1023
+Page mask: 0xffffffffffc00000
+Size of page meta data 1024
+Size of thread data 8904
+
+
+TM Alloc Init:
+
+
+Aligned base addr=0x7f0cfa000000
+
+
+
+INIT: TM alloc with baseAddr=0x7f0cfa000000 and mmapSize=4292231168, up to 0x7f0df9d64000
+
+Page size: 4194304
+Page count: 1023
+Page mask: 0xffffffffffc00000
+Size of page meta data 1024
+Size of thread data 8904
+
+
+./avltree_hytm,u=0,trans=16,n=100000,p=72,z=0,pa=0,mops=0.526
+./avltree_hytm,u=5,trans=16,n=100000,p=72,z=0,pa=0,mops=0.474
+./avltree_hytm,u=50,trans=16,n=100000,p=72,z=0,pa=0,mops=0.215
+./avltree_hytm,u=0,trans=16,n=100000,p=72,z=0.99,pa=0,mops=0.569
+./avltree_hytm,u=5,trans=16,n=100000,p=72,z=0.99,pa=0,mops=0.235
+long duration: 2.13
+./avltree_hytm,u=50,trans=16,n=100000,p=72,z=0.99,pa=0,mops=0.0236
+long duration: 1.28
+ERROR WE ARE OUT OF MEMORY IN THIS MAPPING!
+EXITING
+ERROR WE ARE OUT OF MEMORY IN THIS MAPPING!
+EXITING
+phytm1_fgl_colocated_locks_no_phtm system shutdown:
+    HTM_ATTEMPT_THRESH=40
+phytm1_fgl_colocated_locks_no_phtm system shutdown:
+    HTM_ATTEMPT_THRESH=40
+phytm1_fgl_colocated_locks_no_phtm system ready
+
+TM: phytm1_fgl_colocated_locks_no_phtm
+HTM ENABLED
+PMEM DISABLED
+SIMPLE TM ALLOCATOR ENABLED
+TM FREE ENABLED
+Phytm colocated locks enabled
+Size of tx_tuple<vLock> 24
+Max software path retries: 10000000
+TM Alloc Init:
+
+
+Aligned base addr=0x7ff6ad800000
+
+
+
+INIT: TM alloc with baseAddr=0x7ff6ad800000 and mmapSize=4293005312, up to 0x7ff7ad621000
+
+Page size: 4194304
+Page count: 1023
+Page mask: 0xffffffffffc00000
+Size of page meta data 1024
+Size of thread data 8904
+
+
+TM Alloc Init:
+
+
+Aligned base addr=0x7ff5ad800000
+
+
+
+INIT: TM alloc with baseAddr=0x7ff5ad800000 and mmapSize=4293005312, up to 0x7ff6ad621000
+
+Page size: 4194304
+Page count: 1023
+Page mask: 0xffffffffffc00000
+Size of page meta data 1024
+Size of thread data 8904
+
+
+./list_hytm,u=0,trans=16,n=100,p=72,z=0,pa=0,mops=27.6
+long duration: 1.85
+./list_hytm,u=5,trans=16,n=100,p=72,z=0,pa=0,mops=0.012
+long duration: 5.26
+./list_hytm,u=50,trans=16,n=100,p=72,z=0,pa=0,mops=0.00351
+./list_hytm,u=0,trans=16,n=100,p=72,z=0.99,pa=0,mops=27.7
+long duration: 2.3
+./list_hytm,u=5,trans=16,n=100,p=72,z=0.99,pa=0,mops=0.0102
+long duration: 5.8
+./list_hytm,u=50,trans=16,n=100,p=72,z=0.99,pa=0,mops=0.0031
+long duration: 39.7
+long duration: 39.6
+./list_hytm,u=0,trans=16,n=1000,p=72,z=0,pa=0,mops=0.00263
+long duration: 147
+./list_hytm,u=5,trans=16,n=1000,p=72,z=0,pa=0,mops=0.000127
+long duration: 577
+./list_hytm,u=50,trans=16,n=1000,p=72,z=0,pa=0,mops=3.87e-05
+long duration: 37.7
+./list_hytm,u=0,trans=16,n=1000,p=72,z=0.99,pa=0,mops=0.00288
+long duration: 184
+./list_hytm,u=5,trans=16,n=1000,p=72,z=0.99,pa=0,mops=0.000141
+long duration: 456
+./list_hytm,u=50,trans=16,n=1000,p=72,z=0.99,pa=0,mops=4.26e-05
+./list_hytm,GEOMETRIC MEAN OF THROUGHPUTS: 0.004973
+phytm1_fgl_colocated_locks_no_phtm system shutdown:
+    HTM_ATTEMPT_THRESH=40
+phytm1_fgl_colocated_locks_no_phtm system shutdown:
+    HTM_ATTEMPT_THRESH=40
+phytm1_fgl_colocated_locks_no_phtm system ready
+
+TM: phytm1_fgl_colocated_locks_no_phtm
+HTM ENABLED
+PMEM DISABLED
+SIMPLE TM ALLOCATOR ENABLED
+TM FREE ENABLED
+Phytm colocated locks enabled
+Size of tx_tuple<vLock> 24
+Max software path retries: 10000000
+TM Alloc Init:
+
+
+Aligned base addr=0x7f57bd400000
+
+
+
+INIT: TM alloc with baseAddr=0x7f57bd400000 and mmapSize=4294868992, up to 0x7f58bd3e8000
+
+Page size: 4194304
+Page count: 1023
+Page mask: 0xffffffffffc00000
+Size of page meta data 1024
+Size of thread data 8904
+
+
+TM Alloc Init:
+
+
+Aligned base addr=0x7f56bd400000
+
+
+
+INIT: TM alloc with baseAddr=0x7f56bd400000 and mmapSize=4294868992, up to 0x7f57bd3e8000
+
+Page size: 4194304
+Page count: 1023
+Page mask: 0xffffffffffc00000
+Size of page meta data 1024
+Size of thread data 8904
+
+
+./btree_hytm,u=100,trans=16,n=1000000,p=72,z=0,pa=0,rs=1,rqp=50,rqmops=25,mops=1.5
+./btree_hytm,u=100,trans=16,n=1000000,p=72,z=0,pa=0,rs=10,rqp=50,rqmops=19.6,mops=1.52
+ERROR WE ARE OUT OF MEMORY IN THIS MAPPING!
+EXITING
+ERROR WE ARE OUT OF MEMORY IN THIS MAPPING!
+EXITING
+phytm1_fgl_colocated_locks_no_phtm system shutdown:
+    HTM_ATTEMPT_THRESH=40
+phytm1_fgl_colocated_locks_no_phtm system shutdown:
+    HTM_ATTEMPT_THRESH=40
+ERROR WE ARE OUT OF MEMORY IN THIS MAPPING!
+EXITING
+phytm1_fgl_colocated_locks_no_phtm system ready
+
+TM: phytm1_fgl_colocated_locks_no_phtm
+HTM ENABLED
+PMEM DISABLED
+SIMPLE TM ALLOCATOR ENABLED
+TM FREE ENABLED
+Phytm colocated locks enabled
+Size of tx_tuple<vLock> 24
+Max software path retries: 10000000
+TM Alloc Init:
+
+
+Aligned base addr=0x7f5dfcc00000
+
+
+
+INIT: TM alloc with baseAddr=0x7f5dfcc00000 and mmapSize=4294893568, up to 0x7f5efcbee000
+
+Page size: 4194304
+Page count: 1023
+Page mask: 0xffffffffffc00000
+Size of page meta data 1024
+Size of thread data 8904
+
+
+TM Alloc Init:
+
+
+Aligned base addr=0x7f5cfcc00000
+
+
+
+INIT: TM alloc with baseAddr=0x7f5cfcc00000 and mmapSize=4294893568, up to 0x7f5dfcbee000
+
+Page size: 4194304
+Page count: 1023
+Page mask: 0xffffffffffc00000
+Size of page meta data 1024
+Size of thread data 8904
+
+
+ERROR WE ARE OUT OF MEMORY IN THIS MAPPING!
+EXITING
+ERROR WE ARE OUT OF MEMORY IN THIS MAPPING!
+EXITING
+phytm1_fgl_colocated_locks_no_phtm system shutdown:
+    HTM_ATTEMPT_THRESH=40
+phytm1_fgl_colocated_locks_no_phtm system shutdown:
+    HTM_ATTEMPT_THRESH=40

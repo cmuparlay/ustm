@@ -1,0 +1,127 @@
+Date: 01-02-2026
+Model name: Intel(R) Xeon(R) CPU E7-8867 v4 @ 2.40GHz
+Git branch: 9f7eca8
+Compiler: g++ (Ubuntu 9.4.0-1ubuntu1~20.04.2) 9.4.0
+OS: Ubuntu 20.04.6 LTS
+Hugepage: [always] madvise never
+Threads (capped): 72
+btree
+./btree_hytm,u=0,trans=16,n=100000,p=72,z=0,pa=0,mops=44.4
+./btree_hytm,u=0,trans=16,n=100000,p=72,z=0.99,pa=0,mops=43.6
+./btree_hytm,u=5,trans=16,n=100000,p=72,z=0,pa=0,mops=28.5
+./btree_hytm,u=5,trans=16,n=100000,p=72,z=0.99,pa=0,mops=23.6
+./btree_hytm,u=50,trans=16,n=100000,p=72,z=0,pa=0,mops=22.4
+./btree_hytm,u=50,trans=16,n=100000,p=72,z=0.99,pa=0,mops=3.44
+./btree_hytm,u=0,trans=16,n=10000000,p=72,z=0,pa=0,mops=18
+./btree_hytm,u=0,trans=16,n=10000000,p=72,z=0.99,pa=0,mops=18.8
+./btree_hytm,u=5,trans=16,n=10000000,p=72,z=0,pa=0,mops=17.4
+./btree_hytm,u=5,trans=16,n=10000000,p=72,z=0.99,pa=0,mops=14.7
+./btree_hytm,u=50,trans=16,n=10000000,p=72,z=0.99,pa=0,mops=2.19
+geomean throughput: 16.1138
+arttree
+./arttree_hytm,u=0,trans=16,n=100000,p=72,z=0,pa=0,mops=125
+./arttree_hytm,u=0,trans=16,n=100000,p=72,z=0.99,pa=0,mops=154
+./arttree_hytm,u=5,trans=16,n=100000,p=72,z=0,pa=0,mops=80.7
+./arttree_hytm,u=5,trans=16,n=100000,p=72,z=0.99,pa=0,mops=39
+./arttree_hytm,u=50,trans=16,n=100000,p=72,z=0,pa=0,mops=31.7
+./arttree_hytm,u=50,trans=16,n=100000,p=72,z=0.99,pa=0,mops=5.6
+./arttree_hytm,u=0,trans=16,n=10000000,p=72,z=0,pa=0,mops=28.6
+./arttree_hytm,u=0,trans=16,n=10000000,p=72,z=0.99,pa=0,mops=35.5
+./arttree_hytm,u=5,trans=16,n=10000000,p=72,z=0,pa=0,mops=28.3
+./arttree_hytm,u=5,trans=16,n=10000000,p=72,z=0.99,pa=0,mops=27.3
+./arttree_hytm,u=50,trans=16,n=10000000,p=72,z=0,pa=0,mops=24.9
+./arttree_hytm,u=50,trans=16,n=10000000,p=72,z=0.99,pa=0,mops=5.59
+geomean throughput: 32.049
+leaftree
+./leaftree_hytm,u=0,trans=16,n=100000,p=72,z=0,pa=0,mops=2.59
+./leaftree_hytm,u=0,trans=16,n=100000,p=72,z=0.99,pa=0,mops=3
+./leaftree_hytm,u=5,trans=16,n=100000,p=72,z=0,pa=0,mops=2.78
+./leaftree_hytm,u=5,trans=16,n=100000,p=72,z=0.99,pa=0,mops=1.17
+./leaftree_hytm,u=50,trans=16,n=100000,p=72,z=0,pa=0,mops=2.51
+./leaftree_hytm,u=50,trans=16,n=100000,p=72,z=0.99,pa=0,mops=0.177
+./leaftree_hytm,u=0,trans=16,n=10000000,p=72,z=0,pa=0,mops=1.26
+./leaftree_hytm,u=0,trans=16,n=10000000,p=72,z=0.99,pa=0,mops=1.3
+./leaftree_hytm,u=5,trans=16,n=10000000,p=72,z=0,pa=0,mops=1.25
+./leaftree_hytm,u=5,trans=16,n=10000000,p=72,z=0.99,pa=0,mops=0.691
+./leaftree_hytm,u=50,trans=16,n=10000000,p=72,z=0,pa=0,mops=1.15
+./leaftree_hytm,u=50,trans=16,n=10000000,p=72,z=0.99,pa=0,mops=0.122
+geomean throughput: 1.06907
+skiplist
+./skiplist_hytm,u=0,trans=16,n=100000,p=72,z=0,pa=0,mops=1.17
+./skiplist_hytm,u=0,trans=16,n=100000,p=72,z=0.99,pa=0,mops=1.26
+./skiplist_hytm,u=5,trans=16,n=100000,p=72,z=0,pa=0,mops=1.12
+./skiplist_hytm,u=5,trans=16,n=100000,p=72,z=0.99,pa=0,mops=0.553
+./skiplist_hytm,u=50,trans=16,n=100000,p=72,z=0,pa=0,mops=0.874
+./skiplist_hytm,u=50,trans=16,n=100000,p=72,z=0.99,pa=0,mops=0.0933
+./skiplist_hytm,u=0,trans=16,n=10000000,p=72,z=0,pa=0,mops=0.591
+./skiplist_hytm,u=5,trans=16,n=10000000,p=72,z=0,pa=0,mops=0.592
+./skiplist_hytm,u=50,trans=16,n=10000000,p=72,z=0,pa=0,mops=0.571
+geomean throughput: 0.626524
+treap
+./treap_hytm,u=0,trans=16,n=100000,p=72,z=0,pa=0,mops=7.64
+./treap_hytm,u=0,trans=16,n=100000,p=72,z=0.99,pa=0,mops=8.09
+./treap_hytm,u=5,trans=16,n=100000,p=72,z=0,pa=0,mops=7.31
+./treap_hytm,u=5,trans=16,n=100000,p=72,z=0.99,pa=0,mops=3.84
+./treap_hytm,u=50,trans=16,n=100000,p=72,z=0,pa=0,mops=5.24
+./treap_hytm,u=50,trans=16,n=100000,p=72,z=0.99,pa=0,mops=0.54
+./treap_hytm,u=50,trans=16,n=10000000,p=72,z=0,pa=0,mops=3.14
+./treap_hytm,u=50,trans=16,n=10000000,p=72,z=0.99,pa=0,mops=0.296
+geomean throughput: 2.86685
+avltree
+./avltree_hytm,u=0,trans=16,n=100000,p=72,z=0,pa=0,mops=5.08
+./avltree_hytm,u=0,trans=16,n=100000,p=72,z=0.99,pa=0,mops=5.19
+./avltree_hytm,u=5,trans=16,n=100000,p=72,z=0,pa=0,mops=4.45
+./avltree_hytm,u=5,trans=16,n=100000,p=72,z=0.99,pa=0,mops=2.46
+./avltree_hytm,u=50,trans=16,n=100000,p=72,z=0,pa=0,mops=2.08
+./avltree_hytm,u=50,trans=16,n=100000,p=72,z=0.99,pa=0,mops=0.247
+./avltree_hytm,u=0,trans=16,n=10000000,p=72,z=0,pa=0,mops=2.36
+./avltree_hytm,u=0,trans=16,n=10000000,p=72,z=0.99,pa=0,mops=2.41
+./avltree_hytm,u=5,trans=16,n=10000000,p=72,z=0,pa=0,mops=2.24
+./avltree_hytm,u=5,trans=16,n=10000000,p=72,z=0.99,pa=0,mops=1.5
+./avltree_hytm,u=50,trans=16,n=10000000,p=72,z=0,pa=0,mops=1.48
+./avltree_hytm,u=50,trans=16,n=10000000,p=72,z=0.99,pa=0,mops=0.152
+geomean throughput: 1.71279
+list
+./list_hytm,u=0,trans=16,n=100,p=72,z=0,pa=0,mops=283
+./list_hytm,u=0,trans=16,n=100,p=72,z=0.99,pa=0,mops=295
+./list_hytm,u=5,trans=16,n=100,p=72,z=0,pa=0,mops=0.115
+./list_hytm,u=5,trans=16,n=100,p=72,z=0.99,pa=0,mops=0.102
+./list_hytm,u=50,trans=16,n=100,p=72,z=0,pa=0,mops=0.0325
+./list_hytm,u=50,trans=16,n=100,p=72,z=0.99,pa=0,mops=0.0302
+./list_hytm,u=0,trans=16,n=1000,p=72,z=0,pa=0,mops=0.0228
+./list_hytm,u=0,trans=16,n=1000,p=72,z=0.99,pa=0,mops=0.0245
+./list_hytm,u=5,trans=16,n=1000,p=72,z=0,pa=0,mops=0.000943
+./list_hytm,u=5,trans=16,n=1000,p=72,z=0.99,pa=0,mops=0.00118
+./list_hytm,u=50,trans=16,n=1000,p=72,z=0,pa=0,mops=0.000286
+./list_hytm,u=50,trans=16,n=1000,p=72,z=0.99,pa=0,mops=0.000365
+geomean throughput: 0.0446251
+btree range queries
+./btree_hytm,u=100,trans=16,n=1000000,p=72,z=0,pa=0,rs=1,rqp=50,rqmops=56.6,mops=9.69
+range_size: 1, throughput: 56.6
+./btree_hytm,u=100,trans=16,n=1000000,p=72,z=0,pa=0,rs=10,rqp=50,rqmops=51.6,mops=9.54
+range_size: 10, throughput: 51.6
+./btree_hytm,u=100,trans=16,n=1000000,p=72,z=0,pa=0,rs=100,rqp=50,rqmops=22.3,mops=9.09
+range_size: 100, throughput: 22.3
+./btree_hytm,u=100,trans=16,n=1000000,p=72,z=0,pa=0,rs=1000,rqp=50,rqmops=0.608,mops=8.75
+range_size: 1000, throughput: 0.608
+./btree_hytm,u=100,trans=16,n=1000000,p=72,z=0,pa=0,rs=10000,rqp=50,rqmops=3.58e-05,mops=9.41
+range_size: 10000, throughput: 3.58
+./btree_hytm,u=100,trans=16,n=1000000,p=72,z=0,pa=0,rs=100000,rqp=50,rqmops=2.94e-05,mops=7.46
+range_size: 100000, throughput: 2.94
+./btree_hytm,u=100,trans=16,n=1000000,p=72,z=0,pa=0,rs=1000000,rqp=50,rqmops=2.13e-06,mops=0.561
+range_size: 1000000, throughput: 2.13
+arttree range queries
+./arttree_hytm,u=100,trans=16,n=1000000,p=72,z=0,pa=0,rs=1,rqp=50,rqmops=60.5,mops=11.9
+range_size: 1, throughput: 60.5
+./arttree_hytm,u=100,trans=16,n=1000000,p=72,z=0,pa=0,rs=10,rqp=50,rqmops=51.9,mops=12
+range_size: 10, throughput: 51.9
+./arttree_hytm,u=100,trans=16,n=1000000,p=72,z=0,pa=0,rs=100,rqp=50,rqmops=24.1,mops=12.1
+range_size: 100, throughput: 24.1
+./arttree_hytm,u=100,trans=16,n=1000000,p=72,z=0,pa=0,rs=1000,rqp=50,rqmops=0.594,mops=11.8
+range_size: 1000, throughput: 0.594
+./arttree_hytm,u=100,trans=16,n=1000000,p=72,z=0,pa=0,rs=10000,rqp=50,rqmops=3.5e-05,mops=11.2
+range_size: 10000, throughput: 3.5
+./arttree_hytm,u=100,trans=16,n=1000000,p=72,z=0,pa=0,rs=100000,rqp=50,rqmops=2.94e-05,mops=9.32
+range_size: 100000, throughput: 2.94
+./arttree_hytm,u=100,trans=16,n=1000000,p=72,z=0,pa=0,rs=1000000,rqp=50,rqmops=2.18e-06,mops=0.712
+range_size: 1000000, throughput: 2.18

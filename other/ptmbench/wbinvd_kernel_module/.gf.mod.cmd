@@ -1,0 +1,1 @@
+cmd_/home/gccoccim/research/nvram_research/ptmbench-master/wbinvd_kernel_module/gf.mod := { echo  /home/gccoccim/research/nvram_research/ptmbench-master/wbinvd_kernel_module/gf.o;  echo; } > /home/gccoccim/research/nvram_research/ptmbench-master/wbinvd_kernel_module/gf.mod
