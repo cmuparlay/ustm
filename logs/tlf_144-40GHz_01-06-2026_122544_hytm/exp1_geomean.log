@@ -1,3 +1,0 @@
-Output: ../../timings/tlf_geomean_144-40GHz_01-06-2026_hytm
-HYTM_MODE: true (max_threads=72)
-Structure: btree, Impl: mvustm
