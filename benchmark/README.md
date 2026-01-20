@@ -1,25 +1,6 @@
-# TLF Paper Experiment Scripts
+# Benchamrks
 
-Scripts to recreate the experiments from the paper:
-
-**"TLF: Transactional Lock Fusion"** (SPAA '25)  
-https://doi.org/10.1145/3694906.3743341
-
-## Quick Start
-
-```bash
-# Build the benchmarks
-cd build
-cmake .. && make -j
-
-# Run experiments
-cd benchmark
-../../benchmark/runall_tlf.sh
-
-# Plot results
-cd ../../plot
-python3 plot_tlf.py ../timings/tlf_<machine>_<date>_<timestamp>
-```
+Instructions to run our benchmark suite.
 
 ---
 
@@ -74,7 +55,7 @@ cd build/benchmark
 - Default mode: Includes HyTM, capped at 72 threads on 2 sockets for fair comparison
 - `--no-hytm` mode: Excludes HyTM, uses all available threads/sockets
 - Non-HyTM implementations use efficient single-invocation mode for geomean
-- HyTM uses separate invocations per parameter combination (due to memory leak)
+- HyTM uses separate invocations per parameter combination
 
 ### Other Scripts
 

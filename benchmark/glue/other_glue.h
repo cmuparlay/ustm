@@ -103,11 +103,9 @@ namespace stm { struct versioned {}; }
 #endif
 
 #ifdef HyTm
-// HyTm implementation
 namespace stm {
   template <typename F>
   auto atomic_region(F &&func) {
-    // Thread is automatically initialized via tl_hytm_tcico
     using T = decltype(func());
     if constexpr (std::is_void_v<T>) {
       TM_BEGIN();
@@ -124,7 +122,6 @@ namespace stm {
 
   template <typename F>
   auto atomic_read_only(F &&func, bool large = false) {
-    // HyTm has read-only transactions
     using T = decltype(func());
     if constexpr (std::is_void_v<T>) {
       TM_BEGIN_RO();
