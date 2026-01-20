@@ -52,21 +52,12 @@ namespace {
   struct HyTmThreadCheckInOut {
     bool initialized = false;
     HyTmThreadCheckInOut() {
-#ifdef HYTM_VERBOSE_LOGGING
-      std::cout << "[HyTm] Thread " << std::this_thread::get_id() << " initializing..." << std::endl;
-#endif
-      TM_THREAD_ENTER();
-      initialized = true;
-#ifdef HYTM_VERBOSE_LOGGING
-      std::cout << "[HyTm] Thread " << std::this_thread::get_id() << " initialized successfully" << std::endl;
-#endif
+    TM_THREAD_ENTER();
+    initialized = true;
     }
     // Note: TM_THREAD_EXIT() might not be needed based on HyTm's design
     ~HyTmThreadCheckInOut() {
       if (initialized) {
-#ifdef HYTM_VERBOSE_LOGGING
-        std::cout << "[HyTm] Thread " << std::this_thread::get_id() << " cleaning up..." << std::endl;
-#endif
       }
     }
   };
@@ -75,69 +66,31 @@ namespace {
   
   // Global initializer
   struct HyTmInit {
-    static void bus_error_handler(int sig) {
-#ifdef HYTM_VERBOSE_LOGGING
-      std::cout << "[HyTm] BUS ERROR detected during program execution!" << std::endl;
-      std::cout << "[HyTm] This likely occurred during HyTm memory management operations" << std::endl;
-      std::cout << "[HyTm] Signal: " << sig << std::endl;
-#endif
-      std::exit(1);
-    }
-    
     HyTmInit() {
-#ifdef HYTM_VERBOSE_LOGGING
-      std::cout << "[HyTm] Global initialization starting..." << std::endl;
-#else
       // Suppress HyTm library output during initialization
       int stdout_backup = dup(STDOUT_FILENO);
       int devnull = open("/dev/null", O_WRONLY);
       dup2(devnull, STDOUT_FILENO);
       close(devnull);
-#endif
-      
-      // Install signal handler before HyTm initialization
-      struct sigaction sa;
-      sa.sa_handler = bus_error_handler;
-      sigemptyset(&sa.sa_mask);
-      sa.sa_flags = 0;
-      sigaction(SIGBUS, &sa, nullptr);
-      
-      try {
-        TM_STARTUP(2);  // Use only 2 threads for initialization
-#ifdef HYTM_VERBOSE_LOGGING
-        std::cout << "[HyTm] Global initialization completed" << std::endl;
-#endif
-      } catch (...) {
-#ifdef HYTM_VERBOSE_LOGGING
-        std::cout << "[HyTm] Exception during initialization - continuing" << std::endl;
-#endif
-      }
-      
-#ifndef HYTM_VERBOSE_LOGGING
+
+      TM_STARTUP(2);  // Use only 2 threads for initialization
+
       // Restore stdout
       dup2(stdout_backup, STDOUT_FILENO);
       close(stdout_backup);
-#endif
     }
     ~HyTmInit() { 
-#ifdef HYTM_VERBOSE_LOGGING
-      std::cout << "[HyTm] Global shutdown starting..." << std::endl;
-#else
       // Suppress HyTm library output during shutdown
       int stdout_backup = dup(STDOUT_FILENO);
       int devnull = open("/dev/null", O_WRONLY);
       dup2(devnull, STDOUT_FILENO);
       close(devnull);
-#endif
+
       TM_SHUTDOWN(); 
-#ifdef HYTM_VERBOSE_LOGGING
-      std::cout << "[HyTm] Global shutdown completed" << std::endl;
-#endif
-#ifndef HYTM_VERBOSE_LOGGING
+
       // Restore stdout
       dup2(stdout_backup, STDOUT_FILENO);
       close(stdout_backup);
-#endif
     }
   };
   static HyTmInit hytm_init;
@@ -158,27 +111,13 @@ namespace stm {
     using T = decltype(func());
     if constexpr (std::is_void_v<T>) {
       TM_BEGIN();
-      try {
-        func();
-        TM_END();
-      } catch (...) {
-#ifdef HYTM_VERBOSE_LOGGING
-        std::cout << "[HyTm] Exception in atomic_region (void)" << std::endl;
-#endif
-        throw;
-      }
+      func();
+      TM_END();
     } else {
       T result;
       TM_BEGIN();
-      try {
-        result = func();
-        TM_END();
-      } catch (...) {
-#ifdef HYTM_VERBOSE_LOGGING
-        std::cout << "[HyTm] Exception in atomic_region (non-void)" << std::endl;
-#endif
-        throw;
-      }
+      result = func();
+      TM_END();
       return result;
     }
   }
