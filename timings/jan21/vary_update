@@ -1,0 +1,63 @@
+Date: 01-22-2026
+Experiment: vary_update
+HYTM: yes
+Model name:                           Intel(R) Xeon(R) CPU E7-8867 v4 @ 2.40GHz
+Git: c8bffce
+---
+Fixed: n=100000, trans=4, z=0.9, p=72 (300 for list)
+---
+./btree_mvustm,./btree_mvustm,u=0,trans=4,n=100000,p=72,z=0.9,pa=0,mops=89.5
+./btree_mvustm,./btree_mvustm,u=1,trans=4,n=100000,p=72,z=0.9,pa=0,mops=65.3
+./btree_mvustm,./btree_mvustm,u=5,trans=4,n=100000,p=72,z=0.9,pa=0.617,mops=45.2
+./btree_mvustm,./btree_mvustm,u=10,trans=4,n=100000,p=72,z=0.9,pa=2.08,mops=28.8
+./btree_mvustm,./btree_mvustm,u=20,trans=4,n=100000,p=72,z=0.9,pa=5.08,mops=18.4
+./btree_mvustm,./btree_mvustm,u=50,trans=4,n=100000,p=72,z=0.9,pa=14.5,mops=7.83
+./arttree_mvustm,./arttree_mvustm,u=0,trans=4,n=100000,p=72,z=0.9,pa=0,mops=105
+./arttree_mvustm,./arttree_mvustm,u=1,trans=4,n=100000,p=72,z=0.9,pa=0,mops=139
+./arttree_mvustm,./arttree_mvustm,u=5,trans=4,n=100000,p=72,z=0.9,pa=0.495,mops=70.8
+./arttree_mvustm,./arttree_mvustm,u=10,trans=4,n=100000,p=72,z=0.9,pa=1.45,mops=41.2
+./arttree_mvustm,./arttree_mvustm,u=20,trans=4,n=100000,p=72,z=0.9,pa=3.51,mops=32
+./arttree_mvustm,./arttree_mvustm,u=50,trans=4,n=100000,p=72,z=0.9,pa=11.7,mops=12.7
+./avltree_mvustm,./avltree_mvustm,u=0,trans=4,n=100000,p=72,z=0.9,pa=0,mops=42.5
+./avltree_mvustm,./avltree_mvustm,u=1,trans=4,n=100000,p=72,z=0.9,pa=0,mops=30.5
+./avltree_mvustm,./avltree_mvustm,u=5,trans=4,n=100000,p=72,z=0.9,pa=0.54,mops=16
+./avltree_mvustm,./avltree_mvustm,u=10,trans=4,n=100000,p=72,z=0.9,pa=1.59,mops=12.6
+./avltree_mvustm,./avltree_mvustm,u=20,trans=4,n=100000,p=72,z=0.9,pa=4.26,mops=8.5
+./avltree_mvustm,./avltree_mvustm,u=50,trans=4,n=100000,p=72,z=0.9,pa=14.6,mops=4.59
+./leaftree_mvustm,./leaftree_mvustm,u=0,trans=4,n=100000,p=72,z=0.9,pa=0,mops=29.9
+./leaftree_mvustm,./leaftree_mvustm,u=1,trans=4,n=100000,p=72,z=0.9,pa=0,mops=25
+./leaftree_mvustm,./leaftree_mvustm,u=5,trans=4,n=100000,p=72,z=0.9,pa=0.317,mops=19
+./leaftree_mvustm,./leaftree_mvustm,u=10,trans=4,n=100000,p=72,z=0.9,pa=1.12,mops=17.3
+./leaftree_mvustm,./leaftree_mvustm,u=20,trans=4,n=100000,p=72,z=0.9,pa=3.39,mops=10.4
+./leaftree_mvustm,./leaftree_mvustm,u=50,trans=4,n=100000,p=72,z=0.9,pa=13.9,mops=7.43
+./treap_mvustm,./treap_mvustm,u=0,trans=4,n=100000,p=72,z=0.9,pa=0,mops=48.4
+./treap_mvustm,./treap_mvustm,u=1,trans=4,n=100000,p=72,z=0.9,pa=0,mops=41.3
+./treap_mvustm,./treap_mvustm,u=5,trans=4,n=100000,p=72,z=0.9,pa=0.474,mops=27.4
+./treap_mvustm,./treap_mvustm,u=10,trans=4,n=100000,p=72,z=0.9,pa=1.43,mops=19.7
+./treap_mvustm,./treap_mvustm,u=20,trans=4,n=100000,p=72,z=0.9,pa=3.84,mops=11.4
+./treap_mvustm,./treap_mvustm,u=50,trans=4,n=100000,p=72,z=0.9,pa=13.4,mops=7.13
+./skiplist_mvustm,./skiplist_mvustm,u=0,trans=4,n=100000,p=72,z=0.9,pa=0,mops=21.3
+./skiplist_mvustm,./skiplist_mvustm,u=1,trans=4,n=100000,p=72,z=0.9,pa=0,mops=18.5
+./skiplist_mvustm,./skiplist_mvustm,u=5,trans=4,n=100000,p=72,z=0.9,pa=0.48,mops=15.1
+./skiplist_mvustm,./skiplist_mvustm,u=10,trans=4,n=100000,p=72,z=0.9,pa=1.24,mops=9.39
+./skiplist_mvustm,./skiplist_mvustm,u=20,trans=4,n=100000,p=72,z=0.9,pa=4.12,mops=7.53
+./skiplist_mvustm,./skiplist_mvustm,u=50,trans=4,n=100000,p=72,z=0.9,pa=14.8,mops=4.14
+./hash_block_mvustm,./hash_block_mvustm,u=0,trans=4,n=100000,p=72,z=0.9,pa=0,mops=329
+./hash_block_mvustm,./hash_block_mvustm,u=1,trans=4,n=100000,p=72,z=0.9,pa=0,mops=221
+./hash_block_mvustm,./hash_block_mvustm,u=5,trans=4,n=100000,p=72,z=0.9,pa=0.611,mops=75.4
+./hash_block_mvustm,./hash_block_mvustm,u=10,trans=4,n=100000,p=72,z=0.9,pa=1.62,mops=71.4
+./hash_block_mvustm,./hash_block_mvustm,u=20,trans=4,n=100000,p=72,z=0.9,pa=3.87,mops=37
+./hash_block_mvustm,./hash_block_mvustm,u=50,trans=4,n=100000,p=72,z=0.9,pa=13.6,mops=20.1
+./list_mvustm,./list_mvustm,u=0,trans=4,n=300,p=72,z=0.9,pa=0,mops=9.13
+./list_mvustm,./list_mvustm,u=1,trans=4,n=300,p=72,z=0.9,pa=0.515,mops=4.46
+./list_mvustm,./list_mvustm,u=5,trans=4,n=300,p=72,z=0.9,pa=58,mops=2.65
+./list_mvustm,./list_mvustm,u=10,trans=4,n=300,p=72,z=0.9,pa=159,mops=1.36
+./list_mvustm,./list_mvustm,u=20,trans=4,n=300,p=72,z=0.9,pa=350,mops=0.894
+./list_mvustm,./list_mvustm,u=50,trans=4,n=300,p=72,z=0.9,pa=720,mops=0.398
+./btree_mvustm_hwstamp,./btree_mvustm_hwstamp,u=0,trans=4,n=100000,p=72,z=0.9,pa=0,mops=54.4
+./btree_mvustm_hwstamp,./btree_mvustm_hwstamp,u=1,trans=4,n=100000,p=72,z=0.9,pa=0,mops=75.5
+./btree_mvustm_hwstamp,./btree_mvustm_hwstamp,u=5,trans=4,n=100000,p=72,z=0.9,pa=0.439,mops=41.1
+./btree_mvustm_hwstamp,./btree_mvustm_hwstamp,u=10,trans=4,n=100000,p=72,z=0.9,pa=1.42,mops=23.6
+./btree_mvustm_hwstamp,./btree_mvustm_hwstamp,u=20,trans=4,n=100000,p=72,z=0.9,pa=3.78,mops=18.1
+./btree_mvustm_hwstamp,./btree_mvustm_hwstamp,u=50,trans=4,n=100000,p=72,z=0.9,pa=12.2,mops=9.87
+./arttree_mvustm_hwstamp,./arttree_mvustm_hwstamp,u=0,trans=4,n=100000,p=72,z=0.9,pa=0,mops=171
