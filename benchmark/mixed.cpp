@@ -57,7 +57,7 @@ example: -n 10000,10000000 -u 0,5,50 -z 0,.99 -trans 1,16 -rs 100,1000 -rqp 50 -
 )";
 
 using K = unsigned long;
-using V = std::array<unsigned long, 1>;
+using V = unsigned long;
 
 #ifdef HASH
   struct IntHash {
@@ -134,9 +134,10 @@ double run_mixed_operations(parlay::sequence<K>& all,
 
   double throughput = 0;
 
+
   // loop over rounds
   for (int i = 0; i < rounds + warmup; i++) {
-#ifdef LimitedSTM
+#if defined(LimitedSTM) || defined(GCCTM)
     auto *map_ptr = stm::atomic_region([=]() TRANS_SAFE { return stm::New<SetType>(n); });
 #else
     auto *map_ptr = new SetType(n);
@@ -147,7 +148,7 @@ double run_mixed_operations(parlay::sequence<K>& all,
     if (verbose) std::cout << "round " << i << std::endl;
     using V = typename SetType::V;
     V default_value;
-    default_value[0] = 3;
+    default_value = 3;
     
     // insert n distinct elements
     parlay::parallel_for(0, n, [&] (size_t i) {
@@ -252,7 +253,7 @@ double run_mixed_operations(parlay::sequence<K>& all,
 #else
             auto val = stm::atomic_read_only_singleton([&] () TRANS_SAFE {return tr.find(all[j]);});
 #endif
-            if (val.has_value()) local_stats.query_total_value += val.value()[0];
+            if (val.has_value()) local_stats.query_total_value += val.value();
           } else if (op_types[jj] == Insert) {
             local_stats.update_count++;
             if (stm::atomic_region([&] () TRANS_SAFE {return tr.insert(all[j], default_value);})) {
@@ -278,7 +279,7 @@ double run_mixed_operations(parlay::sequence<K>& all,
               if (op_types[jj+k] == Find) {
                 loc_queries += 1;
                 auto val = tr.find(all[j+k]);
-                if (val.has_value()) loc_found += val.value()[0];
+                if (val.has_value()) loc_found += val.value();
               } else if (op_types[jj+k] == Insert) {
                 if (tr.insert(all[j+k], default_value)) {loc_added++; loc_update_success++;}
               } else if (op_types[jj+k] == Remove) {
@@ -333,7 +334,7 @@ double run_mixed_operations(parlay::sequence<K>& all,
       double update_successes = overall_stats.update_success_count;
       double update_success_ratio = update_successes / total_updates;
       long total_queries = overall_stats.query_count;
-      double total_found = overall_stats.query_total_value / default_value[0];
+      double total_found = overall_stats.query_total_value / default_value;
       double success_ratio = total_found / total_queries;
       int range_ratio = overall_stats.range_sum / (overall_stats.range_count + 1);
       if (verbose) {
@@ -382,7 +383,7 @@ double run_mixed_operations(parlay::sequence<K>& all,
     // out of read buffer.
     // Using stm::Delete breaks tinystm, presumably because it can't
     // handle non-trivial destructors
-#ifdef LimitedSTM
+#if defined(LimitedSTM) || defined(GCCTM)
     //stm::atomic_region([=] { stm::Delete(map_ptr); return true;});
 #else
     delete map_ptr; 

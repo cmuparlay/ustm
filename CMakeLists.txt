@@ -63,9 +63,41 @@ find_library(JEMALLOC_LIB jemalloc)
 if(NOT JEMALLOC_LIB)
   message(FATAL_ERROR "Could not find jemalloc.")
 else()
-  message("-- Found jemalloc: ${JEMALLOC_LIB}")
+  message("-- Found jemalloc:                 ${JEMALLOC_LIB}")
   target_link_libraries(ustm INTERFACE optimized ${JEMALLOC_LIB})
 endif()
+
+include(ExternalProject)
+#set(LIBITM_PREFIX "${CMAKE_BINARY_DIR}/libitm")
+#set(LIBITM_SRC_DIR "${LIBITM_PREFIX}/src/project_libitm")
+#set(LIBITM_BUILD_DIR "${LIBITM_PREFIX}/src/project_libitm-build")
+#set(LIBITM_LIB "${LIBITM_BUILD_DIR}/.libs/libitm.a")
+set(LIBITM_PREFIX "${CMAKE_BINARY_DIR}/libitm_ext")
+set(LIBITM_LIB "${LIBITM_PREFIX}/src/project_libitm-build/.libs/libitm.a")
+ExternalProject_Add(
+  project_libitm
+  GIT_REPOSITORY https://github.com/ajccosta/gcc.git
+  GIT_TAG gcc-13
+  PREFIX ${LIBITM_PREFIX}
+  GIT_SHALLOW 1
+  CONFIGURE_COMMAND <SOURCE_DIR>/libitm/configure
+      --enable-static
+      --disable-shared 
+      --disable-multilib
+      --with-pic
+      "CXXFLAGS=-fPIC -g -O2"
+      "CFLAGS=-fPIC -g -O2"
+  BUILD_COMMAND make -j
+  INSTALL_COMMAND ""
+  BUILD_IN_SOURCE 0
+  BUILD_BYPRODUCTS ${LIBITM_LIB}
+  UPDATE_COMMAND ""
+)
+add_library(libitm_static STATIC IMPORTED GLOBAL)
+set_target_properties(libitm_static PROPERTIES IMPORTED_LOCATION ${LIBITM_LIB})
+add_dependencies(libitm_static project_libitm)
+add_dependencies(ustm libitm_static)
+
 
 # -------------------------------------------------------------------
 #                       Benchmarks
