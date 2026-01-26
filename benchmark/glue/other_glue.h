@@ -49,48 +49,34 @@ namespace stm { using versioned = fuse::versioned; }
 #include "../../other/ptmbench/phytmlib/phytm2.h"
 
 namespace {
-  struct HyTmThreadCheckInOut {
-    bool initialized = false;
-    HyTmThreadCheckInOut() {
-    TM_THREAD_ENTER();
-    initialized = true;
+
+  // RAII class that suppresses output to a given fd
+  struct SuppressOuput {
+    int backup;
+    int fd;
+    SuppressOuput(int fd = STDOUT_FILENO) : fd(fd), backup(dup(fd)) {
+      int devnull = open("/dev/null", O_WRONLY);
+      dup2(devnull, fd);
+      close(devnull);
     }
-    // Note: TM_THREAD_EXIT() might not be needed based on HyTm's design
-    ~HyTmThreadCheckInOut() {
-      if (initialized) {
-      }
+    ~SuppressOuput() {
+      dup2(backup, fd);
+      close(backup);
     }
   };
   
-  thread_local HyTmThreadCheckInOut tl_hytm_tcico;
-  
-  // Global initializer
   struct HyTmInit {
     HyTmInit() {
       // Suppress HyTm library output during initialization
-      int stdout_backup = dup(STDOUT_FILENO);
-      int devnull = open("/dev/null", O_WRONLY);
-      dup2(devnull, STDOUT_FILENO);
-      close(devnull);
+      SuppressOuput SO;
 
-      TM_STARTUP(2);  // Use only 2 threads for initialization
-
-      // Restore stdout
-      dup2(stdout_backup, STDOUT_FILENO);
-      close(stdout_backup);
+      STM_STARTUP();
     }
     ~HyTmInit() { 
       // Suppress HyTm library output during shutdown
-      int stdout_backup = dup(STDOUT_FILENO);
-      int devnull = open("/dev/null", O_WRONLY);
-      dup2(devnull, STDOUT_FILENO);
-      close(devnull);
+      SuppressOuput SO;
 
-      TM_SHUTDOWN(); 
-
-      // Restore stdout
-      dup2(stdout_backup, STDOUT_FILENO);
-      close(stdout_backup);
+      TM_SHUTDOWN();
     }
   };
   static HyTmInit hytm_init;
@@ -187,7 +173,7 @@ namespace stm {
 }
 
 #else
-// Non-HyTm STM implementations
+// Non-HyTm
 namespace stm {
 
 #ifdef OneFile

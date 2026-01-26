@@ -1,14 +1,10 @@
 #!/usr/bin/env python3
 """
-TLF Paper - Unified Experiment Runner
-Recreates experiments from "TLF: Transactional Lock Fusion" (SPAA '25)
-https://doi.org/10.1145/3694906.3743341
-
 Usage:
     ./run_experiment.py <experiment> [options]
 
 Experiments:
-    geomean   - Geometric mean across parameter sweep (Figure 1)
+    geomean   - Geometric mean across parameter sweep
     size      - Vary data structure size
     threads   - Vary thread count
     zipfian   - Vary Zipfian skew parameter
@@ -22,7 +18,7 @@ Options:
     --output DIR  Output directory for results
 
 Implementations tested:
-    mvustm, mvustm_hwstamp, mvustm_longjmp, 2plsf, fuse, hytm (if enabled)
+    mvustm, mvustm_hwstamp, mvustm_longjmp, 2plsf, fuse, hytm, onfile, tinystm, tl2
 
 Examples:
     ./run_experiment.py geomean
@@ -56,7 +52,7 @@ class Config:
     max_threads: int = 72
     numa_cmd: str = "numactl --cpunodebind=0,1 --membind=0,1"
     
-    # Default parameters (from paper Section 10)
+    # Default parameters
     default_n: int = 100000
     default_list_n: int = 300
     default_u: int = 5
@@ -74,7 +70,6 @@ class Config:
 
 
 def get_config(include_hytm: bool) -> Config:
-    """Get configuration based on whether HyTM is included."""
     config = Config()
     
     if include_hytm:
@@ -91,7 +86,6 @@ def get_config(include_hytm: bool) -> Config:
 
 
 def get_nproc() -> int:
-    """Get number of available processors."""
     try:
         return os.cpu_count() or 1
     except:
@@ -99,7 +93,6 @@ def get_nproc() -> int:
 
 
 def get_machine_info() -> str:
-    """Get machine model name suffix."""
     try:
         result = subprocess.run(["lscpu"], capture_output=True, text=True)
         for line in result.stdout.split('\n'):
@@ -112,7 +105,6 @@ def get_machine_info() -> str:
 
 
 def geomean(values: List[float]) -> float:
-    """Calculate geometric mean of values."""
     values = [v for v in values if v and v > 0]
     if not values:
         return 0.0
@@ -120,7 +112,6 @@ def geomean(values: List[float]) -> float:
 
 
 def run_benchmark(cmd: str, numa_cmd: str) -> str:
-    """Run a benchmark command and return output."""
     full_cmd = f"{numa_cmd} {cmd}"
     try:
         result = subprocess.run(
@@ -135,13 +126,13 @@ def run_benchmark(cmd: str, numa_cmd: str) -> str:
 
 
 def parse_mops(output: str) -> Optional[float]:
-    """Extract mops value from benchmark output."""
+    """Extract thrughput from benchmark output."""
     match = re.search(r'mops=([\d.]+)', output)
     return float(match.group(1)) if match else None
 
 
 def get_result_line(output: str) -> Optional[str]:
-    """Extract result line containing mops from output."""
+    """Extract result line"""
     for line in output.split('\n'):
         if 'mops=' in line:
             return line.strip()
@@ -160,7 +151,6 @@ def get_structs_for_impl(config: Config, impl: str) -> List[str]:
 
 
 class ExperimentRunner:
-    """Runs TLF paper experiments."""
     
     def __init__(self, config: Config, output_dir: Optional[str] = None):
         self.config = config
@@ -169,7 +159,7 @@ class ExperimentRunner:
         self.results_file = None
         
     def setup_output(self, experiment_name: str) -> str:
-        """Set up output file and return filename."""
+        """Create new timings file"""
         today = datetime.now().strftime("%m-%d-%Y")
         machine = get_machine_info()
         suffix = "_hytm" if "hytm" in self.config.impls else ""
@@ -355,7 +345,6 @@ class ExperimentRunner:
         self.results_file.close()
     
     def run_size(self):
-        """Varying size experiment (Figures 9/10 Row 1)."""
         sizes = [1000, 10000, 100000, 1000000, 10000000, 100000000]
         list_sizes = [10, 100, 300, 1000, 3000, 10000]
         
@@ -394,7 +383,6 @@ class ExperimentRunner:
         self.results_file.close()
     
     def run_threads(self):
-        """Varying threads experiment (Figures 9/10 Row 2)."""
         if "hytm" in self.config.impls:
             threads = [1, 4, 8, 16, 32, 48, 64, 72]
         else:
@@ -409,7 +397,6 @@ class ExperimentRunner:
         self._run_varying_experiment("vary_threads", 'p', threads, fixed)
     
     def run_zipfian(self):
-        """Varying zipfian experiment (Figures 9/10 Row 3)."""
         zipfians = [0, 0.25, 0.5, 0.75, 0.9, 0.95, 0.99]
         fixed = {
             'n': self.config.default_n,
@@ -420,7 +407,6 @@ class ExperimentRunner:
         self._run_varying_experiment("vary_zipfian", 'z', zipfians, fixed)
     
     def run_trans(self):
-        """Varying transaction size experiment (Figures 9/10 Row 4)."""
         trans_vals = [1, 2, 4, 8, 16, 32]
         fixed = {
             'n': self.config.default_n,
@@ -431,7 +417,6 @@ class ExperimentRunner:
         self._run_varying_experiment("vary_trans", 'trans', trans_vals, fixed)
     
     def run_update(self):
-        """Varying update rate experiment (Figures 9/10 Row 5)."""
         updates = [0, 1, 5, 10, 20, 50]
         fixed = {
             'n': self.config.default_n,
@@ -442,7 +427,6 @@ class ExperimentRunner:
         self._run_varying_experiment("vary_update", 'u', updates, fixed)
     
     def run_range(self):
-        """Range queries experiment."""
         self.setup_output("range_queries")
         
         range_n = 1000000
@@ -500,16 +484,16 @@ class ExperimentRunner:
 
 def main():
     parser = argparse.ArgumentParser(
-        description="TLF Paper Experiment Runner",
+        description="Experiment Runner",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Experiments:
-  geomean    Geometric mean performance (Figure 1)
-  size       Varying data structure size (Figures 9/10 Row 1)
-  threads    Varying thread count (Figures 9/10 Row 2)
-  zipfian    Varying zipfian skew (Figures 9/10 Row 3)
-  trans      Varying transaction size (Figures 9/10 Row 4)
-  update     Varying update rate (Figures 9/10 Row 5)
+  geomean    Geometric mean performance
+  size       Varying data structure size
+  threads    Varying thread count
+  zipfian    Varying zipfian skew 
+  trans      Varying transaction size
+  update     Varying update rate
   range      Range queries
   all        Run all experiments
 
