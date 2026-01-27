@@ -234,18 +234,29 @@ namespace stm {
     operator T() const { return val.load(); }
   };
 #else
+  // struct atomic {
+  // private:
+  //   ext_stm::tmtype<T> val;
+  // public:
+  //   atomic(T v) : val(v) {}
+  //   atomic() {}
+  //   void store(T v) { val = v; }
+  //   T load() const { return val.pload(); }
+  //   T load_unprotected() const { return val.pload();}
+  //   void validate() const { }
+  //   void init(T x) { store(x); }
+  //   T operator=(T b) { store(b); return b; }
   template <typename T>
   struct atomic {
     ext_stm::tmtype<T> val;
     atomic() = default;
-    atomic(T v) { val = v; }
+    atomic(T v) : val(v) {}
     void store(T v) { val = v; }
-    T load() const { return (T)val; }
-    T load_unprotected() const { return load(); }
+    T load() const { return val.pload(); }
+    T load_unprotected() const { return val.pload(); }
     void validate() const { }
     void init(T x) { val = x; }
     T operator=(T b) { val = b; return b; }
-    operator T() const { return (T)val; }
   };
 #endif
 
