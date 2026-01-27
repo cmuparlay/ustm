@@ -19,12 +19,12 @@ cd build/benchmark
 
 | Experiment | Description | Varying Parameter |
 |------------|-------------|-------------------|
-| `geomean` | Geometric mean performance (Figure 1) | n, u, trans, z (all combinations) |
-| `size` | Data structure size (Figures 9/10 Row 1) | n ∈ {10³, 10⁴, 10⁵, 10⁶, 10⁷, 10⁸} |
-| `threads` | Thread count scalability (Figures 9/10 Row 2) | p ∈ {1, 4, 8, 16, 32, 48, 64, 72/192} |
-| `zipfian` | Access skew (Figures 9/10 Row 3) | z ∈ {0, 0.25, 0.5, 0.75, 0.9, 0.95, 0.99} |
-| `trans` | Transaction size (Figures 9/10 Row 4) | trans ∈ {1, 2, 4, 8, 16, 32} |
-| `update` | Update percentage (Figures 9/10 Row 5) | u ∈ {0, 1, 5, 10, 20, 50} |
+| `geomean` | Geometric mean performance| n, u, trans, z (all combinations) |
+| `size` | Data structure size | n ∈ {10³, 10⁴, 10⁵, 10⁶, 10⁷, 10⁸} |
+| `threads` | Thread count scalability | p ∈ {1, 4, 8, 16, 32, 48, 64, 72/192} |
+| `zipfian` | Access skew | z ∈ {0, 0.25, 0.5, 0.75, 0.9, 0.95, 0.99} |
+| `trans` | Transaction size | trans ∈ {1, 2, 4, 8, 16, 32} |
+| `update` | Update percentage | u ∈ {0, 1, 5, 10, 20, 50} |
 | `range` | Range query size | rs ∈ {1, 10, 100, 1000, 10000, 100000, 1000000} |
 | `all` | Run all experiments | - |
 
@@ -32,7 +32,7 @@ cd build/benchmark
 
 | Option | Description |
 |--------|-------------|
-| `--no-hytm` | Exclude HyTM, use all available threads/sockets (191 threads) |
+| `--no-hytm` | Exclude HyTM, use all available threads/sockets (144 threads) |
 | `--output DIR` | Write results to `DIR/<experiment>` |
 | `--help` | Show help message |
 
@@ -49,19 +49,11 @@ cd build/benchmark
 ../../benchmark/run_experiment.py threads --output ./my_results
 ```
 
-**Output**: Results saved to `timings/tlf_<experiment>_<cores>-<machine>_<date>_<suffix>`
-
 **Notes**:
 - Default mode: Includes HyTM, capped at 72 threads on 2 sockets for fair comparison
 - `--no-hytm` mode: Excludes HyTM, uses all available threads/sockets
 - Non-HyTM implementations use efficient single-invocation mode for geomean
 - HyTM uses separate invocations per parameter combination
-
-### Other Scripts
-
-| Script | Description |
-|--------|-------------|
-| `runall.sh` | Original benchmark script (all implementations, general purpose) |
 
 ### Default Parameters (from paper Section 10)
 
@@ -79,20 +71,20 @@ cd build/benchmark
 
 ## Plotting Scripts
 
-### Main Plotter: `plot/plot_tlf.py`
+### Plotter: `plot/plot.py`
 
-Generates all plots from the TLF paper.
+Generates all plots.
 
 ```bash
 cd plot
-python3 plot_tlf.py ../timings/<timing_file> [options]
+python3 plot.py ../timings/<timing_file> [options]
 ```
 
 **Options**:
 
 | Option | Values | Description |
 |--------|--------|-------------|
-| `--plots` | `figure1`, `figures9_10`, `range`, `combined`, `all` | Select which plots to generate |
+| `--plots` | `geomean`, `varying`, `range`, `combined`, `all` | Select which plots to generate |
 | `--format` | `pdf`, `png`, `svg` | Output file format |
 | `-o` | `<directory>` | Output directory for plots |
 | `--normalize` | flag | Normalize throughput values |
@@ -101,42 +93,18 @@ python3 plot_tlf.py ../timings/<timing_file> [options]
 
 ```bash
 # Generate all plots as PDF
-python3 plot_tlf.py ../timings/tlf_192-8488C_01-12-2026_143022 --plots all --format pdf
+python3 plot.py ../timings/192-8488C_01-12-2026_143022 --plots all --format pdf
 
 # Generate only Figure 1 (geomean bar chart)
-python3 plot_tlf.py ../timings/tlf_192-8488C_01-12-2026_143022 --plots figure1 -o ./output
+python3 plot.py ../timings/92-8488C_01-12-2026_143022 --plots geomean -o ./output
 
 # Generate parameter variation plots as PNG
-python3 plot_tlf.py ../timings/tlf_192-8488C_01-12-2026_143022 --plots figures9_10 --format png
+python3 plot.py ../timings/192-8488C_01-12-2026_143022 --plots varying --format png
 ```
-
-**Generated Plots**:
-
-| File | Description |
-|------|-------------|
-| `figure1_geomean.pdf` | Normalized bar chart (Figure 1) |
-| `fig9_row1_*.pdf` | Varying size plots |
-| `fig9_row2_*.pdf` | Varying thread count plots |
-| `fig9_row3_*.pdf` | Varying zipfian plots |
-| `fig9_row4_*.pdf` | Varying transaction size plots |
-| `fig9_row5_*.pdf` | Varying update rate plots |
-| `fig10_row*_*.pdf` | Additional structure plots |
-| `range_queries.pdf` | Range query throughput |
-| `tlf_results_combined.pdf` | Combined grid of all parameters |
-
-### Alternative Plotters
-
-| Script | Description | Usage |
-|--------|-------------|-------|
-| `plot_geomean.py` | Simple geomean bar chart | `python3 plot_geomean.py ../timings/<file>` |
-| `plot_geomean_common.py` | Common configuration comparison | `python3 plot_geomean_common.py ../timings/<file>` |
-| `plot_experiment.py` | Individual experiment plots | `python3 plot_experiment.py <exp_file>` |
-
----
 
 ## Experiments Overview
 
-### Experiment 1: Geometric Mean Performance (Figure 1)
+### Geometric Mean Performance
 
 Tests all combinations of parameters to compute geometric mean throughput:
 - **n** ∈ {10⁴, 10⁶, 10⁸}
@@ -146,19 +114,19 @@ Tests all combinations of parameters to compute geometric mean throughput:
 
 Total: 54 configurations per structure/implementation pair.
 
-### Experiments 2-6: Parameter Variation (Figures 9/10)
+### Parameter Variation
 
 Each experiment varies one parameter while keeping others at defaults:
 
 | Experiment | Varies | Fixed at Defaults |
 |------------|--------|-------------------|
-| Exp 2: Size | n | u=5, trans=4, z=0.9, p=191 |
+| Exp 2: Size | n | u=5, trans=4, z=0.9, p=72/144 |
 | Exp 3: Threads | p | n=10⁵, u=5, trans=4, z=0.9 |
-| Exp 4: Zipfian | z | n=10⁵, u=5, trans=4, p=191 |
-| Exp 5: Trans Size | trans | n=10⁵, u=5, z=0.9, p=191 |
-| Exp 6: Update Rate | u | n=10⁵, trans=4, z=0.9, p=191 |
+| Exp 4: Zipfian | z | n=10⁵, u=5, trans=4, p=72/144 |
+| Exp 5: Trans Size | trans | n=10⁵, u=5, z=0.9, p=72/144 |
+| Exp 6: Update Rate | u | n=10⁵, trans=4, z=0.9, p=72/144 |
 
-### Experiment 7: Range Queries
+### Range Queries
 
 Tests range query performance with varying range sizes:
 - **n** = 10⁶
@@ -189,10 +157,8 @@ Tests range query performance with varying range sizes:
 | MV-TLF | `mvustm_hwstamp` | MV with hardware timestamps |
 | MV-Longjmp | `mvustm_longjmp` | MV with longjmp abort |
 | 2PLSF | `2plsf` | Two-phase locking with starvation freedom |
-| Fuse/TLF | `fuse` | Transactional Lock Fusion (SPAA '25)¹ |
-| HyTM | `hytm` | Hardware transactional memory |
-
-¹ Fuse only supports pointer and bool atomics; excludes `avltree` and `hash_block`
+| Fuse/TLF | `fuse` | Transactional Lock Fusion |
+| HyTM | `hytm` | HyTm |
 
 ---
 

@@ -221,7 +221,7 @@ class ExperimentRunner:
         return get_result_line(output)
     
     def run_geomean(self):
-        """Run geometric mean experiment (Figure 1)."""
+        """Run geometric mean experiment"""
         self.setup_output("geomean")
         self.results_file.write(f"Threads: {self.config.default_p}\n")
         self.results_file.write("---\n")
@@ -386,7 +386,7 @@ class ExperimentRunner:
         if "hytm" in self.config.impls:
             threads = [1, 4, 8, 16, 32, 48, 64, 72]
         else:
-            threads = [1, 4, 8, 16, 32, 48, 64, 96, 128, 192]
+            threads = [1, 4, 8, 16, 32, 48, 64, 96, 128, 144]
         
         fixed = {
             'n': self.config.default_n,

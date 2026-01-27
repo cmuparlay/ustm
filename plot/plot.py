@@ -1,17 +1,14 @@
 #!/usr/bin/env python3
 """
-TLF Paper Plotting Script
-Recreates plots from "TLF: Transactional Lock Fusion" (SPAA '25)
-https://doi.org/10.1145/3694906.3743341
+Ploting Script
 
 Generates the following plots:
-- Figure 1: Normalized geomean throughput bar chart
-- Figures 9/10: Parameter variation line plots
-  - Row 1: Varying size
-  - Row 2: Varying thread count  
-  - Row 3: Varying zipfian
-  - Row 4: Varying transaction size
-  - Row 5: Varying update rate
+- Normalized geomean throughput bar chart
+- Varying size
+- Varying thread count  
+- Varying zipfian
+- Varying transaction size
+- Varying update rate
 """
 
 import re
@@ -24,7 +21,7 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import numpy as np
 
-# Color scheme matching paper style
+# Map impl -> color
 IMPL_COLORS = {
     'mvustm': '#1f77b4',
     'mvustm_hwstamp': '#2ca02c',
@@ -270,9 +267,9 @@ def parse_timing_file(filepath):
     return results, geomean_data
 
 
-def plot_figure1_geomean_bars(geomean_data, output_dir, filename='figure1_geomean.pdf'):
+def plot_geomean_bars(geomean_data, output_dir, filename='geomean.pdf'):
     """
-    Recreate Figure 1: Normalized geomean throughput bar chart.
+    Create normalized geomean throughput bar chart.
     Bars represent geometric mean of throughput across workloads,
     normalized to the highest throughput per structure.
     """
@@ -314,7 +311,7 @@ def plot_figure1_geomean_bars(geomean_data, output_dir, filename='figure1_geomea
     
     ax.set_xlabel('Data Structure', fontsize=12)
     ax.set_ylabel('Normalized Throughput', fontsize=12)
-    ax.set_title('Figure 1: Normalized Geomean Throughput by Data Structure\n(higher is better, normalized to max per structure)', fontsize=14)
+    ax.set_title('Normalized Geomean Throughput by Data Structure\n(higher is better, normalized to max per structure)', fontsize=14)
     ax.set_xticks(x)
     ax.set_xticklabels([STRUCT_LABELS.get(s, s) for s in structures], rotation=45, ha='right')
     ax.legend(loc='upper right', fontsize=9, ncol=2)
@@ -442,9 +439,8 @@ def plot_varying_parameter(results, param_name, param_label, output_dir,
     return True
 
 
-def plot_figures_9_10(results, output_dir):
+def plot_varying(results, output_dir):
     """
-    Recreate Figures 9 and 10 from the paper.
     Five rows: Size, Thread count, Zipfian, Transaction size, Update rate
     Auto-detects which parameters have varying data and only plots those.
     """
@@ -463,20 +459,20 @@ def plot_figures_9_10(results, output_dir):
         return
     
     param_info = {
-        'n': ('Varying Size', 'Data Structure Size (n)', 'row1'),
-        'p': ('Varying Thread Count', 'Number of Threads', 'row2'),
-        'z': ('Varying Zipfian', 'Zipfian Parameter', 'row3'),
-        'trans': ('Varying Transaction Size', 'Operations per Transaction', 'row4'),
-        'u': ('Varying Update Rate', 'Update Rate (%)', 'row5'),
+        'n': ('Varying Size', 'Data Structure Size (n)', 'size'),
+        'p': ('Varying Thread Count', 'Number of Threads', 'threads'),
+        'z': ('Varying Zipfian', 'Zipfian Parameter', 'zipf'),
+        'trans': ('Varying Transaction Size', 'Operations per Transaction', 'txn'),
+        'u': ('Varying Update Rate', 'Update Rate (%)', 'upd'),
     }
     
     for param in params_to_plot:
         title, label, row = param_info[param]
         print(f"Plotting: {title}")
         plot_varying_parameter(results, param, label, output_dir, 
-                              structures=tree_structs, filename_prefix=f'fig9_{row}', quiet=True)
+                              structures=tree_structs, filename_prefix=f'tree_{row}', quiet=True)
         plot_varying_parameter(results, param, label, output_dir,
-                              structures=binary_structs, filename_prefix=f'fig10_{row}', quiet=True)
+                              structures=binary_structs, filename_prefix=f'binary_{row}', quiet=True)
 
 
 def plot_range_queries(results, output_dir, filename='range_queries.pdf'):
@@ -540,9 +536,8 @@ def plot_range_queries(results, output_dir, filename='range_queries.pdf'):
     plt.close()
 
 
-def plot_combined_grid(results, geomean_data, output_dir, filename='tlf_results_combined.pdf'):
+def plot_combined_grid(results, geomean_data, output_dir, filename='results_combined.pdf'):
     """
-    Create a combined figure similar to the paper's Figures 9 and 10.
     Multiple subplots arranged in a grid.
     """
     # Select structures to plot
@@ -638,13 +633,13 @@ def plot_combined_grid(results, geomean_data, output_dir, filename='tlf_results_
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Plot TLF paper experiments')
+    parser = argparse.ArgumentParser(description='Plot paper experiments')
     parser.add_argument('input_path', type=str, 
                        help='Path to timing file or directory containing timing files')
-    parser.add_argument('-o', '--output-dir', type=str, default='plots_tlf',
-                       help='Output directory for plots (default: plots_tlf)')
+    parser.add_argument('-o', '--output-dir', type=str, default='plots',
+                       help='Output directory for plots (default: plots)')
     parser.add_argument('--plots', nargs='+', 
-                       choices=['figure1', 'figures9_10', 'range', 'combined', 'all'],
+                       choices=['geomean', 'varying', 'range', 'combined', 'all'],
                        default=['all'],
                        help='Which plots to generate (default: all)')
     parser.add_argument('--format', type=str, choices=['pdf', 'png', 'svg'], 
@@ -668,21 +663,20 @@ def main():
         # New directory-based format
         print(f"Processing directory: {input_path}")
         
-        # Expected files in the directory
-        file_mapping = {
-            'geomean': 'figure1',
-            'vary_size': 'figures9_10',
-            'vary_threads': 'figures9_10',
-            'vary_zipfian': 'figures9_10',
-            'vary_trans': 'figures9_10',
-            'vary_update': 'figures9_10',
-            'range_queries': 'range',
-        }
+        exps = [
+            'geomean',
+            'vary_size',
+            'vary_threads',
+            'vary_zipfian',
+            'vary_trans',
+            'vary_update',
+            'range_queries'
+        ]
         
         all_results = []
         all_geomean_data = {}
         
-        for filename, plot_type in file_mapping.items():
+        for filename in exps.items():
             filepath = input_path / filename
             if filepath.exists():
                 print(f"  Parsing {filename}...")
@@ -708,18 +702,18 @@ def main():
     
     plots = args.plots
     if 'all' in plots:
-        plots = ['figure1', 'figures9_10', 'range', 'combined']
+        plots = ['geomean', 'varying', 'range', 'combined']
     
-    if 'figure1' in plots and geomean_data:
-        print("\nGenerating Figure 1 (Geomean bar chart)...")
-        plot_figure1_geomean_bars(geomean_data, output_dir, 
-                                  f'figure1_geomean.{args.format}')
+    if 'geomean' in plots and geomean_data:
+        print("\nGenerating Geomean bar chart...")
+        plot_geomean_bars(geomean_data, output_dir, 
+                                  f'geomean.{args.format}')
     
-    if 'figures9_10' in plots and results:
-        print("\nGenerating Figures 9 and 10 (Parameter variation)...")
+    if 'varying' in plots and results:
+        print("\nGenerating Parameter variation...")
         print("Note: These require parameter-varying experiment data.")
         print("      If you only have geomean data, these plots will be skipped.")
-        plot_figures_9_10(results, output_dir)
+        plot_varying(results, output_dir)
     
     if 'range' in plots and results:
         print("\nGenerating Range Query plot...")
@@ -728,7 +722,7 @@ def main():
     if 'combined' in plots and results:
         print("\nGenerating Combined grid plot...")
         plot_combined_grid(results, geomean_data, output_dir, 
-                          f'tlf_results_combined.{args.format}')
+                          f'results_combined.{args.format}')
     
     print(f"\nAll plots saved to {output_dir}/")
     return 0
