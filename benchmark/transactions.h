@@ -18,6 +18,10 @@
 #include "glue/mvustm_glue.h"
 #elif defined(USTM_)
 #include "glue/ustm_glue.h"
+#elif defined(Fuse)
+#include "glue/fuse_glue.h"
+#elif defined(HyTm)
+#include "glue/hytm_glue.h"
 #elif defined(Other)
 #include "glue/other_glue.h"
 #endif

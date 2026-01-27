@@ -1,13 +1,6 @@
 #pragma once
 
 #include <utility>
-#include <type_traits>
-#include <iostream>
-#include <thread>
-#include <csignal>
-#include <cstdlib>
-#include <unistd.h>
-#include <fcntl.h>
 
 #ifdef TL2O
 #include "TL2Orig.hpp"
@@ -30,150 +23,10 @@ namespace stm { using versioned = ofwf::tmbase; }
 #include "2PLSF.hpp"
 namespace stm { struct versioned {}; }
 namespace ext_stm = twoplsf;
-
-#elif defined(Fuse)
-#include "fuse_glue.h"
-namespace stm { using versioned = fuse::versioned; }
-
-#elif defined(HyTm)
-
-#ifdef HyTmHTM
-#define phytm1_fgl_colocated_locks_no_pmem  // HTM enabled, no PMEM
-#else
-#define phytm1_fgl_colocated_locks_no_phtm  // Software-only STM
-#endif
-#define DISABLE_ZEROING_MEMORY 
-#define MAX_THREADS_POW2 512 // Increase thread limit for USTM benchmarks
-#define LimitedSTM // Data must be allocated inside transaction
-
-#include "../../other/ptmbench/phytmlib/phytm2.h"
-
-namespace {
-
-  // RAII class that suppresses output to a given fd
-  struct SuppressOuput {
-    int backup;
-    int fd;
-    SuppressOuput(int fd = STDOUT_FILENO) : fd(fd), backup(dup(fd)) {
-      int devnull = open("/dev/null", O_WRONLY);
-      dup2(devnull, fd);
-      close(devnull);
-    }
-    ~SuppressOuput() {
-      dup2(backup, fd);
-      close(backup);
-    }
-  };
-  
-  struct HyTmInit {
-    HyTmInit() {
-      // Suppress HyTm library output during initialization
-      SuppressOuput SO;
-
-      STM_STARTUP();
-    }
-    ~HyTmInit() { 
-      // Suppress HyTm library output during shutdown
-      SuppressOuput SO;
-
-      TM_SHUTDOWN();
-    }
-  };
-  static HyTmInit hytm_init;
-}
-
-namespace stm { struct versioned {}; }
-
 #else
 #error "No STM Specified"
 #endif
 
-#ifdef HyTm
-namespace stm {
-  template <typename F>
-  auto atomic_region(F &&func) {
-    using T = decltype(func());
-    if constexpr (std::is_void_v<T>) {
-      TM_BEGIN();
-      func();
-      TM_END();
-    } else {
-      T result;
-      TM_BEGIN();
-      result = func();
-      TM_END();
-      return result;
-    }
-  }
-
-  template <typename F>
-  auto atomic_read_only(F &&func, bool large = false) {
-    using T = decltype(func());
-    if constexpr (std::is_void_v<T>) {
-      TM_BEGIN_RO();
-      func();
-      TM_END();
-    } else {
-      T result;
-      TM_BEGIN_RO();
-      result = func();
-      TM_END();
-      return result;
-    }
-  }
-  
-  template <typename F>
-  auto atomic_read_only_singleton(F &&f) {
-    return atomic_region(std::forward<F>(f));
-  }
-
-  template <typename T>
-  void Delete(T *ptr) { 
-    tmDelete(ptr);
-  }
-      
-  template <typename T, typename... Args>
-  T *New(Args... args) { 
-    return tmNew<T>(std::forward<Args>(args)...);
-  }
-
-  template <typename T>
-  struct atomic {
-    tx_field<T> val;
-    
-    atomic() : val() {}
-    atomic(T v) : val() { val = v; }
-    void store(T v) { val.store(v); }
-    T load() const { return const_cast<tx_field<T>&>(val).load(); }  // Cast away const for load
-    T load_unprotected() const { return const_cast<tx_field<T>&>(val).load(); }
-    void validate() const { /* no-op */ }
-    void init(T x) { val = x; }
-    T operator=(T b) { val = b; return b; }
-    operator T() const { return const_cast<tx_field<T>&>(val).load(); }
-  };
-
-  template <typename T>
-  T load_unprotected(const tx_field<T>& field) {
-    return field.load();
-  }
-
-  template <typename T>
-  void validate(const tx_field<T>& field) {
-    // No validation needed for HyTm
-  }
-
-  template <typename T>
-  void init(tx_field<T>& field, T value) {
-    field = value;
-  }
-
-  std::pair<long,long> statistics() {
-    return {0ul, 0ul};
-  }
-}
-
-#else
-// Non-HyTm
 namespace stm {
 
 #ifdef OneFile
@@ -201,7 +54,7 @@ namespace stm {
   auto atomic_read_only(F &&func, bool large = false) {
     return ext_stm::readTx<decltype(func())>(func);  }
 #endif
-  
+
   template <typename F>
   auto atomic_read_only_singleton(F f) {
       return atomic_region(f);
@@ -209,56 +62,24 @@ namespace stm {
 
   template <typename T>
   void Delete(T *ptr) { ext_stm::tmDelete(ptr); }
-      
+
   template <typename T, typename... Args>
   T *New(Args... args) { return ext_stm::tmNew<T>(args...); }
 
-  // Use the backend's tmtype directly for Fuse (it already exposes load/store/validate)
-#if defined(Fuse)
-  // Fuse's tmtype only supports pointer types (it wraps a versioned_ptr<pointee>).
-  // Enforce this at compile time to avoid accidental value-type instantiations.
   template <typename T>
   struct atomic {
-    static_assert(std::is_pointer<T>::value,
-                  "Fuse backend: stm::atomic<T> supports only pointer types. Convert T to a pointer or use a different backend.");
-    using impl = typename ext_stm::template tmtype<T>;
-    impl val;
-    atomic() = default;
-    atomic(T p) : val(p) {}
-    T load() const { return const_cast<impl&>(val).load(); }
-    T load_unprotected() const { return const_cast<impl&>(val).load_unprotected(); }
-    void store(T p) { val.store(p); }
-    void validate() const { const_cast<impl&>(val).validate(); }
-    void init(T p) { val.init(p); }
-    T operator=(T p) { store(p); return p; }
-    operator T() const { return val.load(); }
-  };
-#else
-  // struct atomic {
-  // private:
-  //   ext_stm::tmtype<T> val;
-  // public:
-  //   atomic(T v) : val(v) {}
-  //   atomic() {}
-  //   void store(T v) { val = v; }
-  //   T load() const { return val.pload(); }
-  //   T load_unprotected() const { return val.pload();}
-  //   void validate() const { }
-  //   void init(T x) { store(x); }
-  //   T operator=(T b) { store(b); return b; }
-  template <typename T>
-  struct atomic {
+  private:
     ext_stm::tmtype<T> val;
-    atomic() = default;
+  public:
     atomic(T v) : val(v) {}
+    atomic() {}
     void store(T v) { val = v; }
     T load() const { return val.pload(); }
-    T load_unprotected() const { return val.pload(); }
+    T load_unprotected() const { return val.pload();}
     void validate() const { }
-    void init(T x) { val = x; }
-    T operator=(T b) { val = b; return b; }
+    void init(T x) { store(x); }
+    T operator=(T b) { store(b); return b; }
   };
-#endif
 
   std::pair<long,long> statistics() {
 #if defined(STMStats) && defined(TWOPLSF)
@@ -277,5 +98,3 @@ namespace stm {
 #endif
   }
 }
-
-#endif // !HyTm

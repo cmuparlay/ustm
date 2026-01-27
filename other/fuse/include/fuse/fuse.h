@@ -58,14 +58,18 @@ namespace fuse {
     tlf_internal::versioned_ptr<indirect<T>> ptr;
     indirect_atomic(T v) : ptr(New<indirect<T>>(v)) {}
     indirect_atomic() : ptr(nullptr) {}
-    ~indirect_atomic() {Retire(ptr.load());}
+    ~indirect_atomic() { Retire(ptr.load()); }
     T load() { return ptr.load()->value; }
     void store(T v) {
       auto old = ptr.load();
       ptr.store(New<indirect<T>>(v));
       Retire(old);
     }
-    T operator=(T b) {store(b); return b; }
+    T operator=(T b) {
+      store(b);
+      return b;
+    }
+    void validate() { ptr.validate(); }
   };
   
   template<typename T>
@@ -82,11 +86,23 @@ namespace fuse {
     tlf_atomic(T v) : v(v) {}
     T load() {
       std::shared_lock lck(lock);
-      return v.load(); }
+      return v.load();
+    }
     void store(T x) {
       std::unique_lock lck(lock);
-      v.store(x);}
-    T operator=(T b) {store(b); return b; }
+      v.store(x);
+    }
+    T operator=(T b) {
+      store(b);
+      return b;
+    }
+#ifdef WeakLoad
+    T load_unprotected() { return v.load();}
+    void validate() { v.validate(); }
+#else
+    T load_unprotected() { return load(); }
+    void validate() { }
+#endif // WeakLoad
   };
 
 } // fuse

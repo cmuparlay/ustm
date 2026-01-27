@@ -1,3 +1,5 @@
+#pragma once
+
 #include <type_traits>
 #ifdef OldSTM
 #include <mvustm.h>
