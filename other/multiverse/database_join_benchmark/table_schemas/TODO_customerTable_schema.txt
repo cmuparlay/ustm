@@ -1,0 +1,6 @@
+CUSTOMER {
+	customerId : guid
+	
+	indexes : 
+	- primary index   : customerId	
+}

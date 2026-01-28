@@ -1,0 +1,9 @@
+ITEM {
+	itemId : guid,
+	category : int
+	price : uint64_t
+
+	indexes : 
+	- primary index   : itemId
+	- secondary index : category
+}

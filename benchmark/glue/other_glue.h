@@ -57,7 +57,7 @@ namespace stm {
 
   template <typename F>
   auto atomic_read_only_singleton(F f) {
-      return atomic_region(f);
+    return atomic_read_only(f);
   }
 
   template <typename T>

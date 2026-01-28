@@ -1,0 +1,12 @@
+ORDER {
+	orderId : guid,
+	customerId : guid,
+	items : string (comma seperated list), 
+	value : uint64_t,
+	date : uint64_t 
+
+	indexes : 
+		- primary index   : orderId
+		- secondary index : date
+		- secondary index : customerId+date	
+}
