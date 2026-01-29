@@ -24,6 +24,8 @@
 #include "glue/hytm_glue.h"
 #elif defined(MULTIVERSE)
 #include "glue/multiverse_glue.hpp"
+#elif defined(dcotl)
+#include "glue/dcotl_glue.h"
 #elif defined(Other)
 #include "glue/other_glue.h"
 #endif
