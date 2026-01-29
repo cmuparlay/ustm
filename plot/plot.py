@@ -70,7 +70,7 @@ STRUCT_LABELS = {
 IMPL_ORDER = [
     'mvustm', 'mvustm_hwstamp', 'mvustm_lzstamp', 
     'ustm_longjmp', 'mvustm_longjmp', 'mvustm_trythrow',
-    'mvustm_unprotected', '2plsf', 'hytm', 'tiny', 'fuse'
+    'mvustm_unprotected', '2plsf', 'hytm', 'tiny', 'fuse', 'multiverse', 'dcotl'
 ]
 
 # Known implementations (longer matches first)

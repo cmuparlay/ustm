@@ -71,13 +71,25 @@ class Config:
 
 def get_config(include_hytm: bool) -> Config:
     config = Config()
+
+    config.impls = [
+        "mvustm",
+        "mvustm_hwstamp",
+        "mvustm_longjmp",
+        "2plsf",
+        "fuse",
+        "onefile",
+        "tiny",
+        "tl2",
+        "multiverse",
+        "dcotl"
+    ]
     
     if include_hytm:
-        config.impls = ["mvustm", "mvustm_hwstamp", "mvustm_longjmp", "2plsf", "fuse", "hytm", "onefile", "tiny", "tl2"]
+        config.impls.append("hytm")
         config.max_threads = 72
         config.numa_cmd = "numactl --cpunodebind=0,1 --membind=0,1"
     else:
-        config.impls = ["mvustm", "mvustm_hwstamp", "mvustm_longjmp", "2plsf", "fuse"]
         config.max_threads = 144
         config.numa_cmd = "numactl -i all"
     
