@@ -23,8 +23,10 @@
 #elif defined(HyTm)
 #include "glue/hytm_glue.h"
 #elif defined(MULTIVERSE)
+#define LimitedSTM
 #include "glue/multiverse_glue.hpp"
 #elif defined(dcotl)
+#define LimitedSTM
 #include "glue/dcotl_glue.h"
 #elif defined(Other)
 #include "glue/other_glue.h"
