@@ -507,4 +507,7 @@ int main(int argc, char* argv[]) {
               << geometric_mean(throughputs)
               << std::endl;
   }
+#if defined(dcotl) || defined(MULTIVERSE)
+  abort();
+#endif
 }
