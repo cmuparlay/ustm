@@ -83,6 +83,7 @@ namespace fuse {
   struct tlf_atomic {
     atomic<T> v;
     shared_mutex lock;
+    tlf_atomic() = default;
     tlf_atomic(T v) : v(v) {}
     T load() {
       std::shared_lock lck(lock);
