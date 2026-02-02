@@ -62,10 +62,7 @@ foreach(bench ${STRUCTS})
   add_benchmark(${bench}_tiny ${MIXED} ${STRUCT_DIR}/${bench} "Other;Tiny" "${PROJECT_SOURCE_DIR}/other/tinystm/lib/libstm.a")
   add_benchmark(${bench}_tl2 ${MIXED} ${STRUCT_DIR}/${bench} "Other;TL2O" "${PROJECT_SOURCE_DIR}/other/tl2-x86/libtl2.a")
   add_benchmark(${bench}_onefile ${MIXED} ${STRUCT_DIR}/${bench} "Other;OneFile" "")
-  # For Fuse backend, skip structures that require non-pointer atomics
-  if(NOT ${bench} MATCHES "^(hash_block|avltree)$")
-    add_benchmark(${bench}_fuse ${MIXED} ${STRUCT_DIR}/${bench} "Other;Fuse;HWWriteStamp" "")
-  endif()
+  add_benchmark(${bench}_fuse ${MIXED} ${STRUCT_DIR}/${bench} "Other;Fuse;HWWriteStamp" "")
 endforeach()
 
 set(TPCC_STRUCTS "btree" "hash_block" "arttree" "avltree")

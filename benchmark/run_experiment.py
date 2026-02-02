@@ -81,8 +81,9 @@ def get_config(include_hytm: bool) -> Config:
         "onefile",
         "tiny",
         "tl2",
-        "multiverse",
-        "dcotl"
+        "multiverse"
+        # DCOTL is broken for most benchmarks
+        # "dcotl"
     ]
     
     if include_hytm:
@@ -150,15 +151,18 @@ def get_result_line(output: str) -> Optional[str]:
             return line.strip()
     return None
 
+def requires_transactional_allocation(impl: str) -> bool:
+    return impl in ["hytm", "multiverse", "tiny"]
 
 def get_structs_for_impl(config: Config, impl: str) -> List[str]:
     """Get structures compatible with implementation."""
-    if impl == "hytm":
+    if requires_transactional_allocation(impl):
+        # Only systems supporting non-transactional allocation work with hash structs
         return config.structs_nohash
-    if impl == "fuse":
+    # if impl == "fuse":
         # Fuse/TLF only supports pointer and bool atomics, not int atomics
         # Exclude: avltree (uses atomic<int> for height), hash_block (uses atomic<V>)
-        return [s for s in config.structs if s not in ["avltree", "hash_block"]]
+        # return [s for s in config.structs if s not in ["avltree", "hash_block"]]
     return config.structs
 
 
