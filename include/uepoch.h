@@ -46,7 +46,7 @@ namespace uepoch {
       return num_threads;  }
 
     extern inline int thread_id() {
-      static thread_local int id{num_threads().fetch_add(1)};
+      static thread_local int id{num_threads().fetch_add(1, std::memory_order_relaxed)};
       return id; }
 
   template <typename T>

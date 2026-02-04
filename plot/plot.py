@@ -183,8 +183,16 @@ def parse_result_line(line):
 
 def parse_geomean_line(line):
     """Parse a geomean summary line."""
+    # Duplicated prefix format: ./struct_impl,./struct_impl,GEOMETRIC MEAN OF THROUGHPUTS: value
+    match = re.search(r'^\./([^,]+),\./[^,]+,GEOMETRIC MEAN OF THROUGHPUTS:\s*([\d.eE+-]+)', line)
+    if match:
+        name = match.group(1)
+        gmean = float(match.group(2))
+        struct, impl = parse_structure_impl(name)
+        return struct, impl, gmean
+    
     # Standard format: ./struct_impl,GEOMETRIC MEAN OF THROUGHPUTS: value
-    match = re.search(r'^\./(\S+),GEOMETRIC MEAN OF THROUGHPUTS:\s*([\d.eE+-]+)', line)
+    match = re.search(r'^\./([^,]+),GEOMETRIC MEAN OF THROUGHPUTS:\s*([\d.eE+-]+)', line)
     if match:
         name = match.group(1)
         gmean = float(match.group(2))
@@ -676,7 +684,7 @@ def main():
         all_results = []
         all_geomean_data = {}
         
-        for filename in exps.items():
+        for filename in exps:
             filepath = input_path / filename
             if filepath.exists():
                 print(f"  Parsing {filename}...")

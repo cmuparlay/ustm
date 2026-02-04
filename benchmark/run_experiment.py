@@ -33,7 +33,7 @@ import re
 import sys
 from datetime import datetime
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import List, Optional, Tuple
 from math import prod
 
 @dataclass
@@ -124,18 +124,41 @@ def geomean(values: List[float]) -> float:
     return prod(values) ** (1.0 / len(values))
 
 
-def run_benchmark(cmd: str, numa_cmd: str) -> str:
+def run_benchmark(cmd: str, numa_cmd: str, timeout_sec: int = 300) -> Tuple[str, str]:
+    """
+    Run a benchmark command with timeout.
+    Returns (output, status) where status is 'ok', 'timeout', 'crash', or 'error'.
+    """
     full_cmd = f"{numa_cmd} {cmd}"
     try:
-        result = subprocess.run(
-            full_cmd, shell=True, capture_output=True, text=True, timeout=300
+        # Use Popen for proper timeout handling with process cleanup
+        proc = subprocess.Popen(
+            full_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            text=True, start_new_session=True  # Creates new process group
         )
-        return result.stdout + result.stderr
-    except subprocess.TimeoutExpired:
-        return ""
+        try:
+            stdout, stderr = proc.communicate(timeout=timeout_sec)
+            output = stdout + stderr
+            
+            # Check for crash (non-zero exit, segfault, etc.)
+            if proc.returncode != 0:
+                print(f"  CRASH (exit={proc.returncode}): {cmd}", file=sys.stderr)
+                return output, "crash"
+            
+            return output, "ok"
+        except subprocess.TimeoutExpired:
+            # Kill the entire process group (includes shell and child processes)
+            print(f"  TIMEOUT ({timeout_sec}s): {cmd}", file=sys.stderr)
+            import signal
+            try:
+                os.killpg(proc.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+            proc.wait()  # Clean up zombie
+            return "", "timeout"
     except Exception as e:
-        print(f"  Error running: {cmd}: {e}", file=sys.stderr)
-        return ""
+        print(f"  ERROR: {cmd}: {e}", file=sys.stderr)
+        return "", "error"
 
 
 def parse_mops(output: str) -> Optional[float]:
@@ -220,21 +243,35 @@ class ExperimentRunner:
     
     def _write_result(self, prefix: str, line: str):
         """Write a result line to output file."""
-        self.results_file.write(f"{prefix},{line}\n")
+        # Avoid duplicating the prefix if the line already starts with it
+        if line.startswith('./'):
+            self.results_file.write(f"{line}\n")
+        else:
+            self.results_file.write(f"{prefix},{line}\n")
         self.results_file.flush()
     
     def _binary_exists(self, struct: str, impl: str) -> bool:
         """Check if benchmark binary exists."""
         return os.path.isfile(f"./{struct}_{impl}")
     
-    def _run_single(self, struct: str, impl: str, params: str) -> Optional[str]:
-        """Run a single benchmark and return result line."""
+    def _run_single(self, struct: str, impl: str, params: str) -> Tuple[Optional[str], str]:
+        """Run a single benchmark and return (result_line, status)."""
         if not self._binary_exists(struct, impl):
-            return None
+            return None, "missing"
         
         cmd = f"./{struct}_{impl} {params}"
-        output = run_benchmark(cmd, self.config.numa_cmd)
-        return get_result_line(output)
+        output, status = run_benchmark(cmd, self.config.numa_cmd)
+        return get_result_line(output), status
+    
+    def _log_failure(self, prefix: str, status: str, params: str = ""):
+        """Log a failure to the results file."""
+        if status == "timeout":
+            self.results_file.write(f"# TIMEOUT: {prefix} {params}\n")
+        elif status == "crash":
+            self.results_file.write(f"# CRASH: {prefix} {params}\n")
+        elif status == "error":
+            self.results_file.write(f"# ERROR: {prefix} {params}\n")
+        self.results_file.flush()
     
     def run_geomean(self):
         """Run geometric mean experiment"""
@@ -245,7 +282,7 @@ class ExperimentRunner:
         sizes = [10000, 1000000, 100000000]
         list_sizes = [100, 1000]
         updates = [0, 5, 50]
-        trans_vals = [1, 4, 16]
+        trans_vals = [1, 16]
         zipfians = [0, 0.99]
         
         # Comma-separated args for efficient single invocation
@@ -277,8 +314,10 @@ class ExperimentRunner:
                                     params = (f"-nowarmup -n {n} -u {u} -z {z} "
                                              f"-r {self.config.rounds} -trans {trans} "
                                              f"-p {self.config.default_p} -t {self.config.trial_time}")
-                                    result_line = self._run_single(struct, impl, params)
-                                    if result_line:
+                                    result_line, status = self._run_single(struct, impl, params)
+                                    if status != "ok":
+                                        self._log_failure(prefix, status, params)
+                                    elif result_line:
                                         self._write_result(prefix, result_line)
                                         mops = parse_mops(result_line)
                                         if mops:
@@ -291,12 +330,15 @@ class ExperimentRunner:
                     # Non-HyTM: efficient single invocation
                     params = f"{geomean_arg} -r {self.config.rounds} -p {self.config.default_p} -t {self.config.trial_time}"
                     cmd = f"./{struct}_{impl} {params}"
-                    output = run_benchmark(cmd, self.config.numa_cmd)
+                    output, status = run_benchmark(cmd, self.config.numa_cmd)
                     
-                    for line in output.split('\n'):
-                        line = line.strip()
-                        if 'mops=' in line or 'GEOMETRIC MEAN' in line:
-                            self._write_result(prefix, line)
+                    if status != "ok":
+                        self._log_failure(prefix, status, params)
+                    else:
+                        for line in output.split('\n'):
+                            line = line.strip()
+                            if 'mops=' in line or 'GEOMETRIC MEAN' in line:
+                                self._write_result(prefix, line)
         
         self.results_file.close()
     
@@ -331,8 +373,10 @@ class ExperimentRunner:
                     param_str = " ".join(f"-{k} {v}" for k, v in params.items())
                     param_str = f"-nowarmup {param_str} -r {self.config.rounds} -t {self.config.trial_time}"
                     
-                    result_line = self._run_single(struct, impl, param_str)
-                    if result_line:
+                    result_line, status = self._run_single(struct, impl, param_str)
+                    if status != "ok":
+                        self._log_failure(prefix, status, param_str)
+                    elif result_line:
                         self._write_result(prefix, result_line)
             
             # List structures (with smaller n)
@@ -354,8 +398,10 @@ class ExperimentRunner:
                     param_str = " ".join(f"-{k} {v}" for k, v in params.items())
                     param_str = f"-nowarmup {param_str} -r {self.config.rounds} -t {self.config.trial_time}"
                     
-                    result_line = self._run_single(struct, impl, param_str)
-                    if result_line:
+                    result_line, status = self._run_single(struct, impl, param_str)
+                    if status != "ok":
+                        self._log_failure(prefix, status, param_str)
+                    elif result_line:
                         self._write_result(prefix, result_line)
         
         self.results_file.close()
@@ -379,8 +425,10 @@ class ExperimentRunner:
                     params = (f"-nowarmup -n {n} -u {self.config.default_u} -z {self.config.default_z} "
                              f"-r {self.config.rounds} -trans {self.config.default_trans} "
                              f"-p {self.config.default_p} -t {self.config.trial_time}")
-                    result_line = self._run_single(struct, impl, params)
-                    if result_line:
+                    result_line, status = self._run_single(struct, impl, params)
+                    if status != "ok":
+                        self._log_failure(f"./{struct}_{impl}", status, params)
+                    elif result_line:
                         self._write_result(f"./{struct}_{impl}", result_line)
             
             for struct in self.config.lstructs:
@@ -392,8 +440,10 @@ class ExperimentRunner:
                     params = (f"-nowarmup -n {n} -u {self.config.default_u} -z {self.config.default_z} "
                              f"-r {self.config.rounds} -trans {self.config.default_trans} "
                              f"-p {self.config.default_p} -t {self.config.trial_time}")
-                    result_line = self._run_single(struct, impl, params)
-                    if result_line:
+                    result_line, status = self._run_single(struct, impl, params)
+                    if status != "ok":
+                        self._log_failure(f"./{struct}_{impl}", status, params)
+                    elif result_line:
                         self._write_result(f"./{struct}_{impl}", result_line)
         
         self.results_file.close()
@@ -467,8 +517,10 @@ class ExperimentRunner:
                     params = (f"-n {range_n} -u {range_u} -z {range_z} -trans {range_trans} "
                              f"-rs {rs} -rqp {range_rqp} -p {self.config.default_p} "
                              f"-t {self.config.trial_time}")
-                    result_line = self._run_single(struct, impl, params)
-                    if result_line:
+                    result_line, status = self._run_single(struct, impl, params)
+                    if status != "ok":
+                        self._log_failure(prefix, status, params)
+                    elif result_line:
                         self._write_result(prefix, result_line)
         
         self.results_file.close()
