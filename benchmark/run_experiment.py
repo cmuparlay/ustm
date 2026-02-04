@@ -27,14 +27,14 @@ Examples:
 """
 
 import argparse
-import subprocess
 import os
 import re
+import subprocess
 import sys
-from datetime import datetime
 from dataclasses import dataclass
-from typing import List, Optional, Tuple
+from datetime import datetime
 from math import prod
+from typing import List, Optional, Tuple
 
 @dataclass
 class Config:
@@ -78,7 +78,7 @@ def get_config(include_hytm: bool) -> Config:
         "mvustm_longjmp",
         "2plsf",
         "fuse",
-        "onefile",
+        # "onefile",
         "tiny",
         "tl2",
         "multiverse"
@@ -124,38 +124,25 @@ def geomean(values: List[float]) -> float:
     return prod(values) ** (1.0 / len(values))
 
 
-def run_benchmark(cmd: str, numa_cmd: str, timeout_sec: int = 300) -> Tuple[str, str]:
+def run_benchmark(cmd: str, numa_cmd: str, timeout_sec: int = 1800) -> Tuple[str, str]:
     """
     Run a benchmark command with timeout.
     Returns (output, status) where status is 'ok', 'timeout', 'crash', or 'error'.
     """
-    full_cmd = f"{numa_cmd} {cmd}"
+    full_cmd = f"timeout --signal=KILL {timeout_sec} {numa_cmd} {cmd}"
     try:
-        # Use Popen for proper timeout handling with process cleanup
-        proc = subprocess.Popen(
-            full_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-            text=True, start_new_session=True  # Creates new process group
-        )
-        try:
-            stdout, stderr = proc.communicate(timeout=timeout_sec)
-            output = stdout + stderr
-            
-            # Check for crash (non-zero exit, segfault, etc.)
-            if proc.returncode != 0:
-                print(f"  CRASH (exit={proc.returncode}): {cmd}", file=sys.stderr)
-                return output, "crash"
-            
-            return output, "ok"
-        except subprocess.TimeoutExpired:
-            # Kill the entire process group (includes shell and child processes)
+        result = subprocess.run(full_cmd, shell=True, capture_output=True, text=True)
+        output = result.stdout + result.stderr
+        
+        if result.returncode == 124 or result.returncode == 137:
+            # 124 = timeout killed it, 137 = SIGKILL (128 + 9)
             print(f"  TIMEOUT ({timeout_sec}s): {cmd}", file=sys.stderr)
-            import signal
-            try:
-                os.killpg(proc.pid, signal.SIGKILL)
-            except ProcessLookupError:
-                pass
-            proc.wait()  # Clean up zombie
-            return "", "timeout"
+            return output, "timeout"
+        elif result.returncode != 0:
+            print(f"  CRASH (exit={result.returncode}): {cmd}", file=sys.stderr)
+            return output, "crash"
+        
+        return output, "ok"
     except Exception as e:
         print(f"  ERROR: {cmd}: {e}", file=sys.stderr)
         return "", "error"
@@ -279,15 +266,22 @@ class ExperimentRunner:
         self.results_file.write(f"Threads: {self.config.default_p}\n")
         self.results_file.write("---\n")
         
+        # Parameter sweeps for geomean
         sizes = [10000, 1000000, 100000000]
         list_sizes = [100, 1000]
         updates = [0, 5, 50]
         trans_vals = [1, 16]
         zipfians = [0, 0.99]
         
-        # Comma-separated args for efficient single invocation
-        geomean_args = "-n 10000,1000000,100000000 -u 0,5,50 -z 0,0.99 -trans 1,4,16"
-        list_geomean_args = "-n 100,1000 -u 0,5,50 -z 0,0.99 -trans 1,4,16"
+        # Build comma-separated args from lists
+        def make_geomean_args(n_list):
+            return (f"-n {','.join(map(str, n_list))} "
+                    f"-u {','.join(map(str, updates))} "
+                    f"-z {','.join(map(str, zipfians))} "
+                    f"-trans {','.join(map(str, trans_vals))}")
+        
+        geomean_args = make_geomean_args(sizes)
+        list_geomean_args = make_geomean_args(list_sizes)
         
         all_structs = [(s, sizes, geomean_args) for s in self.config.structs]
         all_structs += [(s, list_sizes, list_geomean_args) for s in self.config.lstructs]
@@ -514,9 +508,9 @@ class ExperimentRunner:
                 prefix = f"./{struct}_{impl}"
                 
                 for rs in range_sizes:
-                    params = (f"-n {range_n} -u {range_u} -z {range_z} -trans {range_trans} "
+                    params = (f"-nowarmup -n {range_n} -u {range_u} -z {range_z} -trans {range_trans} "
                              f"-rs {rs} -rqp {range_rqp} -p {self.config.default_p} "
-                             f"-t {self.config.trial_time}")
+                             f"-r {self.config.rounds} -t {self.config.trial_time}")
                     result_line, status = self._run_single(struct, impl, params)
                     if status != "ok":
                         self._log_failure(prefix, status, params)
