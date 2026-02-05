@@ -133,7 +133,7 @@ uint64_t rdtsc_get_abort_ts() {
 
 
 // max aborts for update txns + an unused fail-safe for mode 1 versioned transactions
-static const uint64_t MAX_ABORTS = 10000;
+static const uint64_t MAX_ABORTS = 1000000;
 
 static const int MIN_RD_SET_SIZE_BEFORE_UPDATING_THRESHOLD = 256;
 

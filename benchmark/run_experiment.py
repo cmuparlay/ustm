@@ -59,7 +59,7 @@ class Config:
     default_trans: int = 4
     default_z: float = 0.9
     default_p: int = 72
-    rounds: int = 3
+    rounds: int = 1
     trial_time: int = 1
     
     def __post_init__(self):
@@ -73,15 +73,15 @@ def get_config(include_hytm: bool) -> Config:
     config = Config()
 
     config.impls = [
+        "multiverse",
         "mvustm",
         "mvustm_hwstamp",
-        "mvustm_longjmp",
+        # "mvustm_longjmp",
         "2plsf",
         "fuse",
         # "onefile",
         "tiny",
-        "tl2",
-        "multiverse"
+        # "tl2",
         # DCOTL is broken for most benchmarks
         # "dcotl"
     ]
@@ -139,6 +139,10 @@ def run_benchmark(cmd: str, numa_cmd: str, timeout_sec: int = 1800) -> Tuple[str
             print(f"  TIMEOUT ({timeout_sec}s): {cmd}", file=sys.stderr)
             return output, "timeout"
         elif result.returncode != 0:
+            # Check if we got valid output despite non-zero exit
+            # (multiverse intentionally aborts at the end)
+            if 'mops=' in output or 'GEOMETRIC MEAN' in output:
+                return output, "ok"
             print(f"  CRASH (exit={result.returncode}): {cmd}", file=sys.stderr)
             return output, "crash"
         

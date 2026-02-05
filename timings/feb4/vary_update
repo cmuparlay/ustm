@@ -1,0 +1,332 @@
+Date: 02-05-2026
+Experiment: vary_update
+HYTM: no
+Model name:                           Intel(R) Xeon(R) CPU E7-8867 v4 @ 2.40GHz
+Git: 845d5d7
+---
+Fixed: n=100000, trans=4, z=0.9, p=144 (300 for list)
+---
+./btree_mvustm,u=0,trans=4,n=100000,p=144,z=0.9,pa=0,mops=369
+./btree_mvustm,u=1,trans=4,n=100000,p=144,z=0.9,pa=0.279,mops=508
+./btree_mvustm,u=5,trans=4,n=100000,p=144,z=0.9,pa=4.37,mops=360
+./btree_mvustm,u=10,trans=4,n=100000,p=144,z=0.9,pa=10.7,mops=222
+./btree_mvustm,u=20,trans=4,n=100000,p=144,z=0.9,pa=41.3,mops=161
+./btree_mvustm,u=50,trans=4,n=100000,p=144,z=0.9,pa=164,mops=54.4
+./arttree_mvustm,u=0,trans=4,n=100000,p=144,z=0.9,pa=0,mops=1.1e+03
+./arttree_mvustm,u=1,trans=4,n=100000,p=144,z=0.9,pa=0.205,mops=600
+./arttree_mvustm,u=5,trans=4,n=100000,p=144,z=0.9,pa=4.06,mops=507
+./arttree_mvustm,u=10,trans=4,n=100000,p=144,z=0.9,pa=13.2,mops=335
+./arttree_mvustm,u=20,trans=4,n=100000,p=144,z=0.9,pa=43.9,mops=196
+./arttree_mvustm,u=50,trans=4,n=100000,p=144,z=0.9,pa=159,mops=62.3
+./avltree_mvustm,u=0,trans=4,n=100000,p=144,z=0.9,pa=0,mops=228
+./avltree_mvustm,u=1,trans=4,n=100000,p=144,z=0.9,pa=0.207,mops=211
+./avltree_mvustm,u=5,trans=4,n=100000,p=144,z=0.9,pa=3.76,mops=154
+./avltree_mvustm,u=10,trans=4,n=100000,p=144,z=0.9,pa=12.4,mops=139
+./avltree_mvustm,u=20,trans=4,n=100000,p=144,z=0.9,pa=42.6,mops=79.5
+./avltree_mvustm,u=50,trans=4,n=100000,p=144,z=0.9,pa=206,mops=26.1
+./leaftree_mvustm,u=0,trans=4,n=100000,p=144,z=0.9,pa=0,mops=158
+./leaftree_mvustm,u=1,trans=4,n=100000,p=144,z=0.9,pa=0.135,mops=193
+./leaftree_mvustm,u=5,trans=4,n=100000,p=144,z=0.9,pa=1.82,mops=140
+./leaftree_mvustm,u=10,trans=4,n=100000,p=144,z=0.9,pa=7.28,mops=109
+./leaftree_mvustm,u=20,trans=4,n=100000,p=144,z=0.9,pa=26.3,mops=120
+./leaftree_mvustm,u=50,trans=4,n=100000,p=144,z=0.9,pa=206,mops=43.3
+./treap_mvustm,u=0,trans=4,n=100000,p=144,z=0.9,pa=0,mops=342
+./treap_mvustm,u=1,trans=4,n=100000,p=144,z=0.9,pa=0.177,mops=276
+./treap_mvustm,u=5,trans=4,n=100000,p=144,z=0.9,pa=3.16,mops=248
+./treap_mvustm,u=10,trans=4,n=100000,p=144,z=0.9,pa=9.94,mops=209
+./treap_mvustm,u=20,trans=4,n=100000,p=144,z=0.9,pa=32.6,mops=104
+./treap_mvustm,u=50,trans=4,n=100000,p=144,z=0.9,pa=183,mops=52.5
+./skiplist_mvustm,u=0,trans=4,n=100000,p=144,z=0.9,pa=0,mops=164
+./skiplist_mvustm,u=1,trans=4,n=100000,p=144,z=0.9,pa=0.166,mops=159
+./skiplist_mvustm,u=5,trans=4,n=100000,p=144,z=0.9,pa=2.83,mops=136
+./skiplist_mvustm,u=10,trans=4,n=100000,p=144,z=0.9,pa=9.48,mops=116
+./skiplist_mvustm,u=20,trans=4,n=100000,p=144,z=0.9,pa=34.4,mops=79
+./skiplist_mvustm,u=50,trans=4,n=100000,p=144,z=0.9,pa=161,mops=30.6
+./hash_block_mvustm,u=0,trans=4,n=100000,p=144,z=0.9,pa=0,mops=2.54e+03
+./hash_block_mvustm,u=1,trans=4,n=100000,p=144,z=0.9,pa=0.311,mops=1.06e+03
+./hash_block_mvustm,u=5,trans=4,n=100000,p=144,z=0.9,pa=4.39,mops=573
+./hash_block_mvustm,u=10,trans=4,n=100000,p=144,z=0.9,pa=13.6,mops=388
+./hash_block_mvustm,u=20,trans=4,n=100000,p=144,z=0.9,pa=43.1,mops=182
+./hash_block_mvustm,u=50,trans=4,n=100000,p=144,z=0.9,pa=128,mops=69.2
+./list_mvustm,u=0,trans=4,n=300,p=144,z=0.9,pa=0,mops=58.3
+./list_mvustm,u=1,trans=4,n=300,p=144,z=0.9,pa=98.2,mops=19.7
+./list_mvustm,u=5,trans=4,n=300,p=144,z=0.9,pa=613,mops=4.18
+./list_mvustm,u=10,trans=4,n=300,p=144,z=0.9,pa=1.37e+03,mops=2.13
+./list_mvustm,u=20,trans=4,n=300,p=144,z=0.9,pa=2.64e+03,mops=1.01
+./list_mvustm,u=50,trans=4,n=300,p=144,z=0.9,pa=5.97e+03,mops=0.385
+./btree_mvustm_hwstamp,u=0,trans=4,n=100000,p=144,z=0.9,pa=0,mops=664
+./btree_mvustm_hwstamp,u=1,trans=4,n=100000,p=144,z=0.9,pa=0.178,mops=416
+./btree_mvustm_hwstamp,u=5,trans=4,n=100000,p=144,z=0.9,pa=2.49,mops=350
+./btree_mvustm_hwstamp,u=10,trans=4,n=100000,p=144,z=0.9,pa=10,mops=245
+./btree_mvustm_hwstamp,u=20,trans=4,n=100000,p=144,z=0.9,pa=26.5,mops=179
+./btree_mvustm_hwstamp,u=50,trans=4,n=100000,p=144,z=0.9,pa=130,mops=65.1
+./arttree_mvustm_hwstamp,u=0,trans=4,n=100000,p=144,z=0.9,pa=0,mops=1.3e+03
+./arttree_mvustm_hwstamp,u=1,trans=4,n=100000,p=144,z=0.9,pa=0.155,mops=962
+./arttree_mvustm_hwstamp,u=5,trans=4,n=100000,p=144,z=0.9,pa=2.79,mops=692
+./arttree_mvustm_hwstamp,u=10,trans=4,n=100000,p=144,z=0.9,pa=8.46,mops=446
+./arttree_mvustm_hwstamp,u=20,trans=4,n=100000,p=144,z=0.9,pa=26.7,mops=295
+./arttree_mvustm_hwstamp,u=50,trans=4,n=100000,p=144,z=0.9,pa=113,mops=94.5
+./avltree_mvustm_hwstamp,u=0,trans=4,n=100000,p=144,z=0.9,pa=0,mops=255
+./avltree_mvustm_hwstamp,u=1,trans=4,n=100000,p=144,z=0.9,pa=0.178,mops=281
+./avltree_mvustm_hwstamp,u=5,trans=4,n=100000,p=144,z=0.9,pa=3.21,mops=201
+./avltree_mvustm_hwstamp,u=10,trans=4,n=100000,p=144,z=0.9,pa=10.1,mops=141
+./avltree_mvustm_hwstamp,u=20,trans=4,n=100000,p=144,z=0.9,pa=33.9,mops=87.2
+./avltree_mvustm_hwstamp,u=50,trans=4,n=100000,p=144,z=0.9,pa=152,mops=31
+./leaftree_mvustm_hwstamp,u=0,trans=4,n=100000,p=144,z=0.9,pa=0,mops=163
+./leaftree_mvustm_hwstamp,u=1,trans=4,n=100000,p=144,z=0.9,pa=0,mops=153
+./leaftree_mvustm_hwstamp,u=5,trans=4,n=100000,p=144,z=0.9,pa=1.37,mops=149
+./leaftree_mvustm_hwstamp,u=10,trans=4,n=100000,p=144,z=0.9,pa=6.04,mops=157
+./leaftree_mvustm_hwstamp,u=20,trans=4,n=100000,p=144,z=0.9,pa=20.9,mops=132
+./leaftree_mvustm_hwstamp,u=50,trans=4,n=100000,p=144,z=0.9,pa=157,mops=53.6
+./treap_mvustm_hwstamp,u=0,trans=4,n=100000,p=144,z=0.9,pa=0,mops=360
+./treap_mvustm_hwstamp,u=1,trans=4,n=100000,p=144,z=0.9,pa=0.126,mops=313
+./treap_mvustm_hwstamp,u=5,trans=4,n=100000,p=144,z=0.9,pa=2.31,mops=228
+./treap_mvustm_hwstamp,u=10,trans=4,n=100000,p=144,z=0.9,pa=7.55,mops=227
+./treap_mvustm_hwstamp,u=20,trans=4,n=100000,p=144,z=0.9,pa=23.8,mops=162
+./treap_mvustm_hwstamp,u=50,trans=4,n=100000,p=144,z=0.9,pa=113,mops=75.3
+./skiplist_mvustm_hwstamp,u=0,trans=4,n=100000,p=144,z=0.9,pa=0,mops=140
+./skiplist_mvustm_hwstamp,u=1,trans=4,n=100000,p=144,z=0.9,pa=0.118,mops=165
+./skiplist_mvustm_hwstamp,u=5,trans=4,n=100000,p=144,z=0.9,pa=1.99,mops=102
+./skiplist_mvustm_hwstamp,u=10,trans=4,n=100000,p=144,z=0.9,pa=7.73,mops=87.8
+./skiplist_mvustm_hwstamp,u=20,trans=4,n=100000,p=144,z=0.9,pa=26.5,mops=87.7
+./skiplist_mvustm_hwstamp,u=50,trans=4,n=100000,p=144,z=0.9,pa=116,mops=38.5
+./hash_block_mvustm_hwstamp,u=0,trans=4,n=100000,p=144,z=0.9,pa=0,mops=2.42e+03
+./hash_block_mvustm_hwstamp,u=1,trans=4,n=100000,p=144,z=0.9,pa=0.166,mops=1.32e+03
+./hash_block_mvustm_hwstamp,u=5,trans=4,n=100000,p=144,z=0.9,pa=3.18,mops=648
+./hash_block_mvustm_hwstamp,u=10,trans=4,n=100000,p=144,z=0.9,pa=9.42,mops=490
+./hash_block_mvustm_hwstamp,u=20,trans=4,n=100000,p=144,z=0.9,pa=27.7,mops=286
+./hash_block_mvustm_hwstamp,u=50,trans=4,n=100000,p=144,z=0.9,pa=113,mops=102
+./list_mvustm_hwstamp,u=0,trans=4,n=300,p=144,z=0.9,pa=0,mops=64.8
+./list_mvustm_hwstamp,u=1,trans=4,n=300,p=144,z=0.9,pa=71.4,mops=21.2
+./list_mvustm_hwstamp,u=5,trans=4,n=300,p=144,z=0.9,pa=611,mops=4.48
+./list_mvustm_hwstamp,u=10,trans=4,n=300,p=144,z=0.9,pa=1.1e+03,mops=2.18
+./list_mvustm_hwstamp,u=20,trans=4,n=300,p=144,z=0.9,pa=2.47e+03,mops=1.1
+./list_mvustm_hwstamp,u=50,trans=4,n=300,p=144,z=0.9,pa=5.38e+03,mops=0.412
+./btree_mvustm_longjmp,u=0,trans=4,n=100000,p=144,z=0.9,pa=0,mops=628
+./btree_mvustm_longjmp,u=1,trans=4,n=100000,p=144,z=0.9,pa=4.69,mops=339
+./btree_mvustm_longjmp,u=5,trans=4,n=100000,p=144,z=0.9,pa=20.8,mops=294
+./btree_mvustm_longjmp,u=10,trans=4,n=100000,p=144,z=0.9,pa=29.5,mops=201
+./btree_mvustm_longjmp,u=20,trans=4,n=100000,p=144,z=0.9,pa=76.5,mops=127
+./btree_mvustm_longjmp,u=50,trans=4,n=100000,p=144,z=0.9,pa=215,mops=51.1
+./arttree_mvustm_longjmp,u=0,trans=4,n=100000,p=144,z=0.9,pa=0,mops=911
+./arttree_mvustm_longjmp,u=1,trans=4,n=100000,p=144,z=0.9,pa=5.46,mops=535
+./arttree_mvustm_longjmp,u=5,trans=4,n=100000,p=144,z=0.9,pa=19.9,mops=414
+./arttree_mvustm_longjmp,u=10,trans=4,n=100000,p=144,z=0.9,pa=35.6,mops=286
+./arttree_mvustm_longjmp,u=20,trans=4,n=100000,p=144,z=0.9,pa=70.9,mops=174
+./arttree_mvustm_longjmp,u=50,trans=4,n=100000,p=144,z=0.9,pa=193,mops=57.8
+./avltree_mvustm_longjmp,u=0,trans=4,n=100000,p=144,z=0.9,pa=0,mops=175
+./avltree_mvustm_longjmp,u=1,trans=4,n=100000,p=144,z=0.9,pa=4.19,mops=182
+./avltree_mvustm_longjmp,u=5,trans=4,n=100000,p=144,z=0.9,pa=13.7,mops=119
+./avltree_mvustm_longjmp,u=10,trans=4,n=100000,p=144,z=0.9,pa=29.6,mops=125
+./avltree_mvustm_longjmp,u=20,trans=4,n=100000,p=144,z=0.9,pa=61.4,mops=61.6
+./avltree_mvustm_longjmp,u=50,trans=4,n=100000,p=144,z=0.9,pa=200,mops=24.2
+./leaftree_mvustm_longjmp,u=0,trans=4,n=100000,p=144,z=0.9,pa=0,mops=197
+./leaftree_mvustm_longjmp,u=1,trans=4,n=100000,p=144,z=0.9,pa=3.61,mops=173
+./leaftree_mvustm_longjmp,u=5,trans=4,n=100000,p=144,z=0.9,pa=14.7,mops=153
+./leaftree_mvustm_longjmp,u=10,trans=4,n=100000,p=144,z=0.9,pa=27.8,mops=93
+./leaftree_mvustm_longjmp,u=20,trans=4,n=100000,p=144,z=0.9,pa=51.5,mops=98.3
+./leaftree_mvustm_longjmp,u=50,trans=4,n=100000,p=144,z=0.9,pa=121,mops=33.4
+./treap_mvustm_longjmp,u=0,trans=4,n=100000,p=144,z=0.9,pa=0,mops=310
+./treap_mvustm_longjmp,u=1,trans=4,n=100000,p=144,z=0.9,pa=3.43,mops=207
+./treap_mvustm_longjmp,u=5,trans=4,n=100000,p=144,z=0.9,pa=17.2,mops=200
+./treap_mvustm_longjmp,u=10,trans=4,n=100000,p=144,z=0.9,pa=30.5,mops=182
+./treap_mvustm_longjmp,u=20,trans=4,n=100000,p=144,z=0.9,pa=61.5,mops=128
+./treap_mvustm_longjmp,u=50,trans=4,n=100000,p=144,z=0.9,pa=232,mops=52.6
+./skiplist_mvustm_longjmp,u=0,trans=4,n=100000,p=144,z=0.9,pa=0,mops=124
+./skiplist_mvustm_longjmp,u=1,trans=4,n=100000,p=144,z=0.9,pa=3.57,mops=107
+./skiplist_mvustm_longjmp,u=5,trans=4,n=100000,p=144,z=0.9,pa=15.4,mops=117
+./skiplist_mvustm_longjmp,u=10,trans=4,n=100000,p=144,z=0.9,pa=28.9,mops=98.8
+./skiplist_mvustm_longjmp,u=20,trans=4,n=100000,p=144,z=0.9,pa=56.8,mops=72.9
+./skiplist_mvustm_longjmp,u=50,trans=4,n=100000,p=144,z=0.9,pa=183,mops=35.1
+./hash_block_mvustm_longjmp,u=0,trans=4,n=100000,p=144,z=0.9,pa=0,mops=1.77e+03
+./hash_block_mvustm_longjmp,u=1,trans=4,n=100000,p=144,z=0.9,pa=6.24,mops=764
+./hash_block_mvustm_longjmp,u=5,trans=4,n=100000,p=144,z=0.9,pa=21.3,mops=481
+./hash_block_mvustm_longjmp,u=10,trans=4,n=100000,p=144,z=0.9,pa=36.1,mops=315
+./hash_block_mvustm_longjmp,u=20,trans=4,n=100000,p=144,z=0.9,pa=71.9,mops=159
+./hash_block_mvustm_longjmp,u=50,trans=4,n=100000,p=144,z=0.9,pa=185,mops=55.9
+./list_mvustm_longjmp,u=0,trans=4,n=300,p=144,z=0.9,pa=0,mops=40.3
+./list_mvustm_longjmp,u=1,trans=4,n=300,p=144,z=0.9,pa=164,mops=13.8
+./list_mvustm_longjmp,u=5,trans=4,n=300,p=144,z=0.9,pa=1.02e+03,mops=3.51
+./list_mvustm_longjmp,u=10,trans=4,n=300,p=144,z=0.9,pa=2.14e+03,mops=1.65
+./list_mvustm_longjmp,u=20,trans=4,n=300,p=144,z=0.9,pa=4.15e+03,mops=0.784
+./list_mvustm_longjmp,u=50,trans=4,n=300,p=144,z=0.9,pa=9.63e+03,mops=0.285
+./btree_2plsf,u=0,trans=4,n=100000,p=144,z=0.9,pa=0,mops=396
+./btree_2plsf,u=1,trans=4,n=100000,p=144,z=0.9,pa=13.7,mops=90.1
+./btree_2plsf,u=5,trans=4,n=100000,p=144,z=0.9,pa=30.8,mops=31.8
+./btree_2plsf,u=10,trans=4,n=100000,p=144,z=0.9,pa=44.8,mops=31.8
+./btree_2plsf,u=20,trans=4,n=100000,p=144,z=0.9,pa=58.6,mops=20.3
+./btree_2plsf,u=50,trans=4,n=100000,p=144,z=0.9,pa=98.3,mops=11.5
+./arttree_2plsf,u=0,trans=4,n=100000,p=144,z=0.9,pa=0,mops=925
+./arttree_2plsf,u=1,trans=4,n=100000,p=144,z=0.9,pa=13.7,mops=100
+./arttree_2plsf,u=5,trans=4,n=100000,p=144,z=0.9,pa=29.3,mops=56
+./arttree_2plsf,u=10,trans=4,n=100000,p=144,z=0.9,pa=42.8,mops=30.1
+./arttree_2plsf,u=20,trans=4,n=100000,p=144,z=0.9,pa=47.6,mops=37.4
+./arttree_2plsf,u=50,trans=4,n=100000,p=144,z=0.9,pa=83.2,mops=11.1
+./avltree_2plsf,u=0,trans=4,n=100000,p=144,z=0.9,pa=0,mops=283
+./avltree_2plsf,u=1,trans=4,n=100000,p=144,z=0.9,pa=33.3,mops=48.4
+./avltree_2plsf,u=5,trans=4,n=100000,p=144,z=0.9,pa=62.1,mops=21.1
+./avltree_2plsf,u=10,trans=4,n=100000,p=144,z=0.9,pa=65.7,mops=14.4
+./avltree_2plsf,u=20,trans=4,n=100000,p=144,z=0.9,pa=90.6,mops=13
+./avltree_2plsf,u=50,trans=4,n=100000,p=144,z=0.9,pa=164,mops=6.52
+./leaftree_2plsf,u=0,trans=4,n=100000,p=144,z=0.9,pa=0,mops=60.7
+./leaftree_2plsf,u=1,trans=4,n=100000,p=144,z=0.9,pa=6.55,mops=65.7
+./leaftree_2plsf,u=5,trans=4,n=100000,p=144,z=0.9,pa=25.2,mops=47.1
+./leaftree_2plsf,u=10,trans=4,n=100000,p=144,z=0.9,pa=33.2,mops=37.9
+./leaftree_2plsf,u=20,trans=4,n=100000,p=144,z=0.9,pa=45.4,mops=23.8
+./leaftree_2plsf,u=50,trans=4,n=100000,p=144,z=0.9,pa=78.2,mops=15.6
+./treap_2plsf,u=0,trans=4,n=100000,p=144,z=0.9,pa=0,mops=282
+./treap_2plsf,u=1,trans=4,n=100000,p=144,z=0.9,pa=10.7,mops=43.7
+./treap_2plsf,u=5,trans=4,n=100000,p=144,z=0.9,pa=23.8,mops=21.7
+./treap_2plsf,u=10,trans=4,n=100000,p=144,z=0.9,pa=41.4,mops=7.46
+./treap_2plsf,u=20,trans=4,n=100000,p=144,z=0.9,pa=66.1,mops=4.97
+./treap_2plsf,u=50,trans=4,n=100000,p=144,z=0.9,pa=122,mops=3.6
+./skiplist_2plsf,u=0,trans=4,n=100000,p=144,z=0.9,pa=0,mops=95.6
+./skiplist_2plsf,u=1,trans=4,n=100000,p=144,z=0.9,pa=16,mops=51
+./skiplist_2plsf,u=5,trans=4,n=100000,p=144,z=0.9,pa=30.9,mops=27.4
+./skiplist_2plsf,u=10,trans=4,n=100000,p=144,z=0.9,pa=34,mops=23
+./skiplist_2plsf,u=20,trans=4,n=100000,p=144,z=0.9,pa=57.7,mops=13.1
+./skiplist_2plsf,u=50,trans=4,n=100000,p=144,z=0.9,pa=90.3,mops=6.27
+./hash_block_2plsf,u=0,trans=4,n=100000,p=144,z=0.9,pa=0,mops=1.11e+03
+./hash_block_2plsf,u=1,trans=4,n=100000,p=144,z=0.9,pa=12.3,mops=115
+./hash_block_2plsf,u=5,trans=4,n=100000,p=144,z=0.9,pa=27.9,mops=73.6
+./hash_block_2plsf,u=10,trans=4,n=100000,p=144,z=0.9,pa=37.4,mops=69.7
+./hash_block_2plsf,u=20,trans=4,n=100000,p=144,z=0.9,pa=51.7,mops=52.8
+./hash_block_2plsf,u=50,trans=4,n=100000,p=144,z=0.9,pa=86.4,mops=30.6
+./list_2plsf,u=0,trans=4,n=300,p=144,z=0.9,pa=0,mops=31.3
+./list_2plsf,u=1,trans=4,n=300,p=144,z=0.9,pa=102,mops=6.36
+./list_2plsf,u=5,trans=4,n=300,p=144,z=0.9,pa=376,mops=1.91
+./list_2plsf,u=10,trans=4,n=300,p=144,z=0.9,pa=616,mops=0.845
+./list_2plsf,u=20,trans=4,n=300,p=144,z=0.9,pa=881,mops=0.451
+./list_2plsf,u=50,trans=4,n=300,p=144,z=0.9,pa=2.3e+03,mops=0.17
+./btree_fuse,u=0,trans=4,n=100000,p=144,z=0.9,pa=0,mops=517
+./btree_fuse,u=1,trans=4,n=100000,p=144,z=0.9,pa=0,mops=335
+./btree_fuse,u=5,trans=4,n=100000,p=144,z=0.9,pa=0,mops=369
+./btree_fuse,u=10,trans=4,n=100000,p=144,z=0.9,pa=0,mops=229
+./btree_fuse,u=20,trans=4,n=100000,p=144,z=0.9,pa=0,mops=199
+./btree_fuse,u=50,trans=4,n=100000,p=144,z=0.9,pa=0,mops=92
+./arttree_fuse,u=0,trans=4,n=100000,p=144,z=0.9,pa=0,mops=957
+./arttree_fuse,u=1,trans=4,n=100000,p=144,z=0.9,pa=0,mops=621
+./arttree_fuse,u=5,trans=4,n=100000,p=144,z=0.9,pa=0,mops=561
+./arttree_fuse,u=10,trans=4,n=100000,p=144,z=0.9,pa=0,mops=345
+./arttree_fuse,u=20,trans=4,n=100000,p=144,z=0.9,pa=0,mops=288
+./arttree_fuse,u=50,trans=4,n=100000,p=144,z=0.9,pa=0,mops=114
+# CRASH: ./avltree_fuse -nowarmup -n 100000 -trans 4 -z 0.9 -p 144 -u 0 -r 3 -t 1
+# CRASH: ./avltree_fuse -nowarmup -n 100000 -trans 4 -z 0.9 -p 144 -u 1 -r 3 -t 1
+# CRASH: ./avltree_fuse -nowarmup -n 100000 -trans 4 -z 0.9 -p 144 -u 5 -r 3 -t 1
+# CRASH: ./avltree_fuse -nowarmup -n 100000 -trans 4 -z 0.9 -p 144 -u 10 -r 3 -t 1
+# CRASH: ./avltree_fuse -nowarmup -n 100000 -trans 4 -z 0.9 -p 144 -u 20 -r 3 -t 1
+# CRASH: ./avltree_fuse -nowarmup -n 100000 -trans 4 -z 0.9 -p 144 -u 50 -r 3 -t 1
+./leaftree_fuse,u=0,trans=4,n=100000,p=144,z=0.9,pa=0,mops=88.5
+./leaftree_fuse,u=1,trans=4,n=100000,p=144,z=0.9,pa=0,mops=113
+./leaftree_fuse,u=5,trans=4,n=100000,p=144,z=0.9,pa=0,mops=120
+./leaftree_fuse,u=10,trans=4,n=100000,p=144,z=0.9,pa=0,mops=91.5
+./leaftree_fuse,u=20,trans=4,n=100000,p=144,z=0.9,pa=0,mops=95.1
+./leaftree_fuse,u=50,trans=4,n=100000,p=144,z=0.9,pa=0,mops=54.5
+./treap_fuse,u=0,trans=4,n=100000,p=144,z=0.9,pa=0,mops=191
+./treap_fuse,u=1,trans=4,n=100000,p=144,z=0.9,pa=0,mops=199
+./treap_fuse,u=5,trans=4,n=100000,p=144,z=0.9,pa=0,mops=169
+./treap_fuse,u=10,trans=4,n=100000,p=144,z=0.9,pa=0,mops=171
+./treap_fuse,u=20,trans=4,n=100000,p=144,z=0.9,pa=0,mops=133
+./treap_fuse,u=50,trans=4,n=100000,p=144,z=0.9,pa=0,mops=53.1
+./skiplist_fuse,u=0,trans=4,n=100000,p=144,z=0.9,pa=0,mops=113
+./skiplist_fuse,u=1,trans=4,n=100000,p=144,z=0.9,pa=0,mops=84.8
+./skiplist_fuse,u=5,trans=4,n=100000,p=144,z=0.9,pa=0,mops=82.5
+./skiplist_fuse,u=10,trans=4,n=100000,p=144,z=0.9,pa=0,mops=74.1
+./skiplist_fuse,u=20,trans=4,n=100000,p=144,z=0.9,pa=0,mops=53.8
+./skiplist_fuse,u=50,trans=4,n=100000,p=144,z=0.9,pa=0,mops=24.6
+./hash_block_fuse,u=0,trans=4,n=100000,p=144,z=0.9,pa=0,mops=1.37e+03
+./hash_block_fuse,u=1,trans=4,n=100000,p=144,z=0.9,pa=0,mops=1.04e+03
+./hash_block_fuse,u=5,trans=4,n=100000,p=144,z=0.9,pa=0,mops=667
+./hash_block_fuse,u=10,trans=4,n=100000,p=144,z=0.9,pa=0,mops=462
+./hash_block_fuse,u=20,trans=4,n=100000,p=144,z=0.9,pa=0,mops=246
+./hash_block_fuse,u=50,trans=4,n=100000,p=144,z=0.9,pa=0,mops=150
+./list_fuse,u=0,trans=4,n=300,p=144,z=0.9,pa=0,mops=31.7
+./list_fuse,u=1,trans=4,n=300,p=144,z=0.9,pa=0,mops=12.9
+./list_fuse,u=5,trans=4,n=300,p=144,z=0.9,pa=0,mops=2.84
+./list_fuse,u=10,trans=4,n=300,p=144,z=0.9,pa=0,mops=1.42
+./list_fuse,u=20,trans=4,n=300,p=144,z=0.9,pa=0,mops=0.81
+./list_fuse,u=50,trans=4,n=300,p=144,z=0.9,pa=0,mops=0.302
+./btree_tiny,u=0,trans=4,n=100000,p=144,z=0.9,pa=0,mops=464
+./btree_tiny,u=1,trans=4,n=100000,p=144,z=0.9,pa=0,mops=257
+./btree_tiny,u=5,trans=4,n=100000,p=144,z=0.9,pa=0,mops=79.1
+./btree_tiny,u=10,trans=4,n=100000,p=144,z=0.9,pa=0,mops=34
+./btree_tiny,u=20,trans=4,n=100000,p=144,z=0.9,pa=0,mops=11.9
+./btree_tiny,u=50,trans=4,n=100000,p=144,z=0.9,pa=0,mops=5.92
+./arttree_tiny,u=0,trans=4,n=100000,p=144,z=0.9,pa=0,mops=1.09e+03
+./arttree_tiny,u=1,trans=4,n=100000,p=144,z=0.9,pa=0,mops=345
+# TIMEOUT: ./arttree_tiny -nowarmup -n 100000 -trans 4 -z 0.9 -p 144 -u 5 -r 3 -t 1
+./arttree_tiny,u=10,trans=4,n=100000,p=144,z=0.9,pa=0,mops=33.2
+# TIMEOUT: ./arttree_tiny -nowarmup -n 100000 -trans 4 -z 0.9 -p 144 -u 20 -r 3 -t 1
+# CRASH: ./arttree_tiny -nowarmup -n 100000 -trans 4 -z 0.9 -p 144 -u 50 -r 3 -t 1
+./avltree_tiny,u=0,trans=4,n=100000,p=144,z=0.9,pa=0,mops=199
+./avltree_tiny,u=1,trans=4,n=100000,p=144,z=0.9,pa=0,mops=243
+./avltree_tiny,u=5,trans=4,n=100000,p=144,z=0.9,pa=0,mops=85.7
+./avltree_tiny,u=10,trans=4,n=100000,p=144,z=0.9,pa=0,mops=42.7
+./avltree_tiny,u=20,trans=4,n=100000,p=144,z=0.9,pa=0,mops=20.5
+./avltree_tiny,u=50,trans=4,n=100000,p=144,z=0.9,pa=0,mops=5.91
+./leaftree_tiny,u=0,trans=4,n=100000,p=144,z=0.9,pa=0,mops=224
+./leaftree_tiny,u=1,trans=4,n=100000,p=144,z=0.9,pa=0,mops=174
+./leaftree_tiny,u=5,trans=4,n=100000,p=144,z=0.9,pa=0,mops=84.8
+./leaftree_tiny,u=10,trans=4,n=100000,p=144,z=0.9,pa=0,mops=45
+./leaftree_tiny,u=20,trans=4,n=100000,p=144,z=0.9,pa=0,mops=21.3
+./leaftree_tiny,u=50,trans=4,n=100000,p=144,z=0.9,pa=0,mops=6.88
+./treap_tiny,u=0,trans=4,n=100000,p=144,z=0.9,pa=0,mops=350
+./treap_tiny,u=1,trans=4,n=100000,p=144,z=0.9,pa=0,mops=220
+./treap_tiny,u=5,trans=4,n=100000,p=144,z=0.9,pa=0,mops=42.3
+./treap_tiny,u=10,trans=4,n=100000,p=144,z=0.9,pa=0,mops=25
+./treap_tiny,u=20,trans=4,n=100000,p=144,z=0.9,pa=0,mops=17
+./treap_tiny,u=50,trans=4,n=100000,p=144,z=0.9,pa=0,mops=3.9
+./skiplist_tiny,u=0,trans=4,n=100000,p=144,z=0.9,pa=0,mops=188
+./skiplist_tiny,u=1,trans=4,n=100000,p=144,z=0.9,pa=0,mops=166
+./skiplist_tiny,u=5,trans=4,n=100000,p=144,z=0.9,pa=0,mops=81.1
+./skiplist_tiny,u=10,trans=4,n=100000,p=144,z=0.9,pa=0,mops=43.6
+./skiplist_tiny,u=20,trans=4,n=100000,p=144,z=0.9,pa=0,mops=20.6
+./skiplist_tiny,u=50,trans=4,n=100000,p=144,z=0.9,pa=0,mops=5.26
+./list_tiny,u=0,trans=4,n=300,p=144,z=0.9,pa=0,mops=86.7
+./list_tiny,u=1,trans=4,n=300,p=144,z=0.9,pa=0,mops=16.1
+./list_tiny,u=5,trans=4,n=300,p=144,z=0.9,pa=0,mops=4.03
+./list_tiny,u=10,trans=4,n=300,p=144,z=0.9,pa=0,mops=2.02
+./list_tiny,u=20,trans=4,n=300,p=144,z=0.9,pa=0,mops=0.924
+./list_tiny,u=50,trans=4,n=300,p=144,z=0.9,pa=0,mops=0.53
+# CRASH: ./btree_multiverse -nowarmup -n 100000 -trans 4 -z 0.9 -p 144 -u 0 -r 3 -t 1
+# CRASH: ./btree_multiverse -nowarmup -n 100000 -trans 4 -z 0.9 -p 144 -u 1 -r 3 -t 1
+# CRASH: ./btree_multiverse -nowarmup -n 100000 -trans 4 -z 0.9 -p 144 -u 5 -r 3 -t 1
+# CRASH: ./btree_multiverse -nowarmup -n 100000 -trans 4 -z 0.9 -p 144 -u 10 -r 3 -t 1
+# CRASH: ./btree_multiverse -nowarmup -n 100000 -trans 4 -z 0.9 -p 144 -u 20 -r 3 -t 1
+# CRASH: ./btree_multiverse -nowarmup -n 100000 -trans 4 -z 0.9 -p 144 -u 50 -r 3 -t 1
+# CRASH: ./arttree_multiverse -nowarmup -n 100000 -trans 4 -z 0.9 -p 144 -u 0 -r 3 -t 1
+# CRASH: ./arttree_multiverse -nowarmup -n 100000 -trans 4 -z 0.9 -p 144 -u 1 -r 3 -t 1
+# CRASH: ./arttree_multiverse -nowarmup -n 100000 -trans 4 -z 0.9 -p 144 -u 5 -r 3 -t 1
+# CRASH: ./arttree_multiverse -nowarmup -n 100000 -trans 4 -z 0.9 -p 144 -u 10 -r 3 -t 1
+# CRASH: ./arttree_multiverse -nowarmup -n 100000 -trans 4 -z 0.9 -p 144 -u 20 -r 3 -t 1
+# CRASH: ./arttree_multiverse -nowarmup -n 100000 -trans 4 -z 0.9 -p 144 -u 50 -r 3 -t 1
+# CRASH: ./avltree_multiverse -nowarmup -n 100000 -trans 4 -z 0.9 -p 144 -u 0 -r 3 -t 1
+# CRASH: ./avltree_multiverse -nowarmup -n 100000 -trans 4 -z 0.9 -p 144 -u 1 -r 3 -t 1
+# CRASH: ./avltree_multiverse -nowarmup -n 100000 -trans 4 -z 0.9 -p 144 -u 5 -r 3 -t 1
+# CRASH: ./avltree_multiverse -nowarmup -n 100000 -trans 4 -z 0.9 -p 144 -u 10 -r 3 -t 1
+# CRASH: ./avltree_multiverse -nowarmup -n 100000 -trans 4 -z 0.9 -p 144 -u 20 -r 3 -t 1
+# CRASH: ./avltree_multiverse -nowarmup -n 100000 -trans 4 -z 0.9 -p 144 -u 50 -r 3 -t 1
+# CRASH: ./leaftree_multiverse -nowarmup -n 100000 -trans 4 -z 0.9 -p 144 -u 0 -r 3 -t 1
+# CRASH: ./leaftree_multiverse -nowarmup -n 100000 -trans 4 -z 0.9 -p 144 -u 1 -r 3 -t 1
+# CRASH: ./leaftree_multiverse -nowarmup -n 100000 -trans 4 -z 0.9 -p 144 -u 5 -r 3 -t 1
+# CRASH: ./leaftree_multiverse -nowarmup -n 100000 -trans 4 -z 0.9 -p 144 -u 10 -r 3 -t 1
+# CRASH: ./leaftree_multiverse -nowarmup -n 100000 -trans 4 -z 0.9 -p 144 -u 20 -r 3 -t 1
+# CRASH: ./leaftree_multiverse -nowarmup -n 100000 -trans 4 -z 0.9 -p 144 -u 50 -r 3 -t 1
+# CRASH: ./treap_multiverse -nowarmup -n 100000 -trans 4 -z 0.9 -p 144 -u 0 -r 3 -t 1
+# CRASH: ./treap_multiverse -nowarmup -n 100000 -trans 4 -z 0.9 -p 144 -u 1 -r 3 -t 1
+# CRASH: ./treap_multiverse -nowarmup -n 100000 -trans 4 -z 0.9 -p 144 -u 5 -r 3 -t 1
+# CRASH: ./treap_multiverse -nowarmup -n 100000 -trans 4 -z 0.9 -p 144 -u 10 -r 3 -t 1
+# CRASH: ./treap_multiverse -nowarmup -n 100000 -trans 4 -z 0.9 -p 144 -u 20 -r 3 -t 1
+# CRASH: ./treap_multiverse -nowarmup -n 100000 -trans 4 -z 0.9 -p 144 -u 50 -r 3 -t 1
+# CRASH: ./skiplist_multiverse -nowarmup -n 100000 -trans 4 -z 0.9 -p 144 -u 0 -r 3 -t 1
+# CRASH: ./skiplist_multiverse -nowarmup -n 100000 -trans 4 -z 0.9 -p 144 -u 1 -r 3 -t 1
+# CRASH: ./skiplist_multiverse -nowarmup -n 100000 -trans 4 -z 0.9 -p 144 -u 5 -r 3 -t 1
+# CRASH: ./skiplist_multiverse -nowarmup -n 100000 -trans 4 -z 0.9 -p 144 -u 10 -r 3 -t 1
+# CRASH: ./skiplist_multiverse -nowarmup -n 100000 -trans 4 -z 0.9 -p 144 -u 20 -r 3 -t 1
+# CRASH: ./skiplist_multiverse -nowarmup -n 100000 -trans 4 -z 0.9 -p 144 -u 50 -r 3 -t 1
+# CRASH: ./list_multiverse -nowarmup -n 300 -trans 4 -z 0.9 -p 144 -u 0 -r 3 -t 1
+# CRASH: ./list_multiverse -nowarmup -n 300 -trans 4 -z 0.9 -p 144 -u 1 -r 3 -t 1
+# CRASH: ./list_multiverse -nowarmup -n 300 -trans 4 -z 0.9 -p 144 -u 5 -r 3 -t 1
+# CRASH: ./list_multiverse -nowarmup -n 300 -trans 4 -z 0.9 -p 144 -u 10 -r 3 -t 1
+# CRASH: ./list_multiverse -nowarmup -n 300 -trans 4 -z 0.9 -p 144 -u 20 -r 3 -t 1
+# CRASH: ./list_multiverse -nowarmup -n 300 -trans 4 -z 0.9 -p 144 -u 50 -r 3 -t 1

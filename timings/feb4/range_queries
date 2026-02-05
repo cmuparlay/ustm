@@ -1,0 +1,106 @@
+Date: 02-05-2026
+Experiment: range_queries
+HYTM: no
+Model name:                           Intel(R) Xeon(R) CPU E7-8867 v4 @ 2.40GHz
+Git: 845d5d7
+---
+Fixed: n=1000000, u=100, trans=4, z=0, p=144, rqp=50
+---
+./btree_mvustm,u=100,trans=4,n=1000000,p=144,z=0,pa=0.688,rs=1,rqp=50,rqmops=71,mops=43.2
+./btree_mvustm,u=100,trans=4,n=1000000,p=144,z=0,pa=0.77,rs=10,rqp=50,rqmops=81.6,mops=57
+./btree_mvustm,u=100,trans=4,n=1000000,p=144,z=0,pa=1.24,rs=100,rqp=50,rqmops=46.3,mops=58.8
+./btree_mvustm,u=100,trans=4,n=1000000,p=144,z=0,pa=3.15,rs=1000,rqp=50,rqmops=9.05,mops=57.7
+./btree_mvustm,u=100,trans=4,n=1000000,p=144,z=0,pa=5.36,rs=10000,rqp=50,rqmops=0.837,mops=50
+./btree_mvustm,u=100,trans=4,n=1000000,p=144,z=0,pa=5.15,rs=100000,rqp=50,rqmops=0.0684,mops=48.5
+./btree_mvustm,u=100,trans=4,n=1000000,p=144,z=0,pa=4.36,rs=1000000,rqp=50,rqmops=0.00671,mops=26.6
+./arttree_mvustm,u=100,trans=4,n=1000000,p=144,z=0,pa=0.844,rs=1,rqp=50,rqmops=95.3,mops=62.2
+./arttree_mvustm,u=100,trans=4,n=1000000,p=144,z=0,pa=0.965,rs=10,rqp=50,rqmops=87.2,mops=66
+./arttree_mvustm,u=100,trans=4,n=1000000,p=144,z=0,pa=1.65,rs=100,rqp=50,rqmops=43.7,mops=66.9
+./arttree_mvustm,u=100,trans=4,n=1000000,p=144,z=0,pa=3.91,rs=1000,rqp=50,rqmops=8.25,mops=66
+./arttree_mvustm,u=100,trans=4,n=1000000,p=144,z=0,pa=5.43,rs=10000,rqp=50,rqmops=1.18,mops=66.2
+./arttree_mvustm,u=100,trans=4,n=1000000,p=144,z=0,pa=5.85,rs=100000,rqp=50,rqmops=0.0956,mops=56.4
+./arttree_mvustm,u=100,trans=4,n=1000000,p=144,z=0,pa=4.48,rs=1000000,rqp=50,rqmops=0.0104,mops=32.5
+./btree_mvustm_hwstamp,u=100,trans=4,n=1000000,p=144,z=0,pa=0.474,rs=1,rqp=50,rqmops=112,mops=55.4
+./btree_mvustm_hwstamp,u=100,trans=4,n=1000000,p=144,z=0,pa=0.58,rs=10,rqp=50,rqmops=96.9,mops=60.7
+./btree_mvustm_hwstamp,u=100,trans=4,n=1000000,p=144,z=0,pa=1.04,rs=100,rqp=50,rqmops=50.1,mops=65.3
+./btree_mvustm_hwstamp,u=100,trans=4,n=1000000,p=144,z=0,pa=2.78,rs=1000,rqp=50,rqmops=8.76,mops=68
+./btree_mvustm_hwstamp,u=100,trans=4,n=1000000,p=144,z=0,pa=4.17,rs=10000,rqp=50,rqmops=0.798,mops=57.7
+./btree_mvustm_hwstamp,u=100,trans=4,n=1000000,p=144,z=0,pa=4.2,rs=100000,rqp=50,rqmops=0.0631,mops=54.2
+./btree_mvustm_hwstamp,u=100,trans=4,n=1000000,p=144,z=0,pa=3.78,rs=1000000,rqp=50,rqmops=0.00715,mops=26.6
+./arttree_mvustm_hwstamp,u=100,trans=4,n=1000000,p=144,z=0,pa=0.584,rs=1,rqp=50,rqmops=130,mops=72.2
+./arttree_mvustm_hwstamp,u=100,trans=4,n=1000000,p=144,z=0,pa=0.671,rs=10,rqp=50,rqmops=127,mops=83.1
+./arttree_mvustm_hwstamp,u=100,trans=4,n=1000000,p=144,z=0,pa=1.29,rs=100,rqp=50,rqmops=49.9,mops=76.5
+./arttree_mvustm_hwstamp,u=100,trans=4,n=1000000,p=144,z=0,pa=3.28,rs=1000,rqp=50,rqmops=8.35,mops=81.9
+./arttree_mvustm_hwstamp,u=100,trans=4,n=1000000,p=144,z=0,pa=4.36,rs=10000,rqp=50,rqmops=0.97,mops=72.2
+./arttree_mvustm_hwstamp,u=100,trans=4,n=1000000,p=144,z=0,pa=4.62,rs=100000,rqp=50,rqmops=0.0863,mops=63.8
+./arttree_mvustm_hwstamp,u=100,trans=4,n=1000000,p=144,z=0,pa=3.57,rs=1000000,rqp=50,rqmops=0.014,mops=29.9
+./btree_mvustm_longjmp,u=100,trans=4,n=1000000,p=144,z=0,pa=0.757,rs=1,rqp=50,rqmops=71.9,mops=45.9
+./btree_mvustm_longjmp,u=100,trans=4,n=1000000,p=144,z=0,pa=0.849,rs=10,rqp=50,rqmops=79.4,mops=58
+./btree_mvustm_longjmp,u=100,trans=4,n=1000000,p=144,z=0,pa=1.33,rs=100,rqp=50,rqmops=42.8,mops=56.2
+./btree_mvustm_longjmp,u=100,trans=4,n=1000000,p=144,z=0,pa=3.31,rs=1000,rqp=50,rqmops=9.1,mops=59
+./btree_mvustm_longjmp,u=100,trans=4,n=1000000,p=144,z=0,pa=5.13,rs=10000,rqp=50,rqmops=0.815,mops=50.2
+./btree_mvustm_longjmp,u=100,trans=4,n=1000000,p=144,z=0,pa=5.54,rs=100000,rqp=50,rqmops=0.0691,mops=48.4
+./btree_mvustm_longjmp,u=100,trans=4,n=1000000,p=144,z=0,pa=4.57,rs=1000000,rqp=50,rqmops=0.00632,mops=27.7
+./arttree_mvustm_longjmp,u=100,trans=4,n=1000000,p=144,z=0,pa=0.775,rs=1,rqp=50,rqmops=95.1,mops=54.8
+./arttree_mvustm_longjmp,u=100,trans=4,n=1000000,p=144,z=0,pa=0.991,rs=10,rqp=50,rqmops=82.4,mops=61.9
+./arttree_mvustm_longjmp,u=100,trans=4,n=1000000,p=144,z=0,pa=1.65,rs=100,rqp=50,rqmops=43.4,mops=63.2
+./arttree_mvustm_longjmp,u=100,trans=4,n=1000000,p=144,z=0,pa=4.1,rs=1000,rqp=50,rqmops=7.92,mops=64
+./arttree_mvustm_longjmp,u=100,trans=4,n=1000000,p=144,z=0,pa=5.75,rs=10000,rqp=50,rqmops=1.23,mops=63.2
+./arttree_mvustm_longjmp,u=100,trans=4,n=1000000,p=144,z=0,pa=6.14,rs=100000,rqp=50,rqmops=0.0963,mops=55.2
+./arttree_mvustm_longjmp,u=100,trans=4,n=1000000,p=144,z=0,pa=4.78,rs=1000000,rqp=50,rqmops=0.0116,mops=31.4
+./btree_2plsf,u=100,trans=4,n=1000000,p=144,z=0,pa=0.362,rs=1,rqp=50,rqmops=53.8,mops=20.6
+./btree_2plsf,u=100,trans=4,n=1000000,p=144,z=0,pa=0.321,rs=10,rqp=50,rqmops=57,mops=27.6
+./btree_2plsf,u=100,trans=4,n=1000000,p=144,z=0,pa=0.583,rs=100,rqp=50,rqmops=31.1,mops=29
+./btree_2plsf,u=100,trans=4,n=1000000,p=144,z=0,pa=2.48,rs=1000,rqp=50,rqmops=4.96,mops=24.1
+./btree_2plsf,u=100,trans=4,n=1000000,p=144,z=0,pa=34.4,rs=10000,rqp=50,rqmops=0.603,mops=9.27
+./btree_2plsf,u=100,trans=4,n=1000000,p=144,z=0,pa=411,rs=100000,rqp=50,rqmops=0.0228,mops=0.195
+./btree_2plsf,u=100,trans=4,n=1000000,p=144,z=0,pa=1.45e+03,rs=1000000,rqp=50,rqmops=0.00456,mops=0.0329
+./arttree_2plsf,u=100,trans=4,n=1000000,p=144,z=0,pa=0.331,rs=1,rqp=50,rqmops=35.5,mops=11.4
+./arttree_2plsf,u=100,trans=4,n=1000000,p=144,z=0,pa=0.362,rs=10,rqp=50,rqmops=31.3,mops=10.9
+./arttree_2plsf,u=100,trans=4,n=1000000,p=144,z=0,pa=0.749,rs=100,rqp=50,rqmops=21.4,mops=13.1
+./arttree_2plsf,u=100,trans=4,n=1000000,p=144,z=0,pa=2.72,rs=1000,rqp=50,rqmops=6.27,mops=24
+./arttree_2plsf,u=100,trans=4,n=1000000,p=144,z=0,pa=40.3,rs=10000,rqp=50,rqmops=0.736,mops=10.5
+./arttree_2plsf,u=100,trans=4,n=1000000,p=144,z=0,pa=447,rs=100000,rqp=50,rqmops=0.0572,mops=0.53
+./arttree_2plsf,u=100,trans=4,n=1000000,p=144,z=0,pa=1.58e+03,rs=1000000,rqp=50,rqmops=0.00657,mops=0.0447
+./btree_fuse,u=100,trans=4,n=1000000,p=144,z=0,pa=0,rs=1,rqp=50,rqmops=114,mops=53.8
+./btree_fuse,u=100,trans=4,n=1000000,p=144,z=0,pa=0,rs=10,rqp=50,rqmops=105,mops=56.6
+./btree_fuse,u=100,trans=4,n=1000000,p=144,z=0,pa=0,rs=100,rqp=50,rqmops=48.9,mops=58.6
+./btree_fuse,u=100,trans=4,n=1000000,p=144,z=0,pa=0,rs=1000,rqp=50,rqmops=8.5,mops=58.7
+./btree_fuse,u=100,trans=4,n=1000000,p=144,z=0,pa=0,rs=10000,rqp=50,rqmops=0.762,mops=50.8
+./btree_fuse,u=100,trans=4,n=1000000,p=144,z=0,pa=0,rs=100000,rqp=50,rqmops=0.0597,mops=39
+./btree_fuse,u=100,trans=4,n=1000000,p=144,z=0,pa=0,rs=1000000,rqp=50,rqmops=0.00551,mops=30
+./arttree_fuse,u=100,trans=4,n=1000000,p=144,z=0,pa=0,rs=1,rqp=50,rqmops=118,mops=62.8
+./arttree_fuse,u=100,trans=4,n=1000000,p=144,z=0,pa=0,rs=10,rqp=50,rqmops=107,mops=69.9
+./arttree_fuse,u=100,trans=4,n=1000000,p=144,z=0,pa=0,rs=100,rqp=50,rqmops=50.2,mops=69.7
+./arttree_fuse,u=100,trans=4,n=1000000,p=144,z=0,pa=0,rs=1000,rqp=50,rqmops=9.38,mops=73
+./arttree_fuse,u=100,trans=4,n=1000000,p=144,z=0,pa=0,rs=10000,rqp=50,rqmops=1.04,mops=71.8
+./arttree_fuse,u=100,trans=4,n=1000000,p=144,z=0,pa=0,rs=100000,rqp=50,rqmops=0.0684,mops=49.3
+./arttree_fuse,u=100,trans=4,n=1000000,p=144,z=0,pa=0,rs=1000000,rqp=50,rqmops=0.00867,mops=26.9
+./btree_tiny,u=100,trans=4,n=1000000,p=144,z=0,pa=0,rs=1,rqp=50,rqmops=10.2,mops=11.1
+./btree_tiny,u=100,trans=4,n=1000000,p=144,z=0,pa=0,rs=10,rqp=50,rqmops=15.9,mops=17.4
+./btree_tiny,u=100,trans=4,n=1000000,p=144,z=0,pa=0,rs=100,rqp=50,rqmops=13.1,mops=16.8
+./btree_tiny,u=100,trans=4,n=1000000,p=144,z=0,pa=0,rs=1000,rqp=50,rqmops=5.41,mops=17.2
+./btree_tiny,u=100,trans=4,n=1000000,p=144,z=0,pa=0,rs=10000,rqp=50,rqmops=0.0631,mops=14.8
+./btree_tiny,u=100,trans=4,n=1000000,p=144,z=0,pa=0,rs=100000,rqp=50,rqmops=7.29e-05,mops=19.5
+./btree_tiny,u=100,trans=4,n=1000000,p=144,z=0,pa=0,rs=1000000,rqp=50,rqmops=7.25e-05,mops=19.7
+./arttree_tiny,u=100,trans=4,n=1000000,p=144,z=0,pa=0,rs=1,rqp=50,rqmops=15.1,mops=17.7
+./arttree_tiny,u=100,trans=4,n=1000000,p=144,z=0,pa=0,rs=10,rqp=50,rqmops=14.5,mops=17.7
+./arttree_tiny,u=100,trans=4,n=1000000,p=144,z=0,pa=0,rs=100,rqp=50,rqmops=13.2,mops=18.6
+./arttree_tiny,u=100,trans=4,n=1000000,p=144,z=0,pa=0,rs=1000,rqp=50,rqmops=4.76,mops=15.3
+./arttree_tiny,u=100,trans=4,n=1000000,p=144,z=0,pa=0,rs=10000,rqp=50,rqmops=0.182,mops=20.4
+./arttree_tiny,u=100,trans=4,n=1000000,p=144,z=0,pa=0,rs=100000,rqp=50,rqmops=7.29e-05,mops=21.1
+./arttree_tiny,u=100,trans=4,n=1000000,p=144,z=0,pa=0,rs=1000000,rqp=50,rqmops=7.27e-05,mops=20.8
+# CRASH: ./btree_multiverse -nowarmup -n 1000000 -u 100 -z 0 -trans 4 -rs 1 -rqp 50 -p 144 -r 3 -t 1
+# CRASH: ./btree_multiverse -nowarmup -n 1000000 -u 100 -z 0 -trans 4 -rs 10 -rqp 50 -p 144 -r 3 -t 1
+# CRASH: ./btree_multiverse -nowarmup -n 1000000 -u 100 -z 0 -trans 4 -rs 100 -rqp 50 -p 144 -r 3 -t 1
+# CRASH: ./btree_multiverse -nowarmup -n 1000000 -u 100 -z 0 -trans 4 -rs 1000 -rqp 50 -p 144 -r 3 -t 1
+# CRASH: ./btree_multiverse -nowarmup -n 1000000 -u 100 -z 0 -trans 4 -rs 10000 -rqp 50 -p 144 -r 3 -t 1
+# CRASH: ./btree_multiverse -nowarmup -n 1000000 -u 100 -z 0 -trans 4 -rs 100000 -rqp 50 -p 144 -r 3 -t 1
+# CRASH: ./btree_multiverse -nowarmup -n 1000000 -u 100 -z 0 -trans 4 -rs 1000000 -rqp 50 -p 144 -r 3 -t 1
+# CRASH: ./arttree_multiverse -nowarmup -n 1000000 -u 100 -z 0 -trans 4 -rs 1 -rqp 50 -p 144 -r 3 -t 1
+# CRASH: ./arttree_multiverse -nowarmup -n 1000000 -u 100 -z 0 -trans 4 -rs 10 -rqp 50 -p 144 -r 3 -t 1
+# CRASH: ./arttree_multiverse -nowarmup -n 1000000 -u 100 -z 0 -trans 4 -rs 100 -rqp 50 -p 144 -r 3 -t 1
+# CRASH: ./arttree_multiverse -nowarmup -n 1000000 -u 100 -z 0 -trans 4 -rs 1000 -rqp 50 -p 144 -r 3 -t 1
+# CRASH: ./arttree_multiverse -nowarmup -n 1000000 -u 100 -z 0 -trans 4 -rs 10000 -rqp 50 -p 144 -r 3 -t 1
+# CRASH: ./arttree_multiverse -nowarmup -n 1000000 -u 100 -z 0 -trans 4 -rs 100000 -rqp 50 -p 144 -r 3 -t 1
+# CRASH: ./arttree_multiverse -nowarmup -n 1000000 -u 100 -z 0 -trans 4 -rs 1000000 -rqp 50 -p 144 -r 3 -t 1

@@ -1,0 +1,82 @@
+Date: 02-05-2026
+Experiment: geomean
+HYTM: no
+Model name:                           Intel(R) Xeon(R) CPU E7-8867 v4 @ 2.40GHz
+Git: 845d5d7
+---
+Threads: 144
+---
+./btree_multiverse,u=0,trans=1,n=10000,p=144,z=0,pa=0,mops=431
+./btree_multiverse,u=0,trans=16,n=10000,p=144,z=0,pa=0,mops=1.07e+03
+./btree_multiverse,u=5,trans=1,n=10000,p=144,z=0,pa=0,mops=42.6
+./btree_multiverse,u=5,trans=16,n=10000,p=144,z=0,pa=0,mops=4.16
+./btree_multiverse,u=50,trans=1,n=10000,p=144,z=0,pa=0,mops=11.2
+./btree_multiverse,u=50,trans=16,n=10000,p=144,z=0,pa=0,mops=0.326
+./btree_multiverse,u=0,trans=1,n=10000,p=144,z=0.99,pa=0,mops=519
+./btree_multiverse,u=0,trans=16,n=10000,p=144,z=0.99,pa=0,mops=1.15e+03
+./btree_multiverse,u=5,trans=1,n=10000,p=144,z=0.99,pa=0,mops=29.2
+./btree_multiverse,u=5,trans=16,n=10000,p=144,z=0.99,pa=0,mops=2.55
+./btree_multiverse,u=50,trans=1,n=10000,p=144,z=0.99,pa=0,mops=7.72
+./btree_multiverse,u=50,trans=16,n=10000,p=144,z=0.99,pa=0,mops=0.261
+./btree_multiverse,u=0,trans=1,n=1000000,p=144,z=0,pa=0,mops=338
+./btree_multiverse,u=0,trans=16,n=1000000,p=144,z=0,pa=0,mops=490
+./btree_multiverse,u=5,trans=1,n=1000000,p=144,z=0,pa=0,mops=162
+./btree_multiverse,u=5,trans=16,n=1000000,p=144,z=0,pa=0,mops=132
+./btree_multiverse,u=50,trans=1,n=1000000,p=144,z=0,pa=0,mops=60.2
+./btree_multiverse,u=50,trans=16,n=1000000,p=144,z=0,pa=0,mops=31.5
+./btree_multiverse,u=0,trans=1,n=1000000,p=144,z=0.99,pa=0,mops=334
+./btree_multiverse,u=0,trans=16,n=1000000,p=144,z=0.99,pa=0,mops=499
+./btree_multiverse,u=5,trans=1,n=1000000,p=144,z=0.99,pa=0,mops=47.5
+./btree_multiverse,u=5,trans=16,n=1000000,p=144,z=0.99,pa=0,mops=9.22
+./btree_multiverse,u=50,trans=1,n=1000000,p=144,z=0.99,pa=0,mops=13.5
+./btree_multiverse,u=50,trans=16,n=1000000,p=144,z=0.99,pa=0,mops=0.382
+./btree_multiverse,u=0,trans=1,n=100000000,p=144,z=0,pa=0,mops=13.7
+./btree_multiverse,u=0,trans=16,n=100000000,p=144,z=0,pa=0,mops=19.9
+./btree_multiverse,u=5,trans=1,n=100000000,p=144,z=0,pa=0,mops=4.66
+./btree_multiverse,u=5,trans=16,n=100000000,p=144,z=0,pa=0,mops=15.2
+./btree_multiverse,u=50,trans=1,n=100000000,p=144,z=0,pa=0,mops=1.9
+./btree_multiverse,u=50,trans=16,n=100000000,p=144,z=0,pa=0,mops=0.405
+./btree_multiverse,u=0,trans=1,n=100000000,p=144,z=0.99,pa=0,mops=10.6
+./btree_multiverse,u=0,trans=16,n=100000000,p=144,z=0.99,pa=0,mops=56.1
+./btree_multiverse,u=5,trans=1,n=100000000,p=144,z=0.99,pa=0,mops=52.1
+./btree_multiverse,u=5,trans=16,n=100000000,p=144,z=0.99,pa=0,mops=0.00955
+./btree_multiverse,u=50,trans=1,n=100000000,p=144,z=0.99,pa=0,mops=6.53
+./btree_multiverse,u=50,trans=16,n=100000000,p=144,z=0.99,pa=0,mops=1.65
+./btree_multiverse,GEOMETRIC MEAN OF THROUGHPUTS: 18.36
+./arttree_multiverse,u=0,trans=1,n=10000,p=144,z=0,pa=0,mops=486
+./arttree_multiverse,u=0,trans=16,n=10000,p=144,z=0,pa=0,mops=1.77e+03
+./arttree_multiverse,u=5,trans=1,n=10000,p=144,z=0,pa=0,mops=207
+./arttree_multiverse,u=5,trans=16,n=10000,p=144,z=0,pa=0,mops=82.5
+./arttree_multiverse,u=50,trans=1,n=10000,p=144,z=0,pa=0,mops=71
+./arttree_multiverse,u=50,trans=16,n=10000,p=144,z=0,pa=0,mops=0.0273
+./arttree_multiverse,u=0,trans=1,n=10000,p=144,z=0.99,pa=0,mops=621
+./arttree_multiverse,u=0,trans=16,n=10000,p=144,z=0.99,pa=0,mops=1.95e+03
+./arttree_multiverse,u=5,trans=1,n=10000,p=144,z=0.99,pa=0,mops=29.4
+./arttree_multiverse,u=5,trans=16,n=10000,p=144,z=0.99,pa=0,mops=4.38
+./arttree_multiverse,u=50,trans=1,n=10000,p=144,z=0.99,pa=0,mops=8.43
+./arttree_multiverse,u=50,trans=16,n=10000,p=144,z=0.99,pa=0,mops=0.289
+./arttree_multiverse,u=0,trans=1,n=1000000,p=144,z=0,pa=0,mops=458
+./arttree_multiverse,u=0,trans=16,n=1000000,p=144,z=0,pa=0,mops=945
+./arttree_multiverse,u=5,trans=1,n=1000000,p=144,z=0,pa=0,mops=204
+./arttree_multiverse,u=5,trans=16,n=1000000,p=144,z=0,pa=0,mops=233
+./arttree_multiverse,u=50,trans=1,n=1000000,p=144,z=0,pa=0,mops=10.7
+./arttree_multiverse,u=50,trans=16,n=1000000,p=144,z=0,pa=0,mops=33.3
+./arttree_multiverse,u=0,trans=1,n=1000000,p=144,z=0.99,pa=0,mops=496
+./arttree_multiverse,u=0,trans=16,n=1000000,p=144,z=0.99,pa=0,mops=1.06e+03
+./arttree_multiverse,u=5,trans=1,n=1000000,p=144,z=0.99,pa=0,mops=56.4
+./arttree_multiverse,u=5,trans=16,n=1000000,p=144,z=0.99,pa=0,mops=8.27
+./arttree_multiverse,u=50,trans=1,n=1000000,p=144,z=0.99,pa=0,mops=13.7
+./arttree_multiverse,u=50,trans=16,n=1000000,p=144,z=0.99,pa=0,mops=0.222
+./arttree_multiverse,u=0,trans=1,n=100000000,p=144,z=0,pa=0,mops=67
+./arttree_multiverse,u=0,trans=16,n=100000000,p=144,z=0,pa=0,mops=51.1
+./arttree_multiverse,u=5,trans=1,n=100000000,p=144,z=0,pa=0,mops=69.6
+./arttree_multiverse,u=5,trans=16,n=100000000,p=144,z=0,pa=0,mops=17.2
+./arttree_multiverse,u=50,trans=1,n=100000000,p=144,z=0,pa=0,mops=16
+./arttree_multiverse,u=50,trans=16,n=100000000,p=144,z=0,pa=0,mops=107
+./arttree_multiverse,u=0,trans=1,n=100000000,p=144,z=0.99,pa=0,mops=135
+./arttree_multiverse,u=0,trans=16,n=100000000,p=144,z=0.99,pa=0,mops=77.6
+./arttree_multiverse,u=5,trans=1,n=100000000,p=144,z=0.99,pa=0,mops=72.4
+./arttree_multiverse,u=5,trans=16,n=100000000,p=144,z=0.99,pa=0,mops=19.2
+./arttree_multiverse,u=50,trans=1,n=100000000,p=144,z=0.99,pa=0,mops=17.7
+./arttree_multiverse,u=50,trans=16,n=100000000,p=144,z=0.99,pa=0,mops=1.4
+./arttree_multiverse,GEOMETRIC MEAN OF THROUGHPUTS: 44.04
