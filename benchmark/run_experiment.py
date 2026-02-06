@@ -16,6 +16,7 @@ Experiments:
 Options:
     --no-hytm     Exclude HyTM (allows using all threads/sockets)
     --output DIR  Output directory for results
+    --small       Restrict to btree, hash_block, and list (geomean uses runall.sh parameters)
 
 Implementations tested:
     mvustm, mvustm_hwstamp, mvustm_longjmp, 2plsf, fuse, hytm, onfile, tinystm, tl2
@@ -44,6 +45,7 @@ class Config:
     structs_nohash: List[str] = None
     lstructs: List[str] = None
     range_structs: List[str] = None
+    small_structs: List[str] = None
     
     # Implementations
     impls: List[str] = None
@@ -51,6 +53,7 @@ class Config:
     # Execution settings
     max_threads: int = 72
     numa_cmd: str = "numactl --cpunodebind=0,1 --membind=0,1"
+    small: bool = False
     
     # Default parameters
     default_n: int = 100000
@@ -67,10 +70,12 @@ class Config:
         self.structs_nohash = ["btree", "arttree", "avltree", "leaftree", "treap", "skiplist"]
         self.lstructs = ["list"]
         self.range_structs = ["btree", "arttree"]
+        self.small_structs = ["btree", "hash_block"]
 
 
-def get_config(include_hytm: bool) -> Config:
+def get_config(include_hytm: bool, small: bool = False) -> Config:
     config = Config()
+    config.small = small
 
     config.impls = [
         "multiverse",
@@ -174,10 +179,16 @@ def get_structs_for_impl(config: Config, impl: str) -> List[str]:
         # Only systems supporting non-transactional allocation work with hash structs
         return config.structs_nohash
     # if impl == "fuse":
-        # Fuse/TLF only supports pointer and bool atomics, not int atomics
         # Exclude: avltree (uses atomic<int> for height), hash_block (uses atomic<V>)
         # return [s for s in config.structs if s not in ["avltree", "hash_block"]]
     return config.structs
+
+
+def filter_structs_if_small(config: Config, structs: List[str]) -> List[str]:
+    """Filter struct list to small_structs if small flag is set."""
+    if config.small:
+        return list(filter(lambda s: s in config.small_structs, structs))
+    return structs
 
 
 class ExperimentRunner:
@@ -270,12 +281,19 @@ class ExperimentRunner:
         self.results_file.write(f"Threads: {self.config.default_p}\n")
         self.results_file.write("---\n")
         
-        # Parameter sweeps for geomean
-        sizes = [10000, 1000000, 100000000]
-        list_sizes = [100, 1000]
-        updates = [0, 5, 50]
-        trans_vals = [1, 16]
-        zipfians = [0, 0.99]
+        # Parameter sweeps for geomean - use runall.sh parameters when small flag is set
+        if self.config.small:
+            sizes = [100000, 10000000]
+            list_sizes = [100, 1000]
+            updates = [0, 5, 50]
+            trans_vals = [4]
+            zipfians = [0, 0.99]
+        else:
+            sizes = [10000, 1000000, 100000000]
+            list_sizes = [100, 1000]
+            updates = [0, 5, 50]
+            trans_vals = [1, 16]
+            zipfians = [0, 0.99]
         
         # Build comma-separated args from lists
         def make_geomean_args(n_list):
@@ -287,7 +305,9 @@ class ExperimentRunner:
         geomean_args = make_geomean_args(sizes)
         list_geomean_args = make_geomean_args(list_sizes)
         
-        all_structs = [(s, sizes, geomean_args) for s in self.config.structs]
+        # Filter structs when small flag is set
+        filtered_structs = filter_structs_if_small(self.config, self.config.structs)
+        all_structs = [(s, sizes, geomean_args) for s in filtered_structs]
         all_structs += [(s, list_sizes, list_geomean_args) for s in self.config.lstructs]
         
         for impl in self.config.impls:
@@ -353,6 +373,7 @@ class ExperimentRunner:
         
         for impl in self.config.impls:
             structs_to_run = get_structs_for_impl(self.config, impl)
+            structs_to_run = filter_structs_if_small(self.config, structs_to_run)
             
             # Regular structures
             for struct in structs_to_run:
@@ -414,7 +435,10 @@ class ExperimentRunner:
         self.results_file.write("---\n")
         
         for impl in self.config.impls:
-            for struct in get_structs_for_impl(self.config, impl):
+            structs_to_run = get_structs_for_impl(self.config, impl)
+            structs_to_run = filter_structs_if_small(self.config, structs_to_run)
+            
+            for struct in structs_to_run:
                 if not self._binary_exists(struct, impl):
                     continue
                 print(f"  {struct}_{impl}")
@@ -505,7 +529,9 @@ class ExperimentRunner:
         self.results_file.write("---\n")
         
         for impl in self.config.impls:
-            for struct in self.config.range_structs:
+            range_structs = filter_structs_if_small(self.config, self.config.range_structs)
+            
+            for struct in range_structs:
                 if not self._binary_exists(struct, impl):
                     continue
                 print(f"  {struct}_{impl}")
@@ -576,10 +602,13 @@ Examples:
                        help="Exclude HyTM (use all available threads/sockets)")
     parser.add_argument("--output", "-o", metavar="DIR",
                        help="Output directory for results")
+    parser.add_argument("--small", action="store_true",
+                       help="Restrict to btree, hash_block, and list (geomean uses runall.sh parameters)")
+    parser.add_argument("")
     
     args = parser.parse_args()
     
-    config = get_config(include_hytm=not args.no_hytm)
+    config = get_config(include_hytm=not args.no_hytm, small=args.small)
     runner = ExperimentRunner(config, args.output)
     
     experiments = {
