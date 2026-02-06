@@ -1,0 +1,50 @@
+Date: 02-06-2026
+Experiment: range_queries
+HYTM: no
+Model name:                           Intel(R) Xeon(R) CPU E7-8867 v4 @ 2.40GHz
+Git: deffd9a
+---
+Fixed: n=1000000, u=100, trans=4, z=0, p=144, rqp=50
+---
+./btree_multiverse,u=100,trans=4,n=1000000,p=144,z=0,pa=0,rs=1,rqp=50,rqmops=16.3,mops=12.7
+./btree_multiverse,u=100,trans=4,n=1000000,p=144,z=0,pa=0,rs=10,rqp=50,rqmops=12.3,mops=10.3
+./btree_multiverse,u=100,trans=4,n=1000000,p=144,z=0,pa=0,rs=100,rqp=50,rqmops=8.36,mops=9.8
+./btree_multiverse,u=100,trans=4,n=1000000,p=144,z=0,pa=0,rs=1000,rqp=50,rqmops=2.28,mops=10.8
+./btree_multiverse,u=100,trans=4,n=1000000,p=144,z=0,pa=0,rs=10000,rqp=50,rqmops=0.101,mops=11.4
+./btree_multiverse,u=100,trans=4,n=1000000,p=144,z=0,pa=0,rs=100000,rqp=50,rqmops=0.0233,mops=13.1
+./btree_multiverse,u=100,trans=4,n=1000000,p=144,z=0,pa=0,rs=1000000,rqp=50,rqmops=0.00444,mops=14.3
+./btree_mvustm,u=100,trans=4,n=1000000,p=144,z=0,pa=0.656,rs=1,rqp=50,rqmops=70.1,mops=40.2
+./btree_mvustm,u=100,trans=4,n=1000000,p=144,z=0,pa=0.743,rs=10,rqp=50,rqmops=71.8,mops=46.8
+./btree_mvustm,u=100,trans=4,n=1000000,p=144,z=0,pa=1.24,rs=100,rqp=50,rqmops=42.3,mops=53.3
+./btree_mvustm,u=100,trans=4,n=1000000,p=144,z=0,pa=3.24,rs=1000,rqp=50,rqmops=8.3,mops=55.1
+./btree_mvustm,u=100,trans=4,n=1000000,p=144,z=0,pa=4.79,rs=10000,rqp=50,rqmops=0.845,mops=49.6
+./btree_mvustm,u=100,trans=4,n=1000000,p=144,z=0,pa=5.03,rs=100000,rqp=50,rqmops=0.0653,mops=45
+./btree_mvustm,u=100,trans=4,n=1000000,p=144,z=0,pa=4.34,rs=1000000,rqp=50,rqmops=0.00628,mops=27.6
+./btree_mvustm_hwstamp,u=100,trans=4,n=1000000,p=144,z=0,pa=0.456,rs=1,rqp=50,rqmops=131,mops=63.4
+./btree_mvustm_hwstamp,u=100,trans=4,n=1000000,p=144,z=0,pa=0.536,rs=10,rqp=50,rqmops=112,mops=64.6
+./btree_mvustm_hwstamp,u=100,trans=4,n=1000000,p=144,z=0,pa=1.04,rs=100,rqp=50,rqmops=46.7,mops=60.5
+./btree_mvustm_hwstamp,u=100,trans=4,n=1000000,p=144,z=0,pa=2.84,rs=1000,rqp=50,rqmops=7.3,mops=57.6
+./btree_mvustm_hwstamp,u=100,trans=4,n=1000000,p=144,z=0,pa=4.02,rs=10000,rqp=50,rqmops=0.8,mops=56.9
+./btree_mvustm_hwstamp,u=100,trans=4,n=1000000,p=144,z=0,pa=4.23,rs=100000,rqp=50,rqmops=0.0627,mops=53.3
+./btree_mvustm_hwstamp,u=100,trans=4,n=1000000,p=144,z=0,pa=3.62,rs=1000000,rqp=50,rqmops=0.00604,mops=27.1
+./btree_2plsf,u=100,trans=4,n=1000000,p=144,z=0,pa=0.296,rs=1,rqp=50,rqmops=60.9,mops=25.8
+./btree_2plsf,u=100,trans=4,n=1000000,p=144,z=0,pa=0.359,rs=10,rqp=50,rqmops=54.8,mops=26
+./btree_2plsf,u=100,trans=4,n=1000000,p=144,z=0,pa=0.612,rs=100,rqp=50,rqmops=27.4,mops=26.2
+./btree_2plsf,u=100,trans=4,n=1000000,p=144,z=0,pa=2.22,rs=1000,rqp=50,rqmops=4.46,mops=24.2
+./btree_2plsf,u=100,trans=4,n=1000000,p=144,z=0,pa=33.9,rs=10000,rqp=50,rqmops=0.44,mops=7.16
+./btree_2plsf,u=100,trans=4,n=1000000,p=144,z=0,pa=409,rs=100000,rqp=50,rqmops=0.0231,mops=0.201
+./btree_2plsf,u=100,trans=4,n=1000000,p=144,z=0,pa=1.59e+03,rs=1000000,rqp=50,rqmops=0.00374,mops=0.0274
+./btree_fuse,u=100,trans=4,n=1000000,p=144,z=0,pa=0,rs=1,rqp=50,rqmops=104,mops=46.9
+./btree_fuse,u=100,trans=4,n=1000000,p=144,z=0,pa=0,rs=10,rqp=50,rqmops=95.9,mops=52.7
+./btree_fuse,u=100,trans=4,n=1000000,p=144,z=0,pa=0,rs=100,rqp=50,rqmops=46.2,mops=55.2
+./btree_fuse,u=100,trans=4,n=1000000,p=144,z=0,pa=0,rs=1000,rqp=50,rqmops=7.89,mops=53.2
+./btree_fuse,u=100,trans=4,n=1000000,p=144,z=0,pa=0,rs=10000,rqp=50,rqmops=0.667,mops=34.7
+./btree_fuse,u=100,trans=4,n=1000000,p=144,z=0,pa=0,rs=100000,rqp=50,rqmops=0.0585,mops=39.3
+./btree_fuse,u=100,trans=4,n=1000000,p=144,z=0,pa=0,rs=1000000,rqp=50,rqmops=0.00577,mops=28.6
+./btree_tiny,u=100,trans=4,n=1000000,p=144,z=0,pa=0,rs=1,rqp=50,rqmops=12.1,mops=13.2
+./btree_tiny,u=100,trans=4,n=1000000,p=144,z=0,pa=0,rs=10,rqp=50,rqmops=15.2,mops=16.5
+./btree_tiny,u=100,trans=4,n=1000000,p=144,z=0,pa=0,rs=100,rqp=50,rqmops=12.9,mops=17
+./btree_tiny,u=100,trans=4,n=1000000,p=144,z=0,pa=0,rs=1000,rqp=50,rqmops=5.76,mops=18.9
+./btree_tiny,u=100,trans=4,n=1000000,p=144,z=0,pa=0,rs=10000,rqp=50,rqmops=0.0851,mops=18.8
+./btree_tiny,u=100,trans=4,n=1000000,p=144,z=0,pa=0,rs=100000,rqp=50,rqmops=7.29e-05,mops=19.2
+./btree_tiny,u=100,trans=4,n=1000000,p=144,z=0,pa=0,rs=1000000,rqp=50,rqmops=7.25e-05,mops=17.4

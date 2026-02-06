@@ -608,7 +608,6 @@ Examples:
                        help="Output directory for results")
     parser.add_argument("--small", action="store_true",
                        help="Restrict to btree, hash_block, and list (geomean uses runall.sh parameters)")
-    parser.add_argument("")
     
     args = parser.parse_args()
     

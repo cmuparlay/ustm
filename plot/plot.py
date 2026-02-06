@@ -51,7 +51,8 @@ IMPL_LABELS = {
     '2plsf': '2PLSF',
     'hytm': 'HyTM',
     'tiny': 'TinySTM',
-    'fuse': 'TLF',
+    'fuse': 'Fuse',
+    'multiverse': 'Multiverse'
 }
 
 STRUCT_LABELS = {
@@ -349,8 +350,8 @@ def aggregate_points(points):
 def plot_varying_parameter(results, param_name, param_label, output_dir, 
                            structures=None, filename_prefix='varying', quiet=False):
     """
-    Create line plots showing throughput vs a varying parameter.
-    One subplot per structure, lines for each implementation.
+    Create individual line plots showing throughput vs a varying parameter.
+    One plot per structure, lines for each implementation.
     
     For valid parameter-varying plots, we need data where ONLY that parameter
     varies while others are held at default values.
@@ -373,77 +374,57 @@ def plot_varying_parameter(results, param_name, param_label, output_dir,
         return False
     
     # Organize data: data[struct][impl] = [(param_val, mops), ...]
-    # For proper parameter-varying plots, we should average/aggregate results
-    # that have the same param value (since other params might vary in geomean data)
     data = defaultdict(lambda: defaultdict(list))
     for r in results:
         if r.get(param_name) is not None and r['structure'] in structures:
             data[r['structure']][r['impl']].append((r[param_name], r['mops']))
     
-    # Determine grid layout
+    # Check if we have data
     n_structs = len([s for s in structures if s in data])
     if n_structs == 0:
         print(f"Warning: No structures with data for {param_name}")
-        return
-    
-    ncols = min(3, n_structs)
-    nrows = (n_structs + ncols - 1) // ncols
-    
-    fig, axes = plt.subplots(nrows, ncols, figsize=(5*ncols, 4*nrows), squeeze=False)
+        return False
     
     impls_found = set()
     for struct_data in data.values():
         impls_found.update(struct_data.keys())
     impls = [i for i in IMPL_ORDER if i in impls_found]
     
-    struct_idx = 0
-    for row in range(nrows):
-        for col in range(ncols):
-            ax = axes[row, col]
-            if struct_idx >= len(structures):
-                ax.axis('off')
+    # Generate individual plot for each structure
+    for struct in structures:
+        if struct not in data:
+            continue
+        
+        fig, ax = plt.subplots(figsize=(8, 6))
+        
+        for impl in impls:
+            if impl not in data[struct]:
                 continue
-            
-            struct = structures[struct_idx]
-            if struct not in data:
-                ax.axis('off')
-                struct_idx += 1
-                continue
-            
-            for impl in impls:
-                if impl not in data[struct]:
-                    continue
-                points = aggregate_points(data[struct][impl])
-                x_vals = [p[0] for p in points]
-                y_vals = [p[1] for p in points]
-                color = IMPL_COLORS.get(impl, '#333333')
-                label = IMPL_LABELS.get(impl, impl)
-                ax.plot(x_vals, y_vals, marker='o', linewidth=2, markersize=6, 
-                       color=color, label=label)
-            
-            ax.set_xlabel(param_label, fontsize=10)
-            ax.set_ylabel('Throughput (MOps/s)', fontsize=10)
-            ax.set_title(STRUCT_LABELS.get(struct, struct), fontsize=11)
-            ax.grid(True, alpha=0.3)
-            
-            # Use log scale for size parameter
-            if param_name == 'n':
-                ax.set_xscale('log')
-            
-            struct_idx += 1
+            points = aggregate_points(data[struct][impl])
+            x_vals = [p[0] for p in points]
+            y_vals = [p[1] for p in points]
+            color = IMPL_COLORS.get(impl, '#333333')
+            label = IMPL_LABELS.get(impl, impl)
+            ax.plot(x_vals, y_vals, marker='o', linewidth=2, markersize=6, 
+                   color=color, label=label)
+        
+        ax.set_xlabel(param_label, fontsize=12)
+        ax.set_ylabel('Throughput (MOps/s)', fontsize=12)
+        ax.set_title(f'{STRUCT_LABELS.get(struct, struct)} - {param_label}', fontsize=14)
+        ax.grid(True, alpha=0.3)
+        ax.legend(loc='best', fontsize=10)
+        
+        # Use log scale for size parameter
+        if param_name == 'n':
+            ax.set_xscale('log')
+        
+        plt.tight_layout()
+        
+        filename = f'{filename_prefix}_{struct}.pdf'
+        plt.savefig(output_dir / filename, dpi=300, bbox_inches='tight')
+        print(f"Generated: {filename}")
+        plt.close()
     
-    # Add legend to first subplot
-    handles, labels = axes[0, 0].get_legend_handles_labels()
-    if handles:
-        fig.legend(handles, labels, loc='upper center', ncol=max(1, len(impls)), 
-                   fontsize=9, bbox_to_anchor=(0.5, 1.02))
-    
-    plt.tight_layout(rect=[0, 0, 1, 0.96])
-    
-    filename = f'{filename_prefix}_{param_name}.pdf'
-    plt.savefig(output_dir / filename, dpi=300, bbox_inches='tight')
-    print(f"Generated: {filename}")
-    plt.close()
     return True
 
 
@@ -452,8 +433,8 @@ def plot_varying(results, output_dir):
     Five rows: Size, Thread count, Zipfian, Transaction size, Update rate
     Auto-detects which parameters have varying data and only plots those.
     """
-    tree_structs = ['skiplist', 'treap', 'btree']
-    binary_structs = ['list', 'avltree', 'leaftree']
+    tree_structs = ['skiplist', 'treap', 'btree', 'arttree']
+    other_structs = ['list', 'avltree', 'leaftree', 'hash_block']
     
     # First, detect which parameters have meaningful variation
     params_to_plot = []
@@ -469,22 +450,22 @@ def plot_varying(results, output_dir):
     param_info = {
         'n': ('Varying Size', 'Data Structure Size (n)', 'size'),
         'p': ('Varying Thread Count', 'Number of Threads', 'threads'),
-        'z': ('Varying Zipfian', 'Zipfian Parameter', 'zipf'),
-        'trans': ('Varying Transaction Size', 'Operations per Transaction', 'txn'),
-        'u': ('Varying Update Rate', 'Update Rate (%)', 'upd'),
+        'z': ('Varying Zipfian', 'Zipfian Parameter', 'zipfian'),
+        'trans': ('Varying Transaction Size', 'Operations per Transaction', 'trans'),
+        'u': ('Varying Update Rate', 'Update Rate (%)', 'update'),
     }
     
     for param in params_to_plot:
-        title, label, row = param_info[param]
+        title, label, shortname = param_info[param]
         print(f"Plotting: {title}")
         plot_varying_parameter(results, param, label, output_dir, 
-                              structures=tree_structs, filename_prefix=f'tree_{row}', quiet=True)
+                              structures=tree_structs, filename_prefix=shortname, quiet=True)
         plot_varying_parameter(results, param, label, output_dir,
-                              structures=binary_structs, filename_prefix=f'binary_{row}', quiet=True)
+                              structures=other_structs, filename_prefix=shortname, quiet=True)
 
 
-def plot_range_queries(results, output_dir, filename='range_queries.pdf'):
-    """Plot range query throughput vs range size."""
+def plot_range_queries(results, output_dir):
+    """Plot individual range query throughput vs range size per structure."""
     range_results = [r for r in results if r.get('rs') is not None and r.get('rqmops') is not None]
     
     if not range_results:
@@ -497,51 +478,41 @@ def plot_range_queries(results, output_dir, filename='range_queries.pdf'):
         data[r['structure']][r['impl']].append((r['rs'], r['rqmops']))
     
     structures = sorted(data.keys())
-    ncols = min(2, len(structures))
-    nrows = (len(structures) + ncols - 1) // ncols
-    
-    fig, axes = plt.subplots(nrows, ncols, figsize=(6*ncols, 4*nrows), squeeze=False)
     
     impls_found = set()
     for struct_data in data.values():
         impls_found.update(struct_data.keys())
     impls = [i for i in IMPL_ORDER if i in impls_found]
     
-    struct_idx = 0
-    for row in range(nrows):
-        for col in range(ncols):
-            ax = axes[row, col]
-            if struct_idx >= len(structures):
-                ax.axis('off')
+    # Generate individual plot for each structure
+    for struct in structures:
+        fig, ax = plt.subplots(figsize=(8, 6))
+        
+        for impl in impls:
+            if impl not in data[struct]:
                 continue
-            
-            struct = structures[struct_idx]
-            
-            for impl in impls:
-                if impl not in data[struct]:
-                    continue
-                points = aggregate_points(data[struct][impl])
-                x_vals = [p[0] for p in points]
-                y_vals = [p[1] for p in points]
-                color = IMPL_COLORS.get(impl, '#333333')
-                label = IMPL_LABELS.get(impl, impl)
-                ax.plot(x_vals, y_vals, marker='o', linewidth=2, markersize=6,
-                       color=color, label=label)
-            
-            ax.set_xlabel('Range Size', fontsize=10)
-            ax.set_ylabel('Range Query Throughput (MOps/s)', fontsize=10)
-            ax.set_title(f'{STRUCT_LABELS.get(struct, struct)} Range Queries', fontsize=11)
-            ax.set_xscale('log')
-            ax.set_yscale('log')
-            ax.grid(True, alpha=0.3)
-            ax.legend(fontsize=8)
-            
-            struct_idx += 1
-    
-    plt.tight_layout()
-    plt.savefig(output_dir / filename, dpi=300, bbox_inches='tight')
-    print(f"Generated: {filename}")
-    plt.close()
+            points = aggregate_points(data[struct][impl])
+            x_vals = [p[0] for p in points]
+            y_vals = [p[1] for p in points]
+            color = IMPL_COLORS.get(impl, '#333333')
+            label = IMPL_LABELS.get(impl, impl)
+            ax.plot(x_vals, y_vals, marker='o', linewidth=2, markersize=6,
+                   color=color, label=label)
+        
+        ax.set_xlabel('Range Size', fontsize=12)
+        ax.set_ylabel('Range Query Throughput (MOps/s)', fontsize=12)
+        ax.set_title(f'{STRUCT_LABELS.get(struct, struct)} - Range Queries', fontsize=14)
+        ax.set_xscale('log')
+        ax.set_yscale('log')
+        ax.grid(True, alpha=0.3)
+        ax.legend(loc='best', fontsize=10)
+        
+        plt.tight_layout()
+        
+        filename = f'{struct}_range.pdf'
+        plt.savefig(output_dir / filename, dpi=300, bbox_inches='tight')
+        print(f"Generated: {filename}")
+        plt.close()
 
 
 def plot_combined_grid(results, geomean_data, output_dir, filename='results_combined.pdf'):
@@ -724,8 +695,8 @@ def main():
         plot_varying(results, output_dir)
     
     if 'range' in plots and results:
-        print("\nGenerating Range Query plot...")
-        plot_range_queries(results, output_dir, f'range_queries.{args.format}')
+        print("\nGenerating Range Query plots...")
+        plot_range_queries(results, output_dir)
     
     if 'combined' in plots and results:
         print("\nGenerating Combined grid plot...")
