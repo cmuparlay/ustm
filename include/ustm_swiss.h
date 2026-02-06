@@ -55,7 +55,7 @@ namespace ustm {
       }
     }
   };
-#elif defined(AggFunnel2)
+#elif defined(AggFunnelSimple)
   struct timeStamp {
     CONFIGURED_AGG_FUNNEL::ConfiguredAggFunnelCounter<TS> ts;
     timeStamp() : ts(0, uepoch::max_threads) {}
@@ -67,8 +67,7 @@ namespace ustm {
 #else
   struct timeStamp {
 #ifdef AggFunnel
-    CONFIGURED_AGG_FUNNEL::ConfiguredAggFunnelCounter<TS> ts;
-    timeStamp() : ts(0, uepoch::max_threads) {}
+    CONFIGURED_AGG_FUNNEL::ConfiguredAggFunnelCounter<TS> ts{0, uepoch::max_threads};
 #else
     std::atomic<TS> ts = 1ul;
 #endif // AggFunnel
@@ -313,12 +312,6 @@ namespace ustm {
     }
     ~STMState() {}
   };
-
-  // keep track of number of active threads
-  // extern inline std::atomic<int>& numThreads() {
-  //   static std::atomic<int> numThreads;
-  //   return numThreads;
-  // }
       
   extern inline Descriptor* initDescriptor() {
     static STMState stm;
