@@ -28,9 +28,24 @@
 #ifdef ParlayAlloc
 #include <parlay/alloc.h>
 #endif
-#ifdef AggFunnel
-#include "aggregating-funnels/counter/configuredAggregatingFunnelCounter.hpp"
+
+#if defined(Funnel) || defined(FunnelEager)
+
+#ifdef SimpleFunnel
+#include "aggregating-funnels/counter/aggregatingFunnelCounter.hpp"
+template<typename T>
+using AggFunnel = SIMPLE_AGG_FUNNEL::AggFunnelCounter<T>;
+#elif defined(FullFunnel)
+#include "aggregating-funnels/counter/fullAggregatingFunnelCounter.hpp"
+template<typename T>
+using AggFunnel = FULL_AGG_FUNNEL::FullAggFunnelCounter<T>;
+#elif defined(RecursiveFunnel)
+#include "aggregating-funnels/counter/recursiveAggregatingFunnelCounter.hpp"
+template<typename T>
+using AggFunnel = RECURSIVE_AGG_FUNNEL::RecursiveAggFunnelCounter<T>;
 #endif
+
+#endif // Funnel
 
 
 namespace ustm {
@@ -55,19 +70,24 @@ namespace ustm {
       }
     }
   };
-#elif defined(AggFunnelSimple)
+#elif defined(Eager)
   struct timeStamp {
-    CONFIGURED_AGG_FUNNEL::ConfiguredAggFunnelCounter<TS> ts;
-    timeStamp() : ts(0, uepoch::max_threads) {}
+    std::atomic<TS> ts;
     TS getStamp() const { return ts.load(); }
-    TS nextStamp() {
+    TS nextStamp(TS prevStamp=0) { return ++ts; }
+  };
+#elif defined(FunnelEager)
+  struct timeStamp {
+    AggFunnel<TS> ts{0, uepoch::max_threads};
+    TS getStamp() const { return ts.load(); }
+    TS nextStamp(TS prevStamp=0) {
       return ts.fetch_add(1, uepoch::thread_id());
     }
-  }
+  };
 #else
   struct timeStamp {
-#ifdef AggFunnel
-    CONFIGURED_AGG_FUNNEL::ConfiguredAggFunnelCounter<TS> ts{0, uepoch::max_threads};
+#ifdef Funnel
+    AggFunnel<TS> ts{0, uepoch::max_threads};
 #else
     std::atomic<TS> ts = 1ul;
 #endif // AggFunnel
@@ -81,7 +101,7 @@ namespace ustm {
       for (volatile int i = 0; i < 200; i++);
       stamp = ts.load(); 
       if (stamp > prevStamp) return stamp;
-#ifdef AggFunnel
+#ifdef Funnel
       return ts.fetch_add(1, uepoch::thread_id());
 #else
       return ++ts;

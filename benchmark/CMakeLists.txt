@@ -50,7 +50,20 @@ foreach(bench ${STRUCTS})
   add_benchmark(${bench}_mvustm_alloc ${MIXED} ${STRUCT_DIR}/${bench} "USTM;MV" "")
   add_benchmark(${bench}_mvustm_lzstamp ${MIXED} ${STRUCT_DIR}/${bench} "USTM;MV;LazyStamp;ParlayAlloc" "")
   add_benchmark(${bench}_mvustm_hwstamp ${MIXED} ${STRUCT_DIR}/${bench} "USTM;MV;HWStamp;ParlayAlloc" "")
-  add_benchmark(${bench}_mvustm_agg_funnel ${MIXED} ${STRUCT_DIR}/${bench} "USTM;MV;AggFunnel;ParlayAlloc" "")
+
+  # Use agg funnels for lazy timestamp
+  add_benchmark(${bench}_mvustm_agg_funnel ${MIXED} ${STRUCT_DIR}/${bench} "USTM;MV;Funnel;SimpleFunnel;ParlayAlloc" "")
+  add_benchmark(${bench}_mvustm_full_funnel ${MIXED} ${STRUCT_DIR}/${bench} "USTM;MV;Funnel;FullFunnel;ParlayAlloc" "")
+  add_benchmark(${bench}_mvustm_recursive_funnel ${MIXED} ${STRUCT_DIR}/${bench} "USTM;MV;Funnel;RecursiveFunnel;ParlayAlloc" "")
+
+  # Use agg funnels for eager timestamp
+
+  add_benchmark(${bench}_mvustm_agg_funnel_eager ${MIXED} ${STRUCT_DIR}/${bench} "USTM;MV;FunnelEager;SimpleFunnel;ParlayAlloc" "")
+  add_benchmark(${bench}_mvustm_full_funnel_eager ${MIXED} ${STRUCT_DIR}/${bench} "USTM;MV;FunnelEager;FullFunnel;ParlayAlloc" "")
+  add_benchmark(${bench}_mvustm_recursive_funnel_eager ${MIXED} ${STRUCT_DIR}/${bench} "USTM;MV;FunnelEager;RecursiveFunnel;ParlayAlloc" "")
+
+  add_benchmark(${bench}_mvustm_eager ${MIXED} ${STRUCT_DIR}/${bench} "USTM;MV;Eager;ParlayAlloc" "")
+
   add_benchmark(${bench}_mvustm_longjmp ${MIXED} ${STRUCT_DIR}/${bench} "USTM;MV;LongJmp;ParlayAlloc" "")
   add_benchmark(${bench}_mvustm_trythrow ${MIXED} ${STRUCT_DIR}/${bench} "USTM;MV;TryThrow;ParlayAlloc" "")
   add_benchmark(${bench}_mvustm_unprotected ${MIXED} ${STRUCT_DIR}/${bench} "USTM;MV;UnprotectedLoad;ParlayAlloc" "")
