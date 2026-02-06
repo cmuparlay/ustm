@@ -14,7 +14,7 @@ Experiments:
     all       - Run all experiments
 
 Options:
-    --no-hytm     Exclude HyTM (allows using all threads/sockets)
+    --hytm        Include HyTM (limits to 72 threads on 2 sockets)
     --output DIR  Output directory for results
     --small       Restrict to btree, hash_block, and list (geomean uses runall.sh parameters)
 
@@ -23,7 +23,7 @@ Implementations tested:
 
 Examples:
     ./run_experiment.py geomean
-    ./run_experiment.py all --no-hytm
+    ./run_experiment.py all --hytm
     ./run_experiment.py threads --output ./results
 """
 
@@ -32,6 +32,7 @@ import os
 import re
 import subprocess
 import sys
+import time
 from dataclasses import dataclass
 from datetime import datetime
 from math import prod
@@ -567,7 +568,10 @@ class ExperimentRunner:
         
         for name, func in experiments:
             print(f"\n=== {name} ===")
+            start_time = time.time()
             func()
+            elapsed = time.time() - start_time
+            print(f"Completed in {elapsed:.1f}s ({elapsed/60:.1f}m)")
         
         print("\n" + "=" * 50)
         print("All experiments complete!")
@@ -591,15 +595,15 @@ Experiments:
 
 Examples:
   ./run_experiment.py geomean
-  ./run_experiment.py all --no-hytm
+  ./run_experiment.py all --hytm
   ./run_experiment.py threads --output ./results
 """)
     
     parser.add_argument("experiment", 
                        choices=["geomean", "size", "threads", "zipfian", "trans", "update", "range", "all"],
                        help="Experiment to run")
-    parser.add_argument("--no-hytm", action="store_true",
-                       help="Exclude HyTM (use all available threads/sockets)")
+    parser.add_argument("--hytm", action="store_true",
+                       help="Include HyTM (limits to 72 threads on 2 sockets)")
     parser.add_argument("--output", "-o", metavar="DIR",
                        help="Output directory for results")
     parser.add_argument("--small", action="store_true",
@@ -608,7 +612,7 @@ Examples:
     
     args = parser.parse_args()
     
-    config = get_config(include_hytm=not args.no_hytm, small=args.small)
+    config = get_config(include_hytm=args.hytm, small=args.small)
     runner = ExperimentRunner(config, args.output)
     
     experiments = {
@@ -622,7 +626,12 @@ Examples:
         "all": runner.run_all,
     }
     
+    start_time = time.time()
     experiments[args.experiment]()
+    elapsed = time.time() - start_time
+    
+    if args.experiment != "all":  # run_all() prints its own timing
+        print(f"\nCompleted in {elapsed:.1f}s ({elapsed/60:.1f}m)")
 
 
 if __name__ == "__main__":
