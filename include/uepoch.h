@@ -42,7 +42,7 @@ namespace uepoch {
   constexpr long bytes_per_thread = 1ul << 26;
 
   extern inline std::atomic<int>& num_threads() {
-      static std::atomic<int> num_threads;
+      static std::atomic<int> num_threads{0};
       return num_threads;  }
 
     extern inline int thread_id() {
@@ -52,20 +52,23 @@ namespace uepoch {
   template <typename T>
   struct pool {
     struct alignas(128) poolList { T* head = nullptr; size_t n = 0; };
-    static std::array<poolList, max_threads> lists;
+    static std::array<poolList, max_threads>& lists() {
+      static std::array<poolList, max_threads> lists;
+      return lists;
+    }
 
     template <typename... Args>
     static inline T* New(int tid, Args&&... args) {
-      auto& l = lists[tid];
-      if (l.n == 0) return new T(args...);
+      auto& l = lists()[tid];
+      if (l.n == 0) return new T(std::forward<Args>(args)...);
       l.n--;
       T* h = l.head;
       l.head = *((T**) h);
-      return new (h) T(args...);
+      return new (h) T(std::forward<Args>(args)...);
     }
 
     static inline void Delete(int tid, T* obj) {
-      auto& l = lists[tid];
+      auto& l = lists()[tid];
       if (l.n * sizeof(T) > bytes_per_thread) delete obj;
       else {
         obj->~T();
@@ -76,7 +79,7 @@ namespace uepoch {
     }
 
     static void clear() {
-      for (auto& l : lists) {
+      for (auto& l : lists()) {
         T* h = l.head;
         while (h != nullptr) {
           T* nxt = *((T**) h);
@@ -88,8 +91,7 @@ namespace uepoch {
     }
   };
     
-  template <typename T>
-  std::array<typename pool<T>::poolList, max_threads> pool<T>::lists;
+
   
   namespace internal {
     using thunk = std::function<void()>;
@@ -226,8 +228,18 @@ namespace uepoch {
 
   void delay(std::function<void()>&& f) {
     get_epoch().delay(std::forward<std::function<void()>>(f)); }
+
+  template<typename T>
+  void Retire(T *ptr) { delay([=] { delete ptr; }); }
+
+  template<typename T, typename... Args>
+  T *New(Args&& ...args) { 
+    return pool<T>::New(thread_id(), std::forward<Args>(args)...);
+  }
+
   void add_before_epoch_hook(std::function<void()> f) {
     get_epoch().before_epoch_hooks.push_back(f); }
+
   void add_after_epoch_hook(std::function<void()> f) {
     get_epoch().after_epoch_hooks.push_back(f); }
   long clear() {return get_epoch().clear();}

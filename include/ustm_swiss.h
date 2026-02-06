@@ -32,7 +32,13 @@
 #if defined(Funnel) || defined(FunnelEager)
 
 #ifdef SimpleFunnel
+
+#ifdef USE_UEPOCH
+#include "aggregating_funnel.h"
+#else
 #include "aggregating-funnels/counter/aggregatingFunnelCounter.hpp"
+#endif
+
 template<typename T>
 using AggFunnel = SIMPLE_AGG_FUNNEL::AggFunnelCounter<T>;
 #elif defined(FullFunnel)
