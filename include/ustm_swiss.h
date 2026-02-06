@@ -28,6 +28,10 @@
 #ifdef ParlayAlloc
 #include <parlay/alloc.h>
 #endif
+#ifdef AggFunnel
+#include "aggregating-funnels/counter/configuredAggregatingFunnelCounter.hpp"
+#endif
+
 
 namespace ustm {
   // some constants
@@ -51,9 +55,23 @@ namespace ustm {
       }
     }
   };
+#elif defined(AggFunnel2)
+  struct timeStamp {
+    CONFIGURED_AGG_FUNNEL::ConfiguredAggFunnelCounter<TS> ts;
+    timeStamp() : ts(0, uepoch::max_threads) {}
+    TS getStamp() const { return ts.load(); }
+    TS nextStamp() {
+      return ts.fetch_add(1, uepoch::thread_id());
+    }
+  }
 #else
   struct timeStamp {
+#ifdef AggFunnel
+    CONFIGURED_AGG_FUNNEL::ConfiguredAggFunnelCounter<TS> ts;
+    timeStamp() : ts(0, uepoch::max_threads) {}
+#else
     std::atomic<TS> ts = 1ul;
+#endif // AggFunnel
     // returns current stamp
     TS getStamp() const { return ts.load(); }
     // returns incremented stamp
@@ -64,7 +82,11 @@ namespace ustm {
       for (volatile int i = 0; i < 200; i++);
       stamp = ts.load(); 
       if (stamp > prevStamp) return stamp;
+#ifdef AggFunnel
+      return ts.fetch_add(1, uepoch::thread_id());
+#else
       return ++ts;
+#endif // AggFunnel
     }
   };
 #endif
@@ -293,14 +315,14 @@ namespace ustm {
   };
 
   // keep track of number of active threads
-  extern inline std::atomic<int>& numThreads() {
-    static std::atomic<int> numThreads;
-    return numThreads;
-  }
+  // extern inline std::atomic<int>& numThreads() {
+  //   static std::atomic<int> numThreads;
+  //   return numThreads;
+  // }
       
   extern inline Descriptor* initDescriptor() {
     static STMState stm;
-    return &stm.descriptors[numThreads().fetch_add(1)];
+    return &stm.descriptors[uepoch::thread_id()];
   }
 
   // thread local copy of descriptor.
@@ -510,7 +532,7 @@ namespace ustm {
     STMState* stm = getDescriptor()->stmState;
     uint64_t totalAborts = 0;
     uint64_t totalCommits = 0;
-    for (int i=0; i < numThreads().load(); i++) {
+    for (int i=0; i < uepoch::num_threads().load(); i++) {
       auto& d = stm->descriptors[i];
       totalAborts += d.numAborts;
       totalCommits += d.numCommits;
