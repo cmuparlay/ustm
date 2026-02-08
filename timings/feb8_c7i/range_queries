@@ -1,0 +1,50 @@
+Date: 02-08-2026
+Experiment: range_queries
+HYTM: no
+Model name:                           Intel(R) Xeon(R) Platinum 8488C
+Git: 3d21aed
+---
+Fixed: n=1000000, u=100, trans=4, z=0, p=144, rqp=50
+---
+./btree_multiverse,u=100,trans=4,n=1000000,p=144,z=0,pa=0,rs=1,rqp=50,rqmops=10.6,mops=20.5
+./btree_multiverse,u=100,trans=4,n=1000000,p=144,z=0,pa=0,rs=10,rqp=50,rqmops=12.3,mops=22.6
+./btree_multiverse,u=100,trans=4,n=1000000,p=144,z=0,pa=0,rs=100,rqp=50,rqmops=15.3,mops=18.6
+./btree_multiverse,u=100,trans=4,n=1000000,p=144,z=0,pa=0,rs=1000,rqp=50,rqmops=1.88,mops=28.5
+./btree_multiverse,u=100,trans=4,n=1000000,p=144,z=0,pa=0,rs=10000,rqp=50,rqmops=0.107,mops=26
+./btree_multiverse,u=100,trans=4,n=1000000,p=144,z=0,pa=0,rs=100000,rqp=50,rqmops=0.0154,mops=29.7
+./btree_multiverse,u=100,trans=4,n=1000000,p=144,z=0,pa=0,rs=1000000,rqp=50,rqmops=0.00645,mops=28.2
+./btree_mvustm,u=100,trans=4,n=1000000,p=144,z=0,pa=0.712,rs=1,rqp=50,rqmops=109,mops=65.9
+./btree_mvustm,u=100,trans=4,n=1000000,p=144,z=0,pa=0.845,rs=10,rqp=50,rqmops=92,mops=64.7
+./btree_mvustm,u=100,trans=4,n=1000000,p=144,z=0,pa=1.25,rs=100,rqp=50,rqmops=52.7,mops=64.5
+./btree_mvustm,u=100,trans=4,n=1000000,p=144,z=0,pa=3.18,rs=1000,rqp=50,rqmops=10.4,mops=62.2
+./btree_mvustm,u=100,trans=4,n=1000000,p=144,z=0,pa=5.12,rs=10000,rqp=50,rqmops=1.15,mops=59
+./btree_mvustm,u=100,trans=4,n=1000000,p=144,z=0,pa=5.49,rs=100000,rqp=50,rqmops=0.102,mops=54
+./btree_mvustm,u=100,trans=4,n=1000000,p=144,z=0,pa=4.99,rs=1000000,rqp=50,rqmops=0.00816,mops=40.2
+./btree_mvustm_hwstamp,u=100,trans=4,n=1000000,p=144,z=0,pa=0.501,rs=1,rqp=50,rqmops=153,mops=77.8
+./btree_mvustm_hwstamp,u=100,trans=4,n=1000000,p=144,z=0,pa=0.558,rs=10,rqp=50,rqmops=139,mops=78.8
+./btree_mvustm_hwstamp,u=100,trans=4,n=1000000,p=144,z=0,pa=1,rs=100,rqp=50,rqmops=64.5,mops=73.6
+./btree_mvustm_hwstamp,u=100,trans=4,n=1000000,p=144,z=0,pa=2.85,rs=1000,rqp=50,rqmops=10.6,mops=73.2
+./btree_mvustm_hwstamp,u=100,trans=4,n=1000000,p=144,z=0,pa=4.41,rs=10000,rqp=50,rqmops=1.12,mops=69.4
+./btree_mvustm_hwstamp,u=100,trans=4,n=1000000,p=144,z=0,pa=4.72,rs=100000,rqp=50,rqmops=0.0792,mops=57.2
+./btree_mvustm_hwstamp,u=100,trans=4,n=1000000,p=144,z=0,pa=3.91,rs=1000000,rqp=50,rqmops=0.00626,mops=47
+./btree_2plsf,u=100,trans=4,n=1000000,p=144,z=0,pa=0.274,rs=1,rqp=50,rqmops=62.7,mops=44.8
+./btree_2plsf,u=100,trans=4,n=1000000,p=144,z=0,pa=0.274,rs=10,rqp=50,rqmops=55.7,mops=45.5
+./btree_2plsf,u=100,trans=4,n=1000000,p=144,z=0,pa=0.467,rs=100,rqp=50,rqmops=26.5,mops=46.5
+./btree_2plsf,u=100,trans=4,n=1000000,p=144,z=0,pa=1.37,rs=1000,rqp=50,rqmops=5.54,mops=42.8
+./btree_2plsf,u=100,trans=4,n=1000000,p=144,z=0,pa=21.6,rs=10000,rqp=50,rqmops=0.829,mops=12.9
+./btree_2plsf,u=100,trans=4,n=1000000,p=144,z=0,pa=370,rs=100000,rqp=50,rqmops=0.0437,mops=0.425
+./btree_2plsf,u=100,trans=4,n=1000000,p=144,z=0,pa=1.41e+03,rs=1000000,rqp=50,rqmops=0.0049,mops=0.0605
+./btree_fuse,u=100,trans=4,n=1000000,p=144,z=0,pa=0,rs=1,rqp=50,rqmops=135,mops=68
+./btree_fuse,u=100,trans=4,n=1000000,p=144,z=0,pa=0,rs=10,rqp=50,rqmops=113,mops=67.3
+./btree_fuse,u=100,trans=4,n=1000000,p=144,z=0,pa=0,rs=100,rqp=50,rqmops=56.4,mops=66.9
+./btree_fuse,u=100,trans=4,n=1000000,p=144,z=0,pa=0,rs=1000,rqp=50,rqmops=10.3,mops=68.4
+./btree_fuse,u=100,trans=4,n=1000000,p=144,z=0,pa=0,rs=10000,rqp=50,rqmops=1.12,mops=67.3
+./btree_fuse,u=100,trans=4,n=1000000,p=144,z=0,pa=0,rs=100000,rqp=50,rqmops=0.1,mops=53.6
+./btree_fuse,u=100,trans=4,n=1000000,p=144,z=0,pa=0,rs=1000000,rqp=50,rqmops=0.0148,mops=34.3
+# CRASH: ./btree_tiny -nowarmup -n 1000000 -u 100 -z 0 -trans 4 -rs 1 -rqp 50 -p 144 -r 1 -t 1
+# CRASH: ./btree_tiny -nowarmup -n 1000000 -u 100 -z 0 -trans 4 -rs 10 -rqp 50 -p 144 -r 1 -t 1
+# CRASH: ./btree_tiny -nowarmup -n 1000000 -u 100 -z 0 -trans 4 -rs 100 -rqp 50 -p 144 -r 1 -t 1
+# CRASH: ./btree_tiny -nowarmup -n 1000000 -u 100 -z 0 -trans 4 -rs 1000 -rqp 50 -p 144 -r 1 -t 1
+# CRASH: ./btree_tiny -nowarmup -n 1000000 -u 100 -z 0 -trans 4 -rs 10000 -rqp 50 -p 144 -r 1 -t 1
+# CRASH: ./btree_tiny -nowarmup -n 1000000 -u 100 -z 0 -trans 4 -rs 100000 -rqp 50 -p 144 -r 1 -t 1
+# CRASH: ./btree_tiny -nowarmup -n 1000000 -u 100 -z 0 -trans 4 -rs 1000000 -rqp 50 -p 144 -r 1 -t 1
