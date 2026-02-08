@@ -38,7 +38,7 @@
 
 namespace uepoch {
 
-  constexpr int max_threads = 256; // can be increased
+  constexpr int max_threads = 1024; // can be increased
   constexpr long bytes_per_thread = 1ul << 26;
 
   extern inline std::atomic<int>& num_threads() {
