@@ -5,7 +5,7 @@ set(STRUCT_DIR ${PROJECT_SOURCE_DIR}/structures)
 set(OTHER_DIR ${PROJECT_SOURCE_DIR}/other)
 set(FUSE_DIR ${OTHER_DIR}/fuse)
 
-set(STRUCTS "avltree" "treap" "leaftree" "btree" "arttree" "hash_block" "list" "skiplist")
+set(STRUCTS "avltree" "treap" "leaftree" "btree" "arttree" "hash_block" "hash_list" "list" "skiplist")
 
 set(COMMON_DEFS "STMStats")
 
