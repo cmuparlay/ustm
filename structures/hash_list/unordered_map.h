@@ -26,23 +26,19 @@ struct unordered_map {
     link(KV element, link* next) : element(element), next(next) {}
   };
 
-  struct bucket  {
-    link* load() {return ptr.load();}
-    stm::atomic<link*> ptr;
-    bucket() : ptr(nullptr) {}
-  };
+  using lnk = stm::atomic<link*>;
 
   struct Table {
-    parlay::sequence<bucket> table;
+    parlay::sequence<lnk> table;
     size_t size;
-    bucket* get_bucket(const K& k) {
+    lnk* get_bucket(const K& k) {
       size_t idx = Hash{}(k) & (size-1u);
       return &table[idx];
     }
     Table(size_t n) {
       int bits = 1 + parlay::log2_up(n);
       size = 1ul << bits;
-      table = parlay::sequence<bucket>(size);
+      table = parlay::sequence<lnk>(size);
     }
   };
 
@@ -58,8 +54,8 @@ struct unordered_map {
 
   // returns found link (or nullptr if not found)
   // and address of the pointer to that link
-  static std::pair<link*, stm::atomic<link*>*>
-  find_in_list(stm::atomic<link*>* ptr, const K& k) {
+  static std::pair<link*, lnk*>
+  find_in_list(lnk* ptr, const K& k) {
     link* nxt = ptr->load();
     while (nxt != nullptr && !KeyEqual{}(nxt->element.first, k)) {
       ptr = &(nxt->next);
@@ -85,15 +81,15 @@ struct unordered_map {
   }
     
   std::optional<V> find(const K& k) {
-    bucket* s = hash_table.get_bucket(k);
-    auto [lnk, ptr] = find_in_list(&(s->ptr), k);
+    lnk* s = hash_table.get_bucket(k);
+    auto [lnk, ptr] = find_in_list(s, k);
     if (lnk == nullptr) return {};
     else return lnk->element.second;
   }
 
   bool insert(const K& k, const V& v) {
-    bucket* s = hash_table.get_bucket(k);
-    auto [lnk, ptr] = find_in_list(&(s->ptr), k);
+    lnk* s = hash_table.get_bucket(k);
+    auto [lnk, ptr] = find_in_list(s, k);
     if (lnk == nullptr) {
       ptr->store(stm::New<link>(KV{k,v}, nullptr));
       return true;
@@ -101,15 +97,15 @@ struct unordered_map {
   }
 
   bool remove(const K& k) {
-    bucket* s = hash_table.get_bucket(k);
-    auto [lnk, ptr] = find_in_list(&(s->ptr), k);
+    lnk* s = hash_table.get_bucket(k);
+    auto [lnk, ptr] = find_in_list(s, k);
     if (lnk == nullptr) return false;
     ptr->store(lnk->next.load());
     return true;
   }
 
   long size() {
-    return parlay::reduce(parlay::map(hash_table.table, [] (bucket& x) {
+    return parlay::reduce(parlay::map(hash_table.table, [] (lnk& x) {
                              return (long) list_length(x.load());}));
   }
 

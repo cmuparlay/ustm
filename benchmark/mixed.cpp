@@ -104,7 +104,8 @@ double run_mixed_operations(const parlay::sequence<K>& all,
                             commandLine P) {
   long m = all.size();
   // half the unique elements on average are in the table
-  long n = unique.size()/2; 
+  bool upsert = P.getOption("-up");
+  long n = upsert ? unique.size() : unique.size()/2; 
   long p = P.getOptionIntValue("-p", parlay::num_workers());  
   long rounds = P.getOptionIntValue("-r", 1);
   double trial_time = P.getOptionDoubleValue("-t", 1.0);
@@ -230,6 +231,14 @@ double run_mixed_operations(const parlay::sequence<K>& all,
             auto val = stm::atomic_read_only_singleton([&] {return tr.find(all[j]);});
 #endif
             if (val.has_value()) local_stats.query_total_value += val.value()[0];
+#ifdef UPSERT
+          } else if (upsert) {
+            local_stats.update_count++;
+            if (stm::atomic_region([&] {return tr.upsert(all[j], default_value);})) {
+              local_stats.added_count++;
+              local_stats.update_success_count++;
+            }
+#endif
           } else if (op_types[jj] == Insert) {
             local_stats.update_count++;
             if (stm::atomic_region([&] {return tr.insert(all[j], default_value);})) {
@@ -256,6 +265,10 @@ double run_mixed_operations(const parlay::sequence<K>& all,
                 loc_queries += 1;
                 auto val = tr.find(all[j+k]);
                 if (val.has_value()) loc_found += val.value()[0];
+#ifdef UPSERT
+              } else if (upsert) {
+                if (tr.upsert(all[j+k], default_value)) {loc_added++; loc_update_success++;}
+#endif
               } else if (op_types[jj+k] == Insert) {
                 if (tr.insert(all[j+k], default_value)) {loc_added++; loc_update_success++;}
               } else if (op_types[jj+k] == Remove) {
@@ -283,13 +296,15 @@ double run_mixed_operations(const parlay::sequence<K>& all,
     auto [aborts, commits] = stm::statistics();
     double percent_aborts = commits == 0 ? 0.0 : 100 * aborts / (double) commits;
     if (percent_aborts < .1) percent_aborts = 0.0;
-      
+
+    auto ustr = upsert ? "upsert=" : "u=";
+    
     if (i >= warmup) { // don't report zeroth round -- warmup
       size_t num_ops = overall_stats.total;
       throughput += num_ops / (duration * 1e6);
       std::cout << std::setprecision(3)
                 << P.commandName() << ","
-                << "u=" << update_percent << ","
+                << ustr << update_percent << ","
                 << "trans=" << trans_size << ","
                 << "n=" << n << ","
                 << "p=" << p << ","
@@ -329,10 +344,10 @@ double run_mixed_operations(const parlay::sequence<K>& all,
            (10 * range_size < n) && (range_ratio < .9 * range_size)))
         std::cout << "bad range sizes, average range size returned = "
                   << range_ratio << std::endl;
-      if ((success_ratio < .4 || success_ratio > .6) && n > 10000)
+      if (!upsert && (success_ratio < .4 || success_ratio > .6) && n > 10000)
         std::cout << "bad query success ratio, should be .5 is "
                   << success_ratio << std::endl;
-      if ((update_success_ratio < .4 || update_success_ratio > .6) && n > 10000)
+      if (!upsert && (update_success_ratio < .4 || update_success_ratio > .6) && n > 10000)
         std::cout << "bad update success ratio, should be .5 is "
                   << update_success_ratio << std::endl;
 
@@ -431,6 +446,7 @@ int main(int argc, char* argv[]) {
                                  parlay::chars_to_int);
   long p = P.getOptionIntValue("-p", parlay::num_workers());
   bool loop = (percents.size() * transaction_sizes.size() * zipfians.size() * sizes.size()) > 1;
+  bool upsert = P.getOption("-up");
   
   std::vector<double> throughputs;
 
@@ -469,6 +485,7 @@ int main(int argc, char* argv[]) {
     parlay::sequence<K> all_keys;
 
     for (auto n : sizes) {
+      if (upsert) n = n/2;
       bool warm = warmup;
       K max_key = std::numeric_limits<K>::max();
       auto endKey = [=] (const K& begin, long range_size) {
@@ -486,7 +503,7 @@ int main(int argc, char* argv[]) {
         unique_keys = parlay::tabulate(unique_size, [&] (size_t i) {return shuffled[i];});
 
         // then put them into a sequence of length m
-        long m = P.getOptionIntValue("-m", 10 * n + 1000 * p);
+        long m = P.getOptionIntValue("-m", 5 * unique_size + 1000 * p);
         Zipfian z(unique_size, zipfian_param);
         all_keys = parlay::tabulate(m, [&] (int i) {
                      if (zipfian_param != 0.0) return unique_keys[z(i)];

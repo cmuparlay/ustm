@@ -21,6 +21,10 @@ struct unordered_map {
   using K = K_;
   using V = V_;
 private:
+#ifdef USTM
+#define UpsertInPlace
+#endif
+  
 #ifdef UpsertInPlace
   struct KV {K key; stm::atomic<V> value; V val() const {return value.load();}};
 #else

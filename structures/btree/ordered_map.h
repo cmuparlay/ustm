@@ -23,6 +23,11 @@ struct ordered_map {
   using K = K_;
   using V = V_;
 
+#ifdef USTM
+#define UpsertInPlace
+#endif
+
+#ifndef UpsertInPlace
   struct VP_indirect {
     V* vp;
     V get_value() { return *vp; }
@@ -38,6 +43,29 @@ struct ordered_map {
     VP_direct() {}
     VP_direct(const V& v) : v(v) {}
   };
+#else
+  struct VP_indirect {
+    stm::atomic<V*> vp;
+    V get_value() { return *(vp.load()); }
+    void retire() const { stm::Delete(vp.load()); }
+    void store(const V& new_v) {
+      V* old_v = vp.load();
+      vp.store(stm::New<V>(new_v));
+      stm::Delete(old_v);
+    }
+    VP_indirect() {}
+    VP_indirect(const V& v) : vp(stm::New<V>(v)) {}
+  };
+
+  struct VP_direct {
+    stm::atomic<V> v;
+    V get_value() { return v.load(); }
+    void retire() const {}
+    void store(const V& new_v) { v.store(new_v);}
+    VP_direct() {}
+    VP_direct(const V& v) : v(v) {}
+  };
+#endif
 
   static constexpr bool use_indirect = (sizeof(V) + sizeof(K)) >= 64;
   using VP = std::conditional_t<use_indirect, VP_indirect, VP_direct>;
@@ -517,18 +545,34 @@ struct ordered_map {
   // into the leaf.  Since the find ensures the leaf is not full,
   // there will be space for the new key.  
   // returns false and does no update if already in tree
-  bool insert(const K& k, const V& v, const bool upsert=false) {
+  bool insert(const K& k, const V& v) {
     auto [p, cidx, l] = find_and_fix(root, k);
     int idx = l->find(k);
-    if (!upsert && idx != -1) return false;
+    if (idx != -1) return false;
     else {
-      p->children[cidx] = (node*) insert_leaf(l, k, v, upsert && idx != -1);
+      p->children[cidx] = (node*) insert_leaf(l, k, v, false);
       stm::Delete(l);
-      return !upsert || idx == -1;
+      return true;
     }
   }
 
-  bool upsert(const K& k, const V& v) { return insert(k, v, true);}
+  bool upsert(const K& k, const V& v) {
+    auto [p, cidx, l] = find_and_fix(root, k);
+    int idx = l->find(k);
+    if (idx == -1) {
+      p->children[cidx] = (node*) insert_leaf(l, k, v, false);
+      stm::Delete(l);
+      return true;
+    } else {
+#ifdef UpsertInPlace
+      l->keyvals[idx].value.store(v);
+#else
+      p->children[cidx] = (node*) insert_leaf(l, k, v, true);
+      stm::Delete(l);
+#endif
+      return false;
+    }
+  }
 
   template <typename F>
   bool upsert_f(const K& k, const F& f) {
