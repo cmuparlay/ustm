@@ -113,8 +113,10 @@ private:
     } else { // key already in tree
       inserted = false;
       if (upsert) {
+        l = p->left.load();
+        r = p->right.load();
         Delete(p);
-        return std::pair(true, New(k, v, nullptr, nullptr));
+        return std::pair(true, New(k, v, l, r));
       } else return std::pair(false, p);
     }
 

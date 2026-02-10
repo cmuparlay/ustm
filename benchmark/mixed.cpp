@@ -118,6 +118,13 @@ double run_mixed_operations(const parlay::sequence<K>& all,
 #else
   bool do_check = true;
 #endif
+#ifndef UPSERT
+  if (upsert) {
+    std::cout << "This structure does not support upsert" << std::endl;
+    std::abort();
+  }
+#endif
+
   auto op_types = parlay::tabulate(m, [&] (size_t i) -> op_type {
       auto h = parlay::hash64(m+i)%2000;
       if (h < 10*update_percent) return Insert; 
