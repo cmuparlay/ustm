@@ -84,11 +84,13 @@ private:
       if (node::getHeight(l->left.load()) < node::getHeight(l->right.load()))  
         l = rotateLeft(l); // double rotation
       node* new_p = New(p->key, p->value, l, r);
+      Delete(p);
       return rotateRight(new_p);
     } else if (balance < -1) { // right heavy
       if (node::getHeight(r->right.load()) < node::getHeight(r->left.load()))  
         r = rotateRight(r); // double rotation
       node* new_p = New(p->key, p->value, l, r);
+      Delete(p);
       return rotateLeft(new_p);
     } else return p; // balanced
   }
