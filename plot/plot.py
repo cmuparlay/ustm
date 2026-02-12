@@ -36,6 +36,7 @@ IMPL_COLORS = {
     'hytm': '#bcbd22',
     'tiny': '#ff9896',
     'fuse': '#e41a1c',
+    'multiverse': '#000000',
 }
 
 IMPL_LABELS = {
@@ -428,23 +429,16 @@ def plot_varying_parameter(results, param_name, param_label, output_dir,
     return True
 
 
-def plot_varying(results, output_dir):
+def plot_varying(results, output_dir, param):
     """
-    Five rows: Size, Thread count, Zipfian, Transaction size, Update rate
-    Auto-detects which parameters have varying data and only plots those.
+    Plot throughput vs a single varying parameter.
+    Generates one plot per structure for both tree and other structure groups.
     """
     tree_structs = ['skiplist', 'treap', 'btree', 'arttree']
     other_structs = ['list', 'avltree', 'leaftree', 'hash_block']
     
-    # First, detect which parameters have meaningful variation
-    params_to_plot = []
-    for param in ['n', 'p', 'z', 'trans', 'u']:
-        param_values = sorted(set(r.get(param) for r in results if r.get(param) is not None))
-        if len(param_values) > 1:
-            params_to_plot.append(param)
-    
-    if not params_to_plot:
-        print("Warning: No parameters with varying data found")
+    param_values = sorted(set(r.get(param) for r in results if r.get(param) is not None))
+    if len(param_values) <= 1:
         return
     
     param_info = {
@@ -455,13 +449,12 @@ def plot_varying(results, output_dir):
         'u': ('Varying Update Rate', 'Update Rate (%)', 'update'),
     }
     
-    for param in params_to_plot:
-        title, label, shortname = param_info[param]
-        print(f"Plotting: {title}")
-        plot_varying_parameter(results, param, label, output_dir, 
-                              structures=tree_structs, filename_prefix=shortname, quiet=True)
-        plot_varying_parameter(results, param, label, output_dir,
-                              structures=other_structs, filename_prefix=shortname, quiet=True)
+    title, label, shortname = param_info[param]
+    print(f"Plotting: {title}")
+    plot_varying_parameter(results, param, label, output_dir, 
+                          structures=tree_structs, filename_prefix=shortname, quiet=True)
+    plot_varying_parameter(results, param, label, output_dir,
+                          structures=other_structs, filename_prefix=shortname, quiet=True)
 
 
 def plot_range_queries(results, output_dir):
@@ -613,8 +606,8 @@ def plot_combined_grid(results, geomean_data, output_dir, filename='results_comb
 
 def main():
     parser = argparse.ArgumentParser(description='Plot paper experiments')
-    parser.add_argument('input_path', type=str, 
-                       help='Path to timing file or directory containing timing files')
+    parser.add_argument('input_dir', type=str, 
+                       help='Path to directory containing timing files (geomean, vary_size, etc.)')
     parser.add_argument('-o', '--output-dir', type=str, default='plots',
                        help='Output directory for plots (default: plots)')
     parser.add_argument('--plots', nargs='+', 
@@ -626,9 +619,12 @@ def main():
     
     args = parser.parse_args()
     
-    input_path = Path(args.input_path)
-    if not input_path.exists():
-        print(f"Error: Path '{args.input_path}' not found")
+    input_dir = Path(args.input_dir)
+    if not input_dir.exists():
+        print(f"Error: Path '{args.input_dir}' not found")
+        return 1
+    if not input_dir.is_dir():
+        print(f"Error: '{args.input_dir}' is not a directory")
         return 1
     
     output_dir = Path(args.output_dir)
@@ -637,45 +633,37 @@ def main():
     # Set matplotlib backend for file output
     plt.switch_backend('Agg')
     
-    # Determine if input is a directory or file
-    if input_path.is_dir():
-        # New directory-based format
-        print(f"Processing directory: {input_path}")
-        
-        exps = [
-            'geomean',
-            'vary_size',
-            'vary_threads',
-            'vary_zipfian',
-            'vary_trans',
-            'vary_update',
-            'range_queries'
-        ]
-        
-        all_results = []
-        all_geomean_data = {}
-        
-        for filename in exps:
-            filepath = input_path / filename
-            if filepath.exists():
-                print(f"  Parsing {filename}...")
-                results, geomean_data = parse_timing_file(filepath)
-                all_results.extend(results)
-                all_geomean_data.update(geomean_data)
-                print(f"    Found {len(results)} results, {len(geomean_data)} geomeans")
-            else:
-                print(f"  Skipping {filename} (not found)")
-        
-        results = all_results
-        geomean_data = all_geomean_data
-    else:
-        # Single file (legacy format)
-        print(f"Parsing {input_path}...")
-        results, geomean_data = parse_timing_file(input_path)
+    print(f"Processing directory: {input_dir}")
     
-    print(f"\nTotal: {len(results)} benchmark results, {len(geomean_data)} geometric mean summaries")
+    exps = [
+        'geomean',
+        'vary_size',
+        'vary_threads',
+        'vary_zipfian',
+        'vary_trans',
+        'vary_update',
+        'range_queries'
+    ]
     
-    if not results and not geomean_data:
+    # Keep results separate by experiment file
+    exp_results = {}
+    geomean_data = {}
+    
+    for filename in exps:
+        filepath = input_dir / filename
+        if filepath.exists():
+            print(f"  Parsing {filename}...")
+            results, gdata = parse_timing_file(filepath)
+            exp_results[filename] = results
+            geomean_data.update(gdata)
+            print(f"    Found {len(results)} results, {len(gdata)} geomeans")
+        else:
+            print(f"  Skipping {filename} (not found)")
+    
+    total_results = sum(len(r) for r in exp_results.values())
+    print(f"\nTotal: {total_results} benchmark results, {len(geomean_data)} geometric mean summaries")
+    
+    if not total_results and not geomean_data:
         print("Error: No data found")
         return 1
     
@@ -688,20 +676,35 @@ def main():
         plot_geomean_bars(geomean_data, output_dir, 
                                   f'geomean.{args.format}')
     
-    if 'varying' in plots and results:
-        print("\nGenerating Parameter variation...")
-        print("Note: These require parameter-varying experiment data.")
-        print("      If you only have geomean data, these plots will be skipped.")
-        plot_varying(results, output_dir)
+    if 'varying' in plots:
+        print("\nGenerating Parameter variation plots...")
+        file_to_param = {
+            'vary_size': 'n',
+            'vary_threads': 'p',
+            'vary_zipfian': 'z',
+            'vary_trans': 'trans',
+            'vary_update': 'u',
+        }
+        for exp_file, param in file_to_param.items():
+            if exp_file in exp_results and exp_results[exp_file]:
+                plot_varying(exp_results[exp_file], output_dir, param)
     
-    if 'range' in plots and results:
+    if 'range' in plots:
         print("\nGenerating Range Query plots...")
-        plot_range_queries(results, output_dir)
+        if 'range_queries' in exp_results and exp_results['range_queries']:
+            plot_range_queries(exp_results['range_queries'], output_dir)
     
-    if 'combined' in plots and results:
+    if 'combined' in plots:
         print("\nGenerating Combined grid plot...")
-        plot_combined_grid(results, geomean_data, output_dir, 
-                          f'results_combined.{args.format}')
+        # For combined plot, use only varying-experiment results (not geomean)
+        vary_files = ['vary_size', 'vary_threads', 'vary_zipfian', 'vary_trans', 'vary_update']
+        all_results = []
+        for key in vary_files:
+            if key in exp_results:
+                all_results.extend(exp_results[key])
+        if all_results:
+            plot_combined_grid(all_results, geomean_data, output_dir, 
+                              f'results_combined.{args.format}')
     
     print(f"\nAll plots saved to {output_dir}/")
     return 0
