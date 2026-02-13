@@ -68,6 +68,7 @@ struct unordered_map {
     while (nxt != nullptr) {
       link* tmp = nxt;
       nxt = nxt->next.load();
+      stm::Delete(tmp);
     }
   }
 
@@ -101,6 +102,7 @@ struct unordered_map {
     auto [lnk, ptr] = find_in_list(s, k);
     if (lnk == nullptr) return false;
     ptr->store(lnk->next.load());
+    stm::Delete(lnk);
     return true;
   }
 

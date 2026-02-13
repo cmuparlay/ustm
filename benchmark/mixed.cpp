@@ -23,6 +23,7 @@
 //   stm::atomic_region(F f)
 //   stm::atomic_read_only(F f)
 //   stm::atomic_read_only_singleton(F f)
+// OK if later two are implemented with the first
 
 #include "set.h"
 // Requires
@@ -34,8 +35,28 @@
 //   bool remove(K k, V v);
 //   std::optional<V> find(K k);
 //   long check();   -- returns size
-// and if Range_Search is defined:
+// if Range_Search is defined:
 //   range(Func f, K start, K end)
+// if UPSERT is defined:
+//   bool upsert(K k, V v);
+
+
+// Measure space if using jemalloc
+#ifdef JEMALLOC
+#include <jemalloc/jemalloc.h>
+
+size_t jemalloc_get_allocated() {
+    size_t epoch = 1;
+    size_t sz, allocated;
+    sz = sizeof(size_t);
+    mallctl("thread.tcache.flush", NULL, NULL, NULL, 0);
+    mallctl("epoch", NULL, NULL, &epoch, sizeof(epoch));
+    mallctl("stats.allocated", &allocated, &sz, NULL, 0);
+    return allocated;
+}
+#else
+size_t jemalloc_get_allocated() { return 0;}
+#endif
 
 std::string command_string = R"(
 [-n <sizes>]  : comma separated sizes of the map (default 1000)
@@ -93,7 +114,8 @@ statistics adds(statistics s1, statistics s2) {
 }    
 
 template<typename SetType, typename K, typename F>
-double run_mixed_operations(const parlay::sequence<K>& all,
+std::pair<double,double>
+run_mixed_operations(const parlay::sequence<K>& all,
                             const parlay::sequence<K>& unique,
                             float zipfian_param,
                             int update_percent,
@@ -132,7 +154,8 @@ double run_mixed_operations(const parlay::sequence<K>& all,
       else return Find; });
 
   double throughput = 0;
-
+  double bytes_pe = 0;
+  
   // loop over rounds
   for (int i = 0; i < rounds + warmup; i++) {
 #ifdef LimitedSTM
@@ -140,7 +163,8 @@ double run_mixed_operations(const parlay::sequence<K>& all,
 #else
     auto *map_ptr = new SetType(n);
 #endif
-    
+    long mem_at_start = jemalloc_get_allocated();
+
     auto &tr = *map_ptr;
     auto check = [&]() { return  map_ptr->check(); };
     if (verbose) std::cout << "round " << i << std::endl;
@@ -157,6 +181,7 @@ double run_mixed_operations(const parlay::sequence<K>& all,
           std::abort();
         }
         return true; });}, 1000, true);
+    long mem_after_insert = jemalloc_get_allocated();
 
     if (do_check && verbose)
       std::cout << "inserted" << std::endl;
@@ -296,6 +321,9 @@ double run_mixed_operations(const parlay::sequence<K>& all,
     }, 1);
 
     double duration = ((double) time_diff(start))/1000000000;
+    long mem_at_end = jemalloc_get_allocated();
+    bytes_pe = (n > 1000000) ? ((double) (mem_at_end - mem_at_start))/n : 0;
+
     if (duration > 1.1 * trial_time)
       std::cout << "long duration: " << duration << std::endl;
     
@@ -316,7 +344,8 @@ double run_mixed_operations(const parlay::sequence<K>& all,
                 << "n=" << n << ","
                 << "p=" << p << ","
                 << "z=" << zipfian_param << ","
-                << "pa=" << percent_aborts << ",";
+                << "pa=" << percent_aborts << ","
+                << "be=" << bytes_pe << ",";
       if (range_query_threads > 0)
         std::cout << "rs=" << range_size << ","
                   << "rqp=" << range_query_percent << ","
@@ -390,7 +419,8 @@ double run_mixed_operations(const parlay::sequence<K>& all,
 #ifdef UEPOCH_H_
     long cnt = uepoch::clear();
 #endif
-  }  return throughput/rounds;
+  }
+  return std::pair(throughput/rounds,bytes_pe);
 }
 
 double geometric_mean(const std::vector<double>& vals) {
@@ -414,14 +444,17 @@ void run_loops(const parlay::sequence<K>& all_keys,
                const parlay::sequence<int>& transaction_sizes,
                const parlay::sequence<int>& range_sizes,
                std::vector<double>& throughputs,
+               std::vector<double>& bytes,
                float zipfian_param, bool warm, const F& endKey, const commandLine& P) {
   for (auto range_size : range_sizes) {
     for (auto update_percent : percents) {
       for (auto trans_size : transaction_sizes) {
-        auto tr = run_mixed_operations<SetType, K>(all_keys, unique_keys,
-                                                   zipfian_param, update_percent,
-                                                   trans_size, range_size, warm, endKey, P);
+        auto [tr,be] = run_mixed_operations<SetType, K>(all_keys, unique_keys,
+                                                        zipfian_param, update_percent,
+                                                        trans_size, range_size, warm, endKey, P);
         throughputs.push_back(tr);
+        if (be > 0)
+          bytes.push_back(be);
         warm = false;
       }
     }
@@ -456,6 +489,7 @@ int main(int argc, char* argv[]) {
   bool upsert = P.getOption("-up");
   
   std::vector<double> throughputs;
+  std::vector<double> bytes;
 
   if (filename.size() > 0) {
     using key_type = parlay::chars;
@@ -476,7 +510,7 @@ int main(int argc, char* argv[]) {
 #endif
     auto endKey = [] (const K& begin, long range_size) {return begin;};
     run_loops<SetType, K>(a, unique,
-                          percents, transaction_sizes, range_sizes, throughputs,
+                          percents, transaction_sizes, range_sizes, throughputs, bytes,
                           0.0, warmup, endKey, P);
 
   } else {
@@ -518,7 +552,7 @@ int main(int argc, char* argv[]) {
         if (zipfian_param != 0.0)
           unique_keys = parlay::random_shuffle(unique_keys);
         run_loops<SetType, K>(all_keys, unique_keys,
-                              percents, transaction_sizes, range_sizes, throughputs,
+                              percents, transaction_sizes, range_sizes, throughputs, bytes,
                               zipfian_param, warmup, endKey, P);
       }
     }
@@ -529,6 +563,11 @@ int main(int argc, char* argv[]) {
               << P.commandName() << ","
               << "GEOMETRIC MEAN OF THROUGHPUTS: "
               << geometric_mean(throughputs)
+              << std::endl;
+    std::cout << std::setprecision(4) 
+              << P.commandName() << ","
+              << "GEOMETRIC MEAN OF BYTES PER ELEMENT: "
+              << geometric_mean(bytes)
               << std::endl;
   }
 #if defined(dcotl) || defined(MULTIVERSE)
