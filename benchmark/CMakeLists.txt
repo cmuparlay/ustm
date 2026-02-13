@@ -53,6 +53,8 @@ function(add_benchmark NAME SOURCE STRUCT_NAME DEFS LIB)
   endif()
 endfunction()
 
+add_benchmark(btree_mvustm_inplace ${MIXED} ${STRUCT_DIR}/btree "USTM;MV;UpsertInPlace" "")
+
 foreach(bench ${STRUCTS})
   add_benchmark(${bench}_mvustm ${MIXED} ${STRUCT_DIR}/${bench} "USTM;MV" "")
   add_benchmark(${bench}_ustm_simple_longjmp ${MIXED} ${STRUCT_DIR}/${bench} "USTM;SimpleSTM;LongJmp" "")

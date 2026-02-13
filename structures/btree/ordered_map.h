@@ -23,10 +23,6 @@ struct ordered_map {
   using K = K_;
   using V = V_;
 
-#ifdef USTM
-#define UpsertInPlace
-#endif
-
 #ifndef UpsertInPlace
   struct VP_indirect {
     V* vp;
