@@ -56,9 +56,9 @@ namespace fuse {
   template <typename T>
   struct indirect_atomic {
     tlf_internal::versioned_ptr<indirect<T>> ptr;
-    indirect_atomic(T v) : ptr(new indirect<T>(v)) {}
+    indirect_atomic(T v) : ptr(tlf_internal::get_pool<indirect<T>>().pool.New(v)) {}
     indirect_atomic() : ptr(nullptr) {}
-    ~indirect_atomic() { delete(ptr.load()); }
+    ~indirect_atomic() { Delete(ptr.load()); }
     T load() { return ptr.load()->value; }
     void store(T v) {
       auto old = ptr.load();

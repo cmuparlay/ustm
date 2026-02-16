@@ -80,7 +80,7 @@ namespace ustm {
   struct timeStamp {
     std::atomic<TS> ts;
     TS getStamp() const { return ts.load(); }
-    TS nextStamp(TS prevStamp=0) { return ++ts; }
+    TS nextStamp(TS prevStamp=0) { return ts++; }
   };
 #elif defined(FunnelEager)
   struct timeStamp {
@@ -91,6 +91,7 @@ namespace ustm {
     }
   };
 #else
+#define SplitStamp
   struct timeStamp {
 #ifdef Funnel
     AggFunnel<TS> ts{0, uepoch::max_threads};
@@ -271,7 +272,11 @@ namespace ustm {
           e.oldStamp = s;
         }
         // get stamp -- this is the serialization point
+#if defined(SplitStamp) || defined(LazyStamp)
         endStamp = ts.getStamp();
+#else
+        endStamp = ts.nextStamp();
+#endif
         // Validate the reads (abort if any fail)
         for (auto& e : myd->readLog) 
           if (!getLock(e).validateRead(myd->startStamp, myd->tid))
@@ -301,7 +306,7 @@ namespace ustm {
       for (auto& e : myd->deleteLog)
         uepoch::delay(std::move(e));
       myd->reset();
-#ifndef LazyStamp
+#ifdef SplitStamp
       if (hasWrite) ts.nextStamp(endStamp);
 #endif
       myd->inTransaction = false;

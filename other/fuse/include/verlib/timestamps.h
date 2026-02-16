@@ -436,7 +436,7 @@ void print_retries() {
 template <typename F>
 auto with_snapshot(F f, bool use_speculative=true) {
   if(use_speculative) {
-    return with_epoch([&] {
+    return flck::with_epoch([&] {
       local_stamp = global_stamp.get_stamp();
       aborted = false;
       speculative = true;
