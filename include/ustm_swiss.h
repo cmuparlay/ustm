@@ -130,7 +130,9 @@ namespace ustm {
   template <typename T>
   struct link : version {
     T value;
+  #ifndef VLA
     T scratch;
+  #endif // VLA
     link(T* addr, T value) : version{addr}, value(value) {}
   };
   
