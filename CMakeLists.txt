@@ -29,7 +29,7 @@ set(USTM_INCLUDE_DIR "${USTM_SOURCE_DIR}/include")
 add_library(ustm INTERFACE)
 target_include_directories(ustm INTERFACE ${USTM_INCLUDE_DIR})
 target_compile_features(ustm INTERFACE cxx_std_17)
-target_compile_options(ustm INTERFACE -mcx16 -march=native -g)
+target_compile_options(ustm INTERFACE -march=native -g)
 
 # Find threading library
 find_package(Threads REQUIRED)

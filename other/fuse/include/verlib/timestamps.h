@@ -2,7 +2,6 @@
 #include <limits>
 #include <atomic>
 #include "flock/epoch.h"
-#include <x86intrin.h>
 
 namespace verlib {
   using TS = long;
@@ -10,13 +9,7 @@ namespace verlib {
 thread_local int read_delay = 1;
 thread_local int write_delay = 1;
 
-  TS rdtsc(){
-      unsigned int lo,hi;
-      __asm__ __volatile__ ("rdtsc" : "=a" (lo), "=d" (hi));
-      return (TS) (((uint64_t)(hi & ~(1<<31)) << 32) | lo);
-  }
-
-  thread_local TS last_ts = 0;
+thread_local TS last_ts = 0;
 
   // Use TL2 stamp
 struct alignas(128) timestamp_tl2 {
@@ -72,6 +65,15 @@ struct alignas(128) timestamp_tl2 {
   timestamp_tl2(int d = 20) : stamp(step), delay(d) {}
 };
 
+#if defined(HWStamp) || defined(HWWriteStamp)
+  #include <x86intrin.h>
+
+  TS rdtsc(){
+      unsigned int lo,hi;
+      __asm__ __volatile__ ("rdtsc" : "=a" (lo), "=d" (hi));
+      return (TS) (((uint64_t)(hi & ~(1<<31)) << 32) | lo);
+  }
+
   // Use hardware clock with update ensured on read
 struct alignas(64) timestamp_read_hw {
   TS get_stamp() {return rdtsc();}
@@ -108,7 +110,7 @@ struct alignas(64) timestamp_write_hw {
   }
   timestamp_write_hw() {}
 };
-
+#endif
 
 struct alignas(128) timestamp_read {
   std::atomic<TS> stamp;
