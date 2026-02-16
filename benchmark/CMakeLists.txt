@@ -91,6 +91,7 @@ endforeach()
 
 foreach(bench ${STRUCTS})
   add_benchmark(${bench}_mvustm ${MIXED} ${STRUCT_DIR}/${bench} "USTM;MV" "")
+  add_benchmark(${bench}_mvustm_vla ${MIXED} ${STRUCT_DIR}/${bench} "USTM;MV;VLA" "")
   add_benchmark(${bench}_2plsf ${MIXED} ${STRUCT_DIR}/${bench} "Other;TWOPLSF" "")
 
   if (CMAKE_SYSTEM_PROCESSOR MATCHES ${X86})
