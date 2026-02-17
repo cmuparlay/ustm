@@ -428,7 +428,7 @@ class ExperimentRunner:
     
     def run_size(self):
         sizes = [1000, 10000, 100000, 1000000, 10000000, 100000000]
-        list_sizes = [10, 100, 300, 1000, 3000, 10000]
+        list_sizes = [30, 100, 300, 1000]
         
         self.setup_output("vary_size")
         self.results_file.write(f"Fixed: u={self.config.default_u}, trans={self.config.default_trans}, "
@@ -473,9 +473,9 @@ class ExperimentRunner:
     
     def run_threads(self):
         if "hytm" in self.config.impls:
-            threads = [1, 4, 8, 16, 32, 48, 64, 72]
+            threads = [1, 4, 16, 32, 64]
         else:
-            threads = [1, 4, 8, 16, 32, 48, 64, 96, 128, 144]
+            threads = [1, 4, 16, 32, 64, 128]
         
         fixed = {
             'n': self.config.default_n,
@@ -486,7 +486,7 @@ class ExperimentRunner:
         self._run_varying_experiment("vary_threads", 'p', threads, fixed)
     
     def run_zipfian(self):
-        zipfians = [0, 0.25, 0.5, 0.75, 0.9, 0.95, 0.99]
+        zipfians = [0, 0.5, 0.75, 1.0]
         fixed = {
             'n': self.config.default_n,
             'u': self.config.default_u,
@@ -506,7 +506,7 @@ class ExperimentRunner:
         self._run_varying_experiment("vary_trans", 'trans', trans_vals, fixed)
     
     def run_update(self):
-        updates = [0, 1, 5, 10, 20, 50]
+        updates = [0, 5, 10, 20, 50, 100]
         fixed = {
             'n': self.config.default_n,
             'trans': self.config.default_trans,
