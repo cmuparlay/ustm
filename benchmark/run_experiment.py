@@ -57,7 +57,7 @@ class Config:
     small: bool = False
     
     # Default parameters
-    default_n: int = 100000
+    default_n: int = 10000000
     default_list_n: int = 300
     default_u: int = 10
     default_trans: int = 4
