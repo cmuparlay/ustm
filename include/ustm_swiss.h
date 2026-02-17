@@ -411,7 +411,7 @@ namespace ustm {
       status = lck.getStatus();
       if (prevStatus == status) {
         if (status < myd->startStamp) return *location;
-        if (!lck.isLocked(status)) {
+        if (!lock::isLocked(status)) {
           if (!myd->inTransaction) return *location;
           break;
         }
