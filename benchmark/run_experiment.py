@@ -59,9 +59,9 @@ class Config:
     # Default parameters
     default_n: int = 100000
     default_list_n: int = 300
-    default_u: int = 5
+    default_u: int = 10
     default_trans: int = 4
-    default_z: float = 0.9
+    default_z: float = 0.75
     default_p: int = 72
     rounds: int = 1
     trial_time: int = 1
