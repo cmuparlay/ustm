@@ -486,7 +486,7 @@ class ExperimentRunner:
         self._run_varying_experiment("vary_threads", 'p', threads, fixed)
     
     def run_zipfian(self):
-        zipfians = [0, 0.5, 0.75, 1.0]
+        zipfians = [0, 0.5, 0.75, 0.9, 0.99]
         fixed = {
             'n': self.config.default_n,
             'u': self.config.default_u,
@@ -523,7 +523,7 @@ class ExperimentRunner:
         range_trans = 4
         range_z = 0
         range_rqp = 50
-        range_sizes = [1, 10, 100, 1000, 10000, 100000, 1000000]
+        range_sizes = [100000, 10000000]
         
         self.results_file.write(f"Fixed: n={range_n}, u={range_u}, trans={range_trans}, "
                                f"z={range_z}, p={self.config.default_p}, rqp={range_rqp}\n")
