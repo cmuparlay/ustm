@@ -10,9 +10,31 @@ endif(NOT CMAKE_BUILD_TYPE)
 
 set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 -fno-omit-frame-pointer")
 
+#stop warnings for benign memcpy
+set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wstringop-overflow=0")
+
+#lower case arch label
+string(TOLOWER "${CMAKE_SYSTEM_PROCESSOR}" ARCH)
+#detect architecture
+if(ARCH MATCHES "^(x86_64|amd64|i[3-6]86)$")
+  set(TARGET_ARCH "x86")
+  list(APPEND COMMON_DEFS "USTM_X86")
+elseif(ARCH MATCHES "^(aarch64|arm64)$")
+  set(TARGET_ARCH "arm")
+  list(APPEND COMMON_DEFS "USTM_ARM")
+elseif(ARCH MATCHES "^(ppc64le|ppc64|powerpc64)$")
+  set(TARGET_ARCH "ppc")
+  list(APPEND COMMON_DEFS "USTM_PPC")
+elseif(ARCH MATCHES "^(arm|ppc|powerpc)$")
+  message(FATAL_ERROR "Unsupported architecture: ${ARCH}.")
+else()
+  message(FATAL_ERROR "Unknown architecture.")
+endif()
+
 message(STATUS "--------------- General configuration -------------")
 message(STATUS "CMake Generator:                ${CMAKE_GENERATOR}")
 message(STATUS "Compiler:                       ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}")
+message(STATUS "Architecture:                   ${TARGET_ARCH}")
 message(STATUS "Build type:                     ${CMAKE_BUILD_TYPE}")
 message(STATUS "CMAKE_CXX_FLAGS:                ${CMAKE_CXX_FLAGS}")
 message(STATUS "CMAKE_CXX_FLAGS_DEBUG:          ${CMAKE_CXX_FLAGS_DEBUG}")
@@ -29,7 +51,13 @@ set(USTM_INCLUDE_DIR "${USTM_SOURCE_DIR}/include")
 add_library(ustm INTERFACE)
 target_include_directories(ustm INTERFACE ${USTM_INCLUDE_DIR})
 target_compile_features(ustm INTERFACE cxx_std_17)
-target_compile_options(ustm INTERFACE -march=native -g)
+if(TARGET_ARCH MATCHES "x86")
+  target_compile_options(ustm INTERFACE -mcx16 -march=native -g)
+elseif(TARGET_ARCH MATCHES "ppc")
+  target_compile_options(ustm INTERFACE -mcpu=native -g)
+else() #arm
+  target_compile_options(ustm INTERFACE -march=native -latomic -g)
+endif()
 
 # Find threading library
 find_package(Threads REQUIRED)

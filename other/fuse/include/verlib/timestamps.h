@@ -482,8 +482,3 @@ auto with_snapshot(F f, bool use_speculative=true) {
 
 #endif
 } // namespace verlib
-
-
-
-
-  
