@@ -130,7 +130,7 @@ def geomean(values: List[float]) -> float:
     return prod(values) ** (1.0 / len(values))
 
 
-def run_benchmark(cmd: str, numa_cmd: str, timeout_sec: int = 1800) -> Tuple[str, str]:
+def run_benchmark(cmd: str, numa_cmd: str, timeout_sec: int = 300) -> Tuple[str, str]:
     """
     Run a benchmark command with timeout.
     Returns (output, status) where status is 'ok', 'timeout', 'crash', or 'error'.
@@ -286,7 +286,7 @@ class ExperimentRunner:
             sizes, list_sizes = [100000, 10000000], [100, 1000]
             updates, trans_vals, zipfians = [0, 5, 50], [4], [0, 0.99]
         else:
-            sizes, list_sizes = [1000000, 100000000], [100, 1000]
+            sizes, list_sizes = [100000, 10000000], [100, 1000]
             updates, trans_vals, zipfians = [0, 5, 50], [1, 4, 16], [0, 0.75, 0.99]
         
         def batch_params(sz_list):
@@ -307,8 +307,8 @@ class ExperimentRunner:
                 print(f"  {struct}_{impl}")
                 prefix = f"./{struct}_{impl}"
                 
-                if not self._supports_batch_mode(impl) or impl == "hytm":
-                    # Separate invocations: multiverse lacks batch mode, hytm has memory leak
+                if impl == "hytm":
+                    # HyTM: separate invocations due to memory leak
                     throughputs = []
                     for n in sz_list:
                         for u in updates:
@@ -379,9 +379,7 @@ class ExperimentRunner:
     @staticmethod
     def _supports_batch_mode(impl: str, param_name: str = None) -> bool:
         """Whether the implementation supports comma-separated parameter values."""
-        if impl == "multiverse" or param_name == 'p':
-            return False
-        return True
+        return param_name != 'p'
     
     def _run_varying_experiment(self, name: str, param_name: str, values: List,
                                 fixed_params: dict = None, list_values: List = None,

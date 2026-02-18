@@ -401,6 +401,7 @@ namespace ustm {
     if (regular) myd->readLog.push_back(&v);
     char tmp[sizeof(T)];
     T* location = reinterpret_cast<T*>(tmp);
+    int delay = 100;
     while (true) { 
       auto prevStatus = status;
       std::memcpy(tmp, &v, sizeof(T));
@@ -416,6 +417,9 @@ namespace ustm {
           break;
         }
       }
+      for (volatile int i = 0; i < delay; i++)
+        ;
+      delay = std::min(2 * delay, 1000);
     }
     if (regular) {
       myd->lateRead = true;

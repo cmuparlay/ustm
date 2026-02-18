@@ -1,0 +1,18 @@
+Date: 02-18-2026
+Experiment: range_queries
+HYTM: no
+Model name:                           Intel(R) Xeon(R) CPU E7-8867 v4 @ 2.40GHz
+Git: 3577e38
+---
+Fixed: n=1000000, u=100, trans=4, z=0, p=144, rqp=50
+---
+./btree_multiverse,u=100,trans=4,n=1000000,p=144,z=0,pa=0,be=0,rs=0,rqp=50,rqmops=21.5,mops=20.6
+./arttree_multiverse,u=100,trans=4,n=1000000,p=144,z=0,pa=0,be=0,rs=0,rqp=50,rqmops=18.7,mops=18.3
+./btree_mvustm,u=100,trans=4,n=1000000,p=144,z=0,pa=0.716,be=0,rs=0,rqp=50,rqmops=86.5,mops=52.5
+./arttree_mvustm,u=100,trans=4,n=1000000,p=144,z=0,pa=0.56,be=0,rs=0,rqp=50,rqmops=100,mops=47.1
+./btree_2plsf,u=100,trans=4,n=1000000,p=144,z=0,pa=0.306,be=0,rs=0,rqp=50,rqmops=74.8,mops=28.8
+./arttree_2plsf,u=100,trans=4,n=1000000,p=144,z=0,pa=0.266,be=0,rs=0,rqp=50,rqmops=60.8,mops=18.3
+./btree_fuse,u=100,trans=4,n=1000000,p=144,z=0,pa=0,be=0,rs=0,rqp=50,rqmops=58.6,mops=38.3
+./arttree_fuse,u=100,trans=4,n=1000000,p=144,z=0,pa=0,be=0,rs=0,rqp=50,rqmops=59.1,mops=42.9
+# CRASH: ./btree_tiny -n 1000000 -u 100 -trans 4 -z 0 -p 144 -rqp 50 -rs [1, 10, 100, 1000, 10000, 100000, 1000000] -r 1 -t 1
+./arttree_tiny,u=100,trans=4,n=1000000,p=144,z=0,pa=0,be=0,rs=0,rqp=50,rqmops=14.8,mops=17
