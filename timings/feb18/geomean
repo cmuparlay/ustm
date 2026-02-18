@@ -1,0 +1,9 @@
+Date: 02-18-2026
+Experiment: geomean
+HYTM: no
+Model name:                           Intel(R) Xeon(R) CPU E7-8867 v4 @ 2.40GHz
+Git: 68db58b
+---
+Threads: 144
+---
+./btree_multiverse,u=0,trans=1,n=1000000,p=144,z=0,pa=0,be=0,mops=317

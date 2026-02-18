@@ -81,7 +81,7 @@ def get_config(include_hytm: bool, small: bool = False) -> Config:
     config.impls = [
         "multiverse",
         "mvustm",
-        "mvustm_hwstamp",
+        # "mvustm_hwstamp",
         # "mvustm_longjmp",
         "2plsf",
         "fuse",
@@ -277,278 +277,191 @@ class ExperimentRunner:
         self.results_file.flush()
     
     def run_geomean(self):
-        """Run geometric mean experiment"""
+        """Run geometric mean experiment."""
         self.setup_output("geomean")
         self.results_file.write(f"Threads: {self.config.default_p}\n")
         self.results_file.write("---\n")
         
-        # Parameter sweeps for geomean - use runall.sh parameters when small flag is set
         if self.config.small:
-            sizes = [100000, 10000000]
-            list_sizes = [100, 1000]
-            updates = [0, 5, 50]
-            trans_vals = [4]
-            zipfians = [0, 0.99]
+            sizes, list_sizes = [100000, 10000000], [100, 1000]
+            updates, trans_vals, zipfians = [0, 5, 50], [4], [0, 0.99]
         else:
-            sizes = [10000, 1000000, 100000000]
-            list_sizes = [100, 1000]
-            updates = [0, 5, 50]
-            trans_vals = [1, 16]
-            zipfians = [0, 0.99]
+            sizes, list_sizes = [1000000, 100000000], [100, 1000]
+            updates, trans_vals, zipfians = [0, 5, 50], [1, 4, 16], [0, 0.75, 0.99]
         
-        # Build comma-separated args from lists
-        def make_geomean_args(n_list):
-            return (f"-n {','.join(map(str, n_list))} "
-                    f"-u {','.join(map(str, updates))} "
-                    f"-z {','.join(map(str, zipfians))} "
-                    f"-trans {','.join(map(str, trans_vals))}")
-        
-        geomean_args = make_geomean_args(sizes)
-        list_geomean_args = make_geomean_args(list_sizes)
-        
-        # Filter structs when small flag is set
-        filtered_structs = filter_structs_if_small(self.config, self.config.structs)
-        all_structs = [(s, sizes, geomean_args) for s in filtered_structs]
-        all_structs += [(s, list_sizes, list_geomean_args) for s in self.config.lstructs]
+        def batch_params(sz_list):
+            return {
+                'n': ','.join(map(str, sz_list)),
+                'u': ','.join(map(str, updates)),
+                'z': ','.join(map(str, zipfians)),
+                'trans': ','.join(map(str, trans_vals)),
+                'p': self.config.default_p,
+            }
         
         for impl in self.config.impls:
-            structs_to_run = get_structs_for_impl(self.config, impl)
-            
-            for struct, sz_list, geomean_arg in all_structs:
-                if struct not in structs_to_run and struct not in self.config.lstructs:
-                    continue
+            for struct in self._all_structs_for_impl(impl):
                 if not self._binary_exists(struct, impl):
                     continue
                 
+                sz_list = list_sizes if struct in self.config.lstructs else sizes
                 print(f"  {struct}_{impl}")
                 prefix = f"./{struct}_{impl}"
                 
-                if impl == "hytm":
-                    # HyTM: separate invocations due to memory leak
+                if not self._supports_batch_mode(impl) or impl == "hytm":
+                    # Separate invocations: multiverse lacks batch mode, hytm has memory leak
                     throughputs = []
                     for n in sz_list:
                         for u in updates:
                             for trans in trans_vals:
                                 for z in zipfians:
-                                    params = (f"-nowarmup -n {n} -u {u} -z {z} "
-                                             f"-r {self.config.rounds} -trans {trans} "
-                                             f"-p {self.config.default_p} -t {self.config.trial_time}")
-                                    result_line, status = self._run_single(struct, impl, params)
-                                    if status != "ok":
-                                        self._log_failure(prefix, status, params)
-                                    elif result_line:
-                                        self._write_result(prefix, result_line)
-                                        mops = parse_mops(result_line)
-                                        if mops:
-                                            throughputs.append(mops)
+                                    result_line, _ = self._run_and_record(
+                                        struct, impl,
+                                        {'n': n, 'u': u, 'z': z, 'trans': trans,
+                                         'p': self.config.default_p})
+                                    mops = parse_mops(result_line) if result_line else None
+                                    if mops:
+                                        throughputs.append(mops)
                     
                     if throughputs:
                         gmean = geomean(throughputs)
                         self._write_result(prefix, f"GEOMETRIC MEAN OF THROUGHPUTS: {gmean:.4f}")
                 else:
-                    # Non-HyTM: efficient single invocation
-                    params = f"{geomean_arg} -r {self.config.rounds} -p {self.config.default_p} -t {self.config.trial_time}"
-                    cmd = f"./{struct}_{impl} {params}"
-                    output, status = run_benchmark(cmd, self.config.numa_cmd)
-                    
-                    if status != "ok":
-                        self._log_failure(prefix, status, params)
-                    else:
-                        for line in output.split('\n'):
-                            line = line.strip()
-                            if 'mops=' in line or 'GEOMETRIC MEAN' in line:
-                                self._write_result(prefix, line)
+                    self._run_batch(struct, impl, batch_params(sz_list))
         
         self.results_file.close()
     
+    def _default_params(self) -> dict:
+        """Return the full set of default benchmark parameters."""
+        return {
+            'n': self.config.default_n,
+            'u': self.config.default_u,
+            'trans': self.config.default_trans,
+            'z': self.config.default_z,
+            'p': self.config.default_p,
+        }
+    
+    def _all_structs_for_impl(self, impl: str, override: List[str] = None) -> List[str]:
+        """Get all structs (regular + list) to run for an implementation."""
+        if override is not None:
+            return filter_structs_if_small(self.config, override)
+        regular = get_structs_for_impl(self.config, impl)
+        return filter_structs_if_small(self.config, regular) + self.config.lstructs
+    
+    def _make_param_str(self, params: dict) -> str:
+        """Build command-line parameter string from a params dict."""
+        parts = " ".join(f"-{k} {v}" for k, v in params.items())
+        return f"{parts} -r {self.config.rounds} -t {self.config.trial_time}"
+    
+    def _run_and_record(self, struct: str, impl: str, params: dict) -> Tuple[Optional[str], str]:
+        """Run a single benchmark and record its result. Returns (result_line, status)."""
+        prefix = f"./{struct}_{impl}"
+        param_str = self._make_param_str(params)
+        result_line, status = self._run_single(struct, impl, param_str)
+        if status != "ok":
+            self._log_failure(prefix, status, param_str)
+        elif result_line:
+            self._write_result(prefix, result_line)
+        return result_line, status
+    
+    def _run_batch(self, struct: str, impl: str, params: dict):
+        """Run a benchmark with comma-separated param values and record all results."""
+        prefix = f"./{struct}_{impl}"
+        param_str = self._make_param_str(params)
+        output, status = run_benchmark(f"./{struct}_{impl} {param_str}", self.config.numa_cmd)
+        if status != "ok":
+            self._log_failure(prefix, status, param_str)
+        else:
+            for line in output.split('\n'):
+                line = line.strip()
+                if 'mops=' in line or 'GEOMETRIC MEAN' in line:
+                    self._write_result(prefix, line)
+    
+    @staticmethod
+    def _supports_batch_mode(impl: str, param_name: str = None) -> bool:
+        """Whether the implementation supports comma-separated parameter values."""
+        if impl == "multiverse" or param_name == 'p':
+            return False
+        return True
+    
     def _run_varying_experiment(self, name: str, param_name: str, values: List,
-                                fixed_params: dict, use_list_n: bool = True):
-        """Generic function for varying-parameter experiments."""
-        self.setup_output(name)
+                                fixed_params: dict = None, list_values: List = None,
+                                structs_override: List[str] = None):
+        """Run an experiment that varies one parameter.
         
-        fixed_str = ", ".join(f"{k}={v}" for k, v in fixed_params.items())
-        if use_list_n:
-            fixed_str += f" ({self.config.default_list_n} for list)"
-        self.results_file.write(f"Fixed: {fixed_str}\n")
+        Args:
+            name: Output file name suffix.
+            param_name: Parameter being varied (e.g. 'n', 'p', 'z').
+            values: Values to sweep for regular structures.
+            fixed_params: Fixed parameters (default: all defaults minus param_name).
+            list_values: Alternate sweep values for list structs (default: same
+                         values but with n overridden to default_list_n).
+            structs_override: Use only these structs, skip list structs.
+        """
+        if fixed_params is None:
+            fixed_params = self._default_params()
+            fixed_params.pop(param_name, None)
+        
+        self.setup_output(name)
+        self.results_file.write(f"Fixed: {', '.join(f'{k}={v}' for k, v in fixed_params.items())}\n")
         self.results_file.write("---\n")
         
         for impl in self.config.impls:
-            structs_to_run = get_structs_for_impl(self.config, impl)
-            structs_to_run = filter_structs_if_small(self.config, structs_to_run)
-            
-            # Regular structures
-            for struct in structs_to_run:
+            for struct in self._all_structs_for_impl(impl, structs_override):
                 if not self._binary_exists(struct, impl):
                     continue
                 print(f"  {struct}_{impl}")
-                prefix = f"./{struct}_{impl}"
                 
-                for val in values:
-                    if param_name == 'p' and val > self.nproc:
-                        continue
-                    
-                    params = dict(fixed_params)
-                    params[param_name] = val
-                    
-                    param_str = " ".join(f"-{k} {v}" for k, v in params.items())
-                    param_str = f"-nowarmup {param_str} -r {self.config.rounds} -t {self.config.trial_time}"
-                    
-                    result_line, status = self._run_single(struct, impl, param_str)
-                    if status != "ok":
-                        self._log_failure(prefix, status, param_str)
-                    elif result_line:
-                        self._write_result(prefix, result_line)
-            
-            # List structures (with smaller n)
-            for struct in self.config.lstructs:
-                if not self._binary_exists(struct, impl):
-                    continue
-                print(f"  {struct}_{impl}")
-                prefix = f"./{struct}_{impl}"
+                is_list = struct in self.config.lstructs
+                sweep = list_values if (is_list and list_values) else values
+                if param_name == 'p':
+                    sweep = [v for v in sweep if v <= self.nproc]
                 
-                for val in values:
-                    if param_name == 'p' and val > self.nproc:
-                        continue
-                    
-                    params = dict(fixed_params)
-                    params[param_name] = val
-                    if 'n' in params and use_list_n:
-                        params['n'] = self.config.default_list_n
-                    
-                    param_str = " ".join(f"-{k} {v}" for k, v in params.items())
-                    param_str = f"-nowarmup {param_str} -r {self.config.rounds} -t {self.config.trial_time}"
-                    
-                    result_line, status = self._run_single(struct, impl, param_str)
-                    if status != "ok":
-                        self._log_failure(prefix, status, param_str)
-                    elif result_line:
-                        self._write_result(prefix, result_line)
+                base = dict(fixed_params)
+                if is_list and list_values is None and 'n' in base:
+                    base['n'] = self.config.default_list_n
+                
+                if self._supports_batch_mode(impl, param_name):
+                    self._run_batch(struct, impl, {**base, param_name: ','.join(map(str, sweep))})
+                else:
+                    for val in sweep:
+                        self._run_and_record(struct, impl, {**base, param_name: val})
         
         self.results_file.close()
     
     def run_size(self):
-        sizes = [1000, 10000, 100000, 1000000, 10000000, 100000000]
+        sizes = [int(10 ** i) for i in range(2, 9)]
         list_sizes = [30, 100, 300, 1000]
-        
-        self.setup_output("vary_size")
-        self.results_file.write(f"Fixed: u={self.config.default_u}, trans={self.config.default_trans}, "
-                               f"z={self.config.default_z}, p={self.config.default_p}\n")
-        self.results_file.write("---\n")
-        
-        for impl in self.config.impls:
-            structs_to_run = get_structs_for_impl(self.config, impl)
-            structs_to_run = filter_structs_if_small(self.config, structs_to_run)
-            
-            for struct in structs_to_run:
-                if not self._binary_exists(struct, impl):
-                    continue
-                print(f"  {struct}_{impl}")
-                
-                for n in sizes:
-                    params = (f"-nowarmup -n {n} -u {self.config.default_u} -z {self.config.default_z} "
-                             f"-r {self.config.rounds} -trans {self.config.default_trans} "
-                             f"-p {self.config.default_p} -t {self.config.trial_time}")
-                    result_line, status = self._run_single(struct, impl, params)
-                    if status != "ok":
-                        self._log_failure(f"./{struct}_{impl}", status, params)
-                    elif result_line:
-                        self._write_result(f"./{struct}_{impl}", result_line)
-            
-            for struct in self.config.lstructs:
-                if not self._binary_exists(struct, impl):
-                    continue
-                print(f"  {struct}_{impl}")
-                
-                for n in list_sizes:
-                    params = (f"-nowarmup -n {n} -u {self.config.default_u} -z {self.config.default_z} "
-                             f"-r {self.config.rounds} -trans {self.config.default_trans} "
-                             f"-p {self.config.default_p} -t {self.config.trial_time}")
-                    result_line, status = self._run_single(struct, impl, params)
-                    if status != "ok":
-                        self._log_failure(f"./{struct}_{impl}", status, params)
-                    elif result_line:
-                        self._write_result(f"./{struct}_{impl}", result_line)
-        
-        self.results_file.close()
+        self._run_varying_experiment("vary_size", 'n', sizes, list_values=list_sizes)
     
     def run_threads(self):
         if "hytm" in self.config.impls:
             threads = [1, 4, 16, 32, 64]
         else:
             threads = [1, 4, 16, 32, 64, 128]
-        
-        fixed = {
-            'n': self.config.default_n,
-            'u': self.config.default_u,
-            'trans': self.config.default_trans,
-            'z': self.config.default_z,
-        }
-        self._run_varying_experiment("vary_threads", 'p', threads, fixed)
+        self._run_varying_experiment("vary_threads", 'p', threads)
     
     def run_zipfian(self):
-        zipfians = [0, 0.5, 0.75, 0.9, 0.99]
-        fixed = {
-            'n': self.config.default_n,
-            'u': self.config.default_u,
-            'trans': self.config.default_trans,
-            'p': self.config.default_p,
-        }
-        self._run_varying_experiment("vary_zipfian", 'z', zipfians, fixed)
+        self._run_varying_experiment("vary_zipfian", 'z', [0, 0.5, 0.75, 0.9, 0.99])
     
     def run_trans(self):
-        trans_vals = [1, 2, 4, 8, 16, 32]
-        fixed = {
-            'n': self.config.default_n,
-            'u': self.config.default_u,
-            'z': self.config.default_z,
-            'p': self.config.default_p,
-        }
-        self._run_varying_experiment("vary_trans", 'trans', trans_vals, fixed)
+        self._run_varying_experiment("vary_trans", 'trans', [1, 2, 4, 8, 16, 32])
     
     def run_update(self):
-        updates = [0, 5, 10, 20, 50, 100]
-        fixed = {
-            'n': self.config.default_n,
-            'trans': self.config.default_trans,
-            'z': self.config.default_z,
-            'p': self.config.default_p,
-        }
-        self._run_varying_experiment("vary_update", 'u', updates, fixed)
+        self._run_varying_experiment("vary_update", 'u', [0, 5, 10, 20, 50, 100])
     
     def run_range(self):
-        self.setup_output("range_queries")
-        
-        range_n = 1000000
-        range_u = 100
-        range_trans = 4
-        range_z = 0
-        range_rqp = 50
-        range_sizes = [100000, 10000000]
-        
-        self.results_file.write(f"Fixed: n={range_n}, u={range_u}, trans={range_trans}, "
-                               f"z={range_z}, p={self.config.default_p}, rqp={range_rqp}\n")
-        self.results_file.write("---\n")
-        
-        for impl in self.config.impls:
-            range_structs = filter_structs_if_small(self.config, self.config.range_structs)
-            
-            for struct in range_structs:
-                if not self._binary_exists(struct, impl):
-                    continue
-                print(f"  {struct}_{impl}")
-                prefix = f"./{struct}_{impl}"
-                
-                for rs in range_sizes:
-                    params = (f"-nowarmup -n {range_n} -u {range_u} -z {range_z} -trans {range_trans} "
-                             f"-rs {rs} -rqp {range_rqp} -p {self.config.default_p} "
-                             f"-r {self.config.rounds} -t {self.config.trial_time}")
-                    result_line, status = self._run_single(struct, impl, params)
-                    if status != "ok":
-                        self._log_failure(prefix, status, params)
-                    elif result_line:
-                        self._write_result(prefix, result_line)
-        
-        self.results_file.close()
+        fixed = {
+            'n': 1000000,
+            'u': 100,
+            'trans': 4,
+            'z': 0,
+            'p': self.config.default_p,
+            'rqp': 50,
+        }
+        range_sizes = [int(10 ** i) for i in range(7)],
+        self._run_varying_experiment("range_queries", 'rs', range_sizes,
+                                    fixed_params=fixed,
+                                    structs_override=self.config.range_structs)
     
     def run_all(self):
         """Run all experiments."""
