@@ -522,9 +522,15 @@ Examples:
     
     args = parser.parse_args()
     
+    #make sure we are in the build directory
+    benchmark_dir=subprocess.getoutput("realpath "+re.sub(os.path.basename(__file__), "", os.path.realpath(__file__)))+"/"
+    build_dir = benchmark_dir + "../build/benchmark"
+    curr_dir = os.getcwd()
+    os.chdir(build_dir) #pushd
+
     config = get_config(include_hytm=args.hytm, small=args.small)
     runner = ExperimentRunner(config, args.output)
-    
+
     experiments = {
         "geomean": runner.run_geomean,
         "size": runner.run_size,
@@ -543,6 +549,7 @@ Examples:
     if args.experiment != "all":  # run_all() prints its own timing
         print(f"\nCompleted in {elapsed:.1f}s ({elapsed/60:.1f}m)")
 
+    os.chdir(curr_dir) #popd
 
 if __name__ == "__main__":
     main()
