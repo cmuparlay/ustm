@@ -125,6 +125,8 @@ foreach(bench ${TPCC_STRUCTS})
   add_benchmark(tpcc_${bench}_ustm_longjmp ${TPCC} ${STRUCT_DIR}/${bench} "USTM;SimpleSTM;LongJmp" "")
   add_benchmark(tpcc_${bench}_mvustm_longjmp ${TPCC} ${STRUCT_DIR}/${bench} "USTM;MV;LongJmp" "")
   add_benchmark(tpcc_${bench}_mvustm_trythrow ${TPCC} ${STRUCT_DIR}/${bench} "USTM;MV;TryThrow" "")
+  add_benchmark(tpcc_${bench}_multiverse ${TPCC} ${STRUCT_DIR}/${bench} "MAX_THREADS_POW2=256;CPU_FREQ_GHZ=2.4;MULTIVERSE" "")
+  add_benchmark(tpcc_${bench}_fuse ${TPCC} ${STRUCT_DIR}/${bench} "Other;Fuse;WriteStamp;MV_TLF" "")
 
   if (CMAKE_SYSTEM_PROCESSOR MATCHES ${X86})
     add_benchmark(tpcc_${bench}_ustm_hwstamp ${TPCC} ${STRUCT_DIR}/${bench} "USTM;SimpleSTM;HWStamp" "")
@@ -138,6 +140,8 @@ add_benchmark(tpcc_mix_2plsf ${TPCC} "${STRUCT_DIR}/arttree;${STRUCT_DIR}/hash_b
 add_benchmark(tpcc_mix_hytm ${TPCC} "${STRUCT_DIR}/arttree;${STRUCT_DIR}/hash_block" "Other;HyTm;Mix" "")
 add_benchmark(tpcc_mix_mvustm ${TPCC} "${STRUCT_DIR}/arttree;${STRUCT_DIR}/hash_block" "USTM;MV;Mix" "")
 add_benchmark(tpcc_mix_ustm ${TPCC} "${STRUCT_DIR}/arttree;${STRUCT_DIR}/hash_block" "USTM;SimpleSTM;Mix" "")
+add_benchmark(tpcc_mix_multiverse ${TPCC} "${STRUCT_DIR}/arttree;${STRUCT_DIR}/hash_block" "MAX_THREADS_POW2=256;CPU_FREQ_GHZ=2.4;MULTIVERSE;Mix" "")
+add_benchmark(tpcc_mix_fuse ${TPCC} "${STRUCT_DIR}/arttree;${STRUCT_DIR}/hash_block" "Other;Fuse;WriteStamp;MV_TLF;Mix" "")
 
 if (CMAKE_SYSTEM_PROCESSOR MATCHES ${X86})
   add_benchmark(tpcc_mix_ustm_longjmp_hwstamp ${TPCC} "${STRUCT_DIR}/arttree;${STRUCT_DIR}/hash_block" "USTM;SimpleSTM;Mix;LongJmp;HWStamp" "")

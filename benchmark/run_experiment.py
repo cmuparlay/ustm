@@ -11,6 +11,7 @@ Experiments:
     trans     - Vary transaction length
     update    - Vary update percentage
     range     - Range query experiments
+    tpcc      - TPCC benchmark experiments
     all       - Run all experiments
 
 Options:
@@ -47,22 +48,24 @@ class Config:
     lstructs: List[str] = None
     range_structs: List[str] = None
     small_structs: List[str] = None
+    tpcc_structs: List[str] = None
+    tpcc_impls: List[str] = None
     
     # Implementations
     impls: List[str] = None
     
     # Execution settings
-    max_threads: int = 72
+    max_threads: int = 144
     numa_cmd: str = "numactl --cpunodebind=0,1 --membind=0,1"
     small: bool = False
     
     # Default parameters
-    default_n: int = 10000000
+    default_n: int = 10 ** 6
     default_list_n: int = 300
     default_u: int = 10
     default_trans: int = 4
     default_z: float = 0.75
-    default_p: int = 72
+    default_p: int = 144
     rounds: int = 1
     trial_time: int = 1
     
@@ -72,6 +75,8 @@ class Config:
         self.lstructs = ["list"]
         self.range_structs = ["btree", "arttree"]
         self.small_structs = ["btree", "hash_block"]
+        self.tpcc_structs = ["hash_block", "btree", "mix"]
+        self.tpcc_impls = ["multiverse", "mvustm", "fuse"]
 
 
 def get_config(include_hytm: bool, small: bool = False) -> Config:
@@ -286,7 +291,7 @@ class ExperimentRunner:
             sizes, list_sizes = [100000, 10000000], [100, 1000]
             updates, trans_vals, zipfians = [0, 5, 50], [4], [0, 0.99]
         else:
-            sizes, list_sizes = [100000, 10000000], [100, 1000]
+            sizes, list_sizes = [10 ** i for i in [5, 6, 7]], [10 ** i for i in [2, 3]]
             updates, trans_vals, zipfians = [0, 5, 50], [1, 4, 16], [0, 0.75, 0.99]
         
         def batch_params(sz_list):
@@ -449,7 +454,7 @@ class ExperimentRunner:
     
     def run_range(self):
         fixed = {
-            'n': 1000000,
+            'n': 10 ** 6,
             'u': 100,
             'trans': 4,
             'z': 0,
@@ -461,6 +466,32 @@ class ExperimentRunner:
                                     fixed_params=fixed,
                                     structs_override=self.config.range_structs)
     
+    def run_tpcc(self):
+        """Run TPCC experiments."""
+        self.setup_output("tpcc")
+        self.results_file.write(f"Threads: {self.config.default_p}\n")
+        self.results_file.write("---\n")
+
+        for struct in self.config.tpcc_structs:
+            for impl in self.config.tpcc_impls:
+                binary = f"tpcc_{struct}_{impl}"
+                if not os.path.isfile(f"./{binary}"):
+                    continue
+                print(f"  {binary}")
+
+                params = f"-nowarmup -r 3 -p {self.config.default_p}"
+                output, status = run_benchmark(f"./{binary} {params}", self.config.numa_cmd)
+                prefix = f"./{binary}"
+                if status != "ok":
+                    self._log_failure(prefix, status, params)
+                else:
+                    for line in output.split('\n'):
+                        line = line.strip()
+                        if 'mops/sec' in line:
+                            self._write_result(prefix, line)
+
+        self.results_file.close()
+
     def run_all(self):
         """Run all experiments."""
         print("=" * 50)
@@ -468,6 +499,7 @@ class ExperimentRunner:
         print("=" * 50)
         
         experiments = [
+            ("Experiment 8: TPCC", self.run_tpcc),
             ("Experiment 1: Geometric Mean", self.run_geomean),
             ("Experiment 2: Varying Size", self.run_size),
             ("Experiment 3: Varying Threads", self.run_threads),
@@ -502,6 +534,7 @@ Experiments:
   trans      Varying transaction size
   update     Varying update rate
   range      Range queries
+  tpcc       TPCC benchmark
   all        Run all experiments
 
 Examples:
@@ -511,7 +544,7 @@ Examples:
 """)
     
     parser.add_argument("experiment", 
-                       choices=["geomean", "size", "threads", "zipfian", "trans", "update", "range", "all"],
+                       choices=["geomean", "size", "threads", "zipfian", "trans", "update", "range", "tpcc", "all"],
                        help="Experiment to run")
     parser.add_argument("--hytm", action="store_true",
                        help="Include HyTM (limits to 72 threads on 2 sockets)")
@@ -539,6 +572,7 @@ Examples:
         "trans": runner.run_trans,
         "update": runner.run_update,
         "range": runner.run_range,
+        "tpcc": runner.run_tpcc,
         "all": runner.run_all,
     }
     

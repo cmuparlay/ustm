@@ -1,0 +1,20 @@
+Date: 02-19-2026
+Experiment: tpcc
+HYTM: no
+Model name:                           Intel(R) Xeon(R) CPU E7-8867 v4 @ 2.40GHz
+Git: c1a3c8f
+---
+Threads: 144
+---
+# CRASH: ./tpcc_hash_block_multiverse -nowarmup -r 3 -p 144
+# CRASH: ./tpcc_hash_block_mvustm -nowarmup -r 3 -p 144
+./tpcc_hash_block_fuse: mops/sec = 4.899, num_warehouses = 144, %aborts = 0
+./tpcc_hash_block_fuse: mops/sec = 7.801, num_warehouses = 144, %aborts = 0
+./tpcc_hash_block_fuse: mops/sec = 7.86, num_warehouses = 144, %aborts = 0
+# CRASH: ./tpcc_btree_multiverse -nowarmup -r 3 -p 144
+# CRASH: ./tpcc_btree_mvustm -nowarmup -r 3 -p 144
+./tpcc_btree_fuse: mops/sec = 2.899, num_warehouses = 144, %aborts = 0
+./tpcc_btree_fuse: mops/sec = 3.151, num_warehouses = 144, %aborts = 0
+./tpcc_btree_fuse: mops/sec = 2.947, num_warehouses = 144, %aborts = 0
+# CRASH: ./tpcc_mix_multiverse -nowarmup -r 3 -p 144
+# CRASH: ./tpcc_mix_mvustm -nowarmup -r 3 -p 144
