@@ -140,28 +140,44 @@ def run_benchmark(cmd: str, numa_cmd: str, timeout_sec: int = 600) -> Tuple[str,
     Run a benchmark command with timeout.
     Returns (output, status) where status is 'ok', 'timeout', 'crash', or 'error'.
     """
-    full_cmd = f"timeout --signal=KILL {timeout_sec} {numa_cmd} {cmd}"
+    full_cmd = f"{numa_cmd} {cmd}"
+    print(full_cmd)
     try:
-        result = subprocess.run(full_cmd, shell=True, capture_output=True, text=True)
-        output = result.stdout + result.stderr
+        proc = subprocess.Popen(full_cmd, \
+            shell=True, \
+            text=True, \
+            stdout=subprocess.PIPE, \
+            stderr=subprocess.STDOUT)
+
+        result = []
+        for line in proc.stdout:
+            print(line, end="")
+            result.append(line)
+
+        try:
+            proc.communicate(timeout=timeout_sec)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+
+        returncode = proc.returncode
+        output = "".join(result)
         
-        if result.returncode == 124 or result.returncode == 137:
+        if returncode == 124 or returncode == 137:
             # 124 = timeout killed it, 137 = SIGKILL (128 + 9)
             print(f"  TIMEOUT ({timeout_sec}s): {cmd}", file=sys.stderr)
             return output, "timeout"
-        elif result.returncode != 0:
+        elif returncode != 0:
             # Check if we got valid output despite non-zero exit
             # (multiverse intentionally aborts at the end)
             if 'mops=' in output or 'GEOMETRIC MEAN' in output:
                 return output, "ok"
-            print(f"  CRASH (exit={result.returncode}): {cmd}", file=sys.stderr)
+            print(f"  CRASH (exit={returncode}): {cmd}", file=sys.stderr)
             return output, "crash"
         
         return output, "ok"
     except Exception as e:
         print(f"  ERROR: {cmd}: {e}", file=sys.stderr)
         return "", "error"
-
 
 def parse_mops(output: str) -> Optional[float]:
     """Extract thrughput from benchmark output."""
