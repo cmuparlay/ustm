@@ -43,11 +43,11 @@ namespace stm {
   }
 
   template <typename T>
-  struct atomic {
+  struct direct_atomic {
     ns_multiverse::tx_field<T> val;
     
-    atomic() : val() {}
-    atomic(T v) : val() { val = v; }
+    direct_atomic() = default;
+    direct_atomic(T v) : val(v) { }
     void store(T v) { val.store(v); }
     T load() { return val.load(); }
     T load_unprotected() { return val.load(); }
@@ -55,6 +55,34 @@ namespace stm {
     void init(T x) { val = x; }
     T operator=(T b) { val = b; return b; }
   };
+
+  template <typename T>
+  struct indirect : versioned {
+    T value;
+    indirect(T value) : value(value) {}
+  };
+
+  template <typename T>
+  struct indirect_atomic {
+    ns_multiverse::tx_field<indirect<T>*> ptr;
+    indirect_atomic(T v) : ptr(new indirect<T>(v)) { }
+    indirect_atomic() : ptr(nullptr) { }
+    ~indirect_atomic() { delete ptr.load(); }
+    T load() { return ptr.load()->value; }
+    void store(T v) {
+      auto old = ptr.load();
+      ptr.store(New<indirect<T>>(v));
+      Delete(old);
+    }
+    T operator=(T b) {
+      store(b);
+      return b;
+    }
+    void validate() { }
+  };
+
+  template <typename T>
+  using atomic = std::conditional_t<sizeof(T) <= sizeof(void*), direct_atomic<T>, indirect_atomic<T>>;
 
   std::pair<long,long> statistics() {
     return {0ul, 0ul};
