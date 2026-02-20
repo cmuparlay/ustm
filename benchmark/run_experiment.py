@@ -140,8 +140,8 @@ def run_benchmark(cmd: str, numa_cmd: str, timeout_sec: int = 600) -> Tuple[str,
     Run a benchmark command with timeout.
     Returns (output, status) where status is 'ok', 'timeout', 'crash', or 'error'.
     """
-    full_cmd = f"{numa_cmd} {cmd}"
-    print(full_cmd)
+    rss_cmd = "/usr/bin/time -f \"Peak RSS: %M KB\"" if sys.platform == "linux" else ""
+    full_cmd = f"{rss_cmd} {numa_cmd} {cmd}"
     try:
         proc = subprocess.Popen(full_cmd, \
             shell=True, \
