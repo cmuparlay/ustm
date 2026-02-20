@@ -72,7 +72,7 @@ class Config:
         self.range_structs = ["btree", "arttree"]
         self.small_structs = ["btree", "hash_block"]
         self.tpcc_structs = ["hash_block", "btree", "mix"]
-        self.tpcc_impls = ["mvustm", "fuse", "2plsf", "tiny"]
+        self.tpcc_impls = ["mvustm", "fuse", "2plsf", "multiverse"]
 
     """Experiment configuration."""
     # Data structures
@@ -101,19 +101,6 @@ class Config:
     default_p: int = os.cpu_count()
     rounds: int = 1
     trial_time: int = 1
-<<<<<<< HEAD
-    
-    def __post_init__(self):
-        self.structs = ["btree", "arttree", "avltree", "leaftree", "treap", "skiplist", "hash_block"]
-        self.structs_nohash = ["btree", "arttree", "avltree", "leaftree", "treap", "skiplist"]  # no hash_block, hash_list, hash_probe
-        self.lstructs = ["list"]
-        self.range_structs = ["btree", "arttree"]
-        self.small_structs = ["btree", "hash_block"]
-        self.tpcc_structs = ["hash_block", "btree", "mix"]
-        self.tpcc_impls = ["mvustm", "fuse", "2plsf", "multiverse"]
-
-=======
->>>>>>> 36db696df2c507805740fcb181de5c6fb1955058
 
     allocator: str = "deqalloc"
 
@@ -155,7 +142,7 @@ def run_benchmark(cmd: str, numa_cmd: str, allocator: str, timeout_sec: int = 60
     else:
         #assumes allocator is installed
         allocator_path = f"lib{allocator}.so"
-    full_cmd = f"LD_PRELOAD={allocator_path} {rss_cmd} {cmd}"
+    full_cmd = f"LD_PRELOAD={allocator_path} timeout --signal=KILL {timeout_sec} {numa_cmd} {rss_cmd} {cmd}"
     try:
         proc = subprocess.Popen(full_cmd, \
             shell=True, \
@@ -317,7 +304,7 @@ class ExperimentRunner:
         """Run a binary, write matching output lines, log failures.
         Preserves partial results on crash/timeout."""
         prefix = f"./{binary}"
-        output, status = run_benchmark(f"{prefix} {param_str}", self.config.numa_cmd)
+        output, status = run_benchmark(f"{prefix} {param_str}", self.config.numa_cmd, self.config.allocator)
         for line in output.split('\n'):
             line = line.strip()
             if any(m in line for m in result_markers):
@@ -417,20 +404,9 @@ class ExperimentRunner:
         """Run a benchmark with comma-separated param values and record all results.
         Returns (output, status)."""
         param_str = self._make_param_str(params)
-<<<<<<< HEAD
         if extra_args:
             param_str += f" {extra_args}"
         return self._run_and_record_binary(f"{struct}_{impl}", param_str)
-=======
-        output, status = run_benchmark(f"./{struct}_{impl} {param_str}", self.config.numa_cmd, self.config.allocator)
-        if status != "ok":
-            self._log_failure(prefix, status, param_str)
-        else:
-            for line in output.split('\n'):
-                line = line.strip()
-                if 'mops=' in line or 'GEOMETRIC MEAN' in line:
-                    self._write_result(prefix, line)
->>>>>>> 36db696df2c507805740fcb181de5c6fb1955058
     
     @staticmethod
     def _supports_batch_mode(impl: str, param_name: str = None) -> bool:
@@ -613,16 +589,6 @@ class ExperimentRunner:
                 continue
             print(f"  btree_{impl}")
             self._run_batch("btree", impl, base)
-                params = f"-nowarmup -p {self.config.default_p}"
-                output, status = run_benchmark(f"./{binary} {params}", self.config.numa_cmd, self.config.allocator)
-                prefix = f"./{binary}"
-                if status != "ok":
-                    self._log_failure(prefix, status, params)
-                else:
-                    for line in output.split('\n'):
-                        line = line.strip()
-                        if 'mops/sec' in line:
-                            self._write_result(prefix, line)
 
         self.results_file.close()
 
