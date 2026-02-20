@@ -55,17 +55,17 @@ class Config:
     impls: List[str] = None
     
     # Execution settings
-    max_threads: int = 144
+    max_threads: int = os.cpu_count()
     numa_cmd: str = "numactl --cpunodebind=0,1 --membind=0,1"
     small: bool = False
     
     # Default parameters
     default_n: int = 10 ** 6
     default_list_n: int = 300
-    default_u: int = 10
+    default_u: int = 5
     default_trans: int = 4
     default_z: float = 0.75
-    default_p: int = 144
+    default_p: int = os.cpu_count()
     rounds: int = 1
     trial_time: int = 1
     
@@ -76,7 +76,7 @@ class Config:
         self.range_structs = ["btree", "arttree"]
         self.small_structs = ["btree", "hash_block"]
         self.tpcc_structs = ["hash_block", "btree", "mix"]
-        self.tpcc_impls = ["multiverse", "mvustm", "fuse"]
+        self.tpcc_impls = ["mvustm", "fuse", "2plsf", "tiny"]
 
 
 def get_config(include_hytm: bool, small: bool = False) -> Config:
@@ -102,7 +102,7 @@ def get_config(include_hytm: bool, small: bool = False) -> Config:
         config.max_threads = 72
         config.numa_cmd = "numactl --cpunodebind=0,1 --membind=0,1"
     else:
-        config.max_threads = 144
+        config.max_threads = os.cpu_count()
         config.numa_cmd = "numactl -i all"
     
     config.default_p = config.max_threads
@@ -135,7 +135,7 @@ def geomean(values: List[float]) -> float:
     return prod(values) ** (1.0 / len(values))
 
 
-def run_benchmark(cmd: str, numa_cmd: str, timeout_sec: int = 300) -> Tuple[str, str]:
+def run_benchmark(cmd: str, numa_cmd: str, timeout_sec: int = 600) -> Tuple[str, str]:
     """
     Run a benchmark command with timeout.
     Returns (output, status) where status is 'ok', 'timeout', 'crash', or 'error'.
@@ -461,7 +461,7 @@ class ExperimentRunner:
             'p': self.config.default_p,
             'rqp': 50,
         }
-        range_sizes = [int(10 ** i) for i in range(7)],
+        range_sizes = [int(10 ** i) for i in range(7)]
         self._run_varying_experiment("range_queries", 'rs', range_sizes,
                                     fixed_params=fixed,
                                     structs_override=self.config.range_structs)
@@ -479,7 +479,7 @@ class ExperimentRunner:
                     continue
                 print(f"  {binary}")
 
-                params = f"-nowarmup -r 3 -p {self.config.default_p}"
+                params = f"-nowarmup -p {self.config.default_p}"
                 output, status = run_benchmark(f"./{binary} {params}", self.config.numa_cmd)
                 prefix = f"./{binary}"
                 if status != "ok":
