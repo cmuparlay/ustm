@@ -41,6 +41,39 @@ from typing import List, Optional, Tuple
 
 @dataclass
 class Config:
+    def __init__(self, args):
+        self.small = args.small
+        self.impls = [
+            "multiverse",
+            "mvustm",
+            # "mvustm_hwstamp",
+            # "mvustm_longjmp",
+            "2plsf",
+            "fuse",
+            # "onefile",
+            "tiny",
+            # "tl2",
+            # DCOTL is broken for most benchmarks
+            # "dcotl"
+        ]
+        if args.hytm:
+            self.impls.append("hytm")
+            self.max_threads = 72
+            self.numa_cmd = "numactl --cpunodebind=0,1 --membind=0,1"
+        else:
+            self.max_threads = os.cpu_count()
+            self.numa_cmd = "numactl -i all"
+        self.default_p = self.max_threads
+        self.allocator = args.allocator
+
+        self.structs = ["btree", "arttree", "avltree", "leaftree", "treap", "skiplist", "hash_block"]
+        self.structs_nohash = ["btree", "arttree", "avltree", "leaftree", "treap", "skiplist"]
+        self.lstructs = ["list"]
+        self.range_structs = ["btree", "arttree"]
+        self.small_structs = ["btree", "hash_block"]
+        self.tpcc_structs = ["hash_block", "btree", "mix"]
+        self.tpcc_impls = ["mvustm", "fuse", "2plsf", "tiny"]
+
     """Experiment configuration."""
     # Data structures
     structs: List[str] = None
@@ -68,45 +101,8 @@ class Config:
     default_p: int = os.cpu_count()
     rounds: int = 1
     trial_time: int = 1
-    
-    def __post_init__(self):
-        self.structs = ["btree", "arttree", "avltree", "leaftree", "treap", "skiplist", "hash_block"]
-        self.structs_nohash = ["btree", "arttree", "avltree", "leaftree", "treap", "skiplist"]
-        self.lstructs = ["list"]
-        self.range_structs = ["btree", "arttree"]
-        self.small_structs = ["btree", "hash_block"]
-        self.tpcc_structs = ["hash_block", "btree", "mix"]
-        self.tpcc_impls = ["mvustm", "fuse", "2plsf", "tiny"]
 
-
-def get_config(include_hytm: bool, small: bool = False) -> Config:
-    config = Config()
-    config.small = small
-
-    config.impls = [
-        "multiverse",
-        "mvustm",
-        # "mvustm_hwstamp",
-        # "mvustm_longjmp",
-        "2plsf",
-        "fuse",
-        # "onefile",
-        "tiny",
-        # "tl2",
-        # DCOTL is broken for most benchmarks
-        # "dcotl"
-    ]
-    
-    if include_hytm:
-        config.impls.append("hytm")
-        config.max_threads = 72
-        config.numa_cmd = "numactl --cpunodebind=0,1 --membind=0,1"
-    else:
-        config.max_threads = os.cpu_count()
-        config.numa_cmd = "numactl -i all"
-    
-    config.default_p = config.max_threads
-    return config
+    allocator: str = "deqalloc"
 
 
 def get_nproc() -> int:
@@ -135,13 +131,18 @@ def geomean(values: List[float]) -> float:
     return prod(values) ** (1.0 / len(values))
 
 
-def run_benchmark(cmd: str, numa_cmd: str, timeout_sec: int = 600) -> Tuple[str, str]:
+def run_benchmark(cmd: str, numa_cmd: str, allocator: str, timeout_sec: int = 600) -> Tuple[str, str]:
     """
     Run a benchmark command with timeout.
     Returns (output, status) where status is 'ok', 'timeout', 'crash', or 'error'.
     """
     rss_cmd = "/usr/bin/time -f \"Peak RSS: %M KB\"" if sys.platform == "linux" else ""
-    full_cmd = f"LD_PRELOAD=../libdeqalloc.so {rss_cmd} {cmd}"
+    if allocator == "deqalloc":
+        allocator_path = "../libdeqalloc.so"
+    else:
+        #assumes allocator is installed
+        allocator_path = f"lib{allocator}.so"
+    full_cmd = f"LD_PRELOAD={allocator_path} {rss_cmd} {cmd}"
     try:
         proc = subprocess.Popen(full_cmd, \
             shell=True, \
@@ -284,7 +285,7 @@ class ExperimentRunner:
             return None, "missing"
         
         cmd = f"./{struct}_{impl} {params}"
-        output, status = run_benchmark(cmd, self.config.numa_cmd)
+        output, status = run_benchmark(cmd, self.config.numa_cmd, self.config.allocator)
         return get_result_line(output), status
     
     def _log_failure(self, prefix: str, status: str, params: str = ""):
@@ -388,7 +389,7 @@ class ExperimentRunner:
         """Run a benchmark with comma-separated param values and record all results."""
         prefix = f"./{struct}_{impl}"
         param_str = self._make_param_str(params)
-        output, status = run_benchmark(f"./{struct}_{impl} {param_str}", self.config.numa_cmd)
+        output, status = run_benchmark(f"./{struct}_{impl} {param_str}", self.config.numa_cmd, self.config.allocator)
         if status != "ok":
             self._log_failure(prefix, status, param_str)
         else:
@@ -496,7 +497,7 @@ class ExperimentRunner:
                 print(f"  {binary}")
 
                 params = f"-nowarmup -p {self.config.default_p}"
-                output, status = run_benchmark(f"./{binary} {params}", self.config.numa_cmd)
+                output, status = run_benchmark(f"./{binary} {params}", self.config.numa_cmd, self.config.allocator)
                 prefix = f"./{binary}"
                 if status != "ok":
                     self._log_failure(prefix, status, params)
@@ -568,6 +569,8 @@ Examples:
                        help="Output directory for results")
     parser.add_argument("--small", action="store_true",
                        help="Restrict to btree, hash_block, and list (geomean uses runall.sh parameters)")
+    parser.add_argument("--allocator", default="deqalloc",
+                       help="Choose which allocator to use (default: deqalloc)")
     
     args = parser.parse_args()
     
@@ -577,7 +580,7 @@ Examples:
     curr_dir = os.getcwd()
     os.chdir(build_dir) #pushd
 
-    config = get_config(include_hytm=args.hytm, small=args.small)
+    config = Config(args)
     runner = ExperimentRunner(config, args.output)
 
     experiments = {
