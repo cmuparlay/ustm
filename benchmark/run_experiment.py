@@ -56,7 +56,7 @@ class Config:
     
     # Execution settings
     max_threads: int = os.cpu_count()
-    numa_cmd: str = "numactl --cpunodebind=0,1 --membind=0,1"
+    numa_cmd: str = "numactl -i all"
     small: bool = False
     
     # Default parameters
@@ -71,12 +71,12 @@ class Config:
     
     def __post_init__(self):
         self.structs = ["btree", "arttree", "avltree", "leaftree", "treap", "skiplist", "hash_block"]
-        self.structs_nohash = ["btree", "arttree", "avltree", "leaftree", "treap", "skiplist"]
+        self.structs_nohash = ["btree", "arttree", "avltree", "leaftree", "treap", "skiplist"]  # no hash_block, hash_list, hash_probe
         self.lstructs = ["list"]
         self.range_structs = ["btree", "arttree"]
         self.small_structs = ["btree", "hash_block"]
         self.tpcc_structs = ["hash_block", "btree", "mix"]
-        self.tpcc_impls = ["mvustm", "fuse", "2plsf", "tiny"]
+        self.tpcc_impls = ["mvustm", "fuse", "2plsf", "multiverse"]
 
 
 def get_config(include_hytm: bool, small: bool = False) -> Config:
@@ -150,10 +150,11 @@ def run_benchmark(cmd: str, numa_cmd: str, timeout_sec: int = 600) -> Tuple[str,
             print(f"  TIMEOUT ({timeout_sec}s): {cmd}", file=sys.stderr)
             return output, "timeout"
         elif result.returncode != 0:
-            # Check if we got valid output despite non-zero exit
-            # (multiverse intentionally aborts at the end)
-            if 'mops=' in output or 'GEOMETRIC MEAN' in output:
+            # Multiverse intentionally aborts after completing all work
+            if 'multiverse' in cmd:
                 return output, "ok"
+            # Report crash even if partial output was produced;
+            # callers preserve partial results and log the failure.
             print(f"  CRASH (exit={result.returncode}): {cmd}", file=sys.stderr)
             return output, "crash"
         
@@ -215,7 +216,7 @@ class ExperimentRunner:
             os.makedirs(self.output_dir, exist_ok=True)
             filename = os.path.join(self.output_dir, experiment_name)
         else:
-            filename = f"../../timings/tlf_{experiment_name}_{self.nproc}-{machine}_{today}{suffix}"
+            filename = f"../../timings/{experiment_name}_{self.nproc}-{machine}_{today}{suffix}"
         
         print(f"Output: {filename}")
         print(f"HYTM: {'yes' if 'hytm' in self.config.impls else 'no'} (max_threads={self.config.max_threads})")
@@ -258,13 +259,13 @@ class ExperimentRunner:
             self.results_file.write(f"{prefix},{line}\n")
         self.results_file.flush()
     
-    def _binary_exists(self, struct: str, impl: str) -> bool:
+    def _binary_exists(self, binary: str) -> bool:
         """Check if benchmark binary exists."""
-        return os.path.isfile(f"./{struct}_{impl}")
+        return os.path.isfile(f"./{binary}")
     
     def _run_single(self, struct: str, impl: str, params: str) -> Tuple[Optional[str], str]:
         """Run a single benchmark and return (result_line, status)."""
-        if not self._binary_exists(struct, impl):
+        if not self._binary_exists(f"{struct}_{impl}"):
             return None, "missing"
         
         cmd = f"./{struct}_{impl} {params}"
@@ -280,6 +281,20 @@ class ExperimentRunner:
         elif status == "error":
             self.results_file.write(f"# ERROR: {prefix} {params}\n")
         self.results_file.flush()
+    
+    def _run_and_record_binary(self, binary: str, param_str: str,
+                                result_markers: tuple = ('mops=', 'GEOMETRIC MEAN')):
+        """Run a binary, write matching output lines, log failures.
+        Preserves partial results on crash/timeout."""
+        prefix = f"./{binary}"
+        output, status = run_benchmark(f"{prefix} {param_str}", self.config.numa_cmd)
+        for line in output.split('\n'):
+            line = line.strip()
+            if any(m in line for m in result_markers):
+                self._write_result(prefix, line)
+        if status != "ok":
+            self._log_failure(prefix, status, param_str)
+        return output, status
     
     def run_geomean(self):
         """Run geometric mean experiment."""
@@ -305,7 +320,7 @@ class ExperimentRunner:
         
         for impl in self.config.impls:
             for struct in self._all_structs_for_impl(impl):
-                if not self._binary_exists(struct, impl):
+                if not self._binary_exists(f"{struct}_{impl}"):
                     continue
                 
                 sz_list = list_sizes if struct in self.config.lstructs else sizes
@@ -331,7 +346,7 @@ class ExperimentRunner:
                         gmean = geomean(throughputs)
                         self._write_result(prefix, f"GEOMETRIC MEAN OF THROUGHPUTS: {gmean:.4f}")
                 else:
-                    self._run_batch(struct, impl, batch_params(sz_list))
+                    output, status = self._run_batch(struct, impl, batch_params(sz_list))
         
         self.results_file.close()
     
@@ -362,24 +377,19 @@ class ExperimentRunner:
         prefix = f"./{struct}_{impl}"
         param_str = self._make_param_str(params)
         result_line, status = self._run_single(struct, impl, param_str)
+        if result_line:
+            self._write_result(prefix, result_line)
         if status != "ok":
             self._log_failure(prefix, status, param_str)
-        elif result_line:
-            self._write_result(prefix, result_line)
         return result_line, status
     
-    def _run_batch(self, struct: str, impl: str, params: dict):
-        """Run a benchmark with comma-separated param values and record all results."""
-        prefix = f"./{struct}_{impl}"
+    def _run_batch(self, struct: str, impl: str, params: dict, extra_args: str = "") -> Tuple[str, str]:
+        """Run a benchmark with comma-separated param values and record all results.
+        Returns (output, status)."""
         param_str = self._make_param_str(params)
-        output, status = run_benchmark(f"./{struct}_{impl} {param_str}", self.config.numa_cmd)
-        if status != "ok":
-            self._log_failure(prefix, status, param_str)
-        else:
-            for line in output.split('\n'):
-                line = line.strip()
-                if 'mops=' in line or 'GEOMETRIC MEAN' in line:
-                    self._write_result(prefix, line)
+        if extra_args:
+            param_str += f" {extra_args}"
+        return self._run_and_record_binary(f"{struct}_{impl}", param_str)
     
     @staticmethod
     def _supports_batch_mode(impl: str, param_name: str = None) -> bool:
@@ -410,7 +420,7 @@ class ExperimentRunner:
         
         for impl in self.config.impls:
             for struct in self._all_structs_for_impl(impl, structs_override):
-                if not self._binary_exists(struct, impl):
+                if not self._binary_exists(f"{struct}_{impl}"):
                     continue
                 print(f"  {struct}_{impl}")
                 
@@ -440,7 +450,7 @@ class ExperimentRunner:
         if "hytm" in self.config.impls:
             threads = [1, 4, 16, 32, 64]
         else:
-            threads = [1, 4, 16, 32, 64, 128]
+            threads = [p for p in [1, 4, 16, 32, 64, 128, 144] if p <= os.cpu_count()]
         self._run_varying_experiment("vary_threads", 'p', threads)
     
     def run_zipfian(self):
@@ -475,27 +485,100 @@ class ExperimentRunner:
         for struct in self.config.tpcc_structs:
             for impl in self.config.tpcc_impls:
                 binary = f"tpcc_{struct}_{impl}"
-                if not os.path.isfile(f"./{binary}"):
+                if not self._binary_exists(binary):
                     continue
                 print(f"  {binary}")
+                self._run_and_record_binary(
+                    binary, f"-nowarmup -p {self.config.default_p}",
+                    result_markers=('mops/sec',))
 
-                params = f"-nowarmup -p {self.config.default_p}"
-                output, status = run_benchmark(f"./{binary} {params}", self.config.numa_cmd)
-                prefix = f"./{binary}"
-                if status != "ok":
-                    self._log_failure(prefix, status, params)
-                else:
-                    for line in output.split('\n'):
-                        line = line.strip()
-                        if 'mops/sec' in line:
-                            self._write_result(prefix, line)
+        self.results_file.close()
+
+    def run_nontrivial_types(self):
+        """Run non-trivial types experiments.
+        
+        Part 1: btree inplace vs indirect upserts (100% upserts, vary update rate)
+        Part 2: hash_list vs hash_probe across impls (vary update rate)
+        """
+        self.setup_output("nontrivial_types")
+        updates = [0, 5, 10, 20, 50, 100]
+
+        # Part 1: btree inplace vs indirect (100% upserts, vary update rate)
+        self.results_file.write("# btree inplace vs indirect (upserts)\n")
+        self.results_file.write("---\n")
+        base = {
+            'n': self.config.default_n,
+            'z': self.config.default_z,
+            'trans': self.config.default_trans,
+            'p': self.config.default_p,
+            'u': ','.join(map(str, updates)),
+        }
+        for struct in ["btree_inplace", "btree"]:
+            for impl in ["mvustm", "2plsf", "fuse", "multiverse"]:
+                if not self._binary_exists(f"{struct}_{impl}"):
+                    continue
+                print(f"  {struct}_{impl}")
+                self._run_batch(struct, impl, base, extra_args="-up")
+
+        # Part 2: hash_list, hash_probe (vary update rate, otherwise defaults)
+        self.results_file.write("# hash_list, hash_probe\n")
+        self.results_file.write("---\n")
+        hash_structs = ["hash_list", "hash_probe"]
+        for impl in self.config.impls:
+            for struct in hash_structs:
+                if not self._binary_exists(f"{struct}_{impl}"):
+                    continue
+                print(f"  {struct}_{impl}")
+                params = self._default_params()
+                params.pop('u')
+                self._run_batch(struct, impl, {**params, 'u': ','.join(map(str, updates))})
+
+        self.results_file.close()
+
+    def run_ablation(self):
+        """Run ablation studies on btree.
+        
+        Part 1: Timestamping variants (hwstamp, split, lazy, eager) — vary update rate
+        Part 2: Abort mechanism (standard, longjmp, simple_longjmp, non-MV) — vary update rate
+        """
+        self.setup_output("ablation")
+        updates = [0, 5, 10, 20, 50, 100]
+
+        base = {
+            'n': self.config.default_n,
+            'z': self.config.default_z,
+            'trans': self.config.default_trans,
+            'p': self.config.default_p,
+            'u': ','.join(map(str, updates)),
+        }
+
+        # Part 1: Timestamping variants
+        self.results_file.write("# Timestamping: split (default), hwstamp, lazy, eager, fuse hwstamp, multiverse hwstamp\n")
+        self.results_file.write("---\n")
+        ts_impls = ["mvustm", "mvustm_hwstamp", "mvustm_lzstamp", "mvustm_eager",
+                    "mvustm_agg_funnel_eager", "fuse", "fuse_hwstamp"]
+        for impl in ts_impls:
+            if not self._binary_exists(f"btree_{impl}"):
+                continue
+            print(f"  btree_{impl}")
+            self._run_batch("btree", impl, base)
+
+        # Part 2: Abort mechanism (non-MV)
+        self.results_file.write("# Abort mechanism: standard, longjmp, simple_longjmp\n")
+        self.results_file.write("---\n")
+        abort_impls = ["ustm", "ustm_longjmp", "ustm_simple_longjmp"]
+        for impl in abort_impls:
+            if not self._binary_exists(f"btree_{impl}"):
+                continue
+            print(f"  btree_{impl}")
+            self._run_batch("btree", impl, base)
 
         self.results_file.close()
 
     def run_all(self):
         """Run all experiments."""
         print("=" * 50)
-        print("Running all TLF experiments")
+        print("Running all MVUSTM experiments")
         print("=" * 50)
         
         experiments = [
@@ -507,6 +590,8 @@ class ExperimentRunner:
             ("Experiment 5: Varying Transaction Size", self.run_trans),
             ("Experiment 6: Varying Update Rate", self.run_update),
             ("Experiment 7: Range Queries", self.run_range),
+            ("Experiment 9: Non-trivial Types", self.run_nontrivial_types),
+            ("Experiment 10: Ablation Study", self.run_ablation),
         ]
         
         for name, func in experiments:
@@ -535,6 +620,8 @@ Experiments:
   update     Varying update rate
   range      Range queries
   tpcc       TPCC benchmark
+  nontrivial Non-trivial types (btree upsert variants, hash_list/hash_probe)
+  ablation   Ablation studies (timestamping, abort mechanism)
   all        Run all experiments
 
 Examples:
@@ -544,7 +631,7 @@ Examples:
 """)
     
     parser.add_argument("experiment", 
-                       choices=["geomean", "size", "threads", "zipfian", "trans", "update", "range", "tpcc", "all"],
+                       choices=["geomean", "size", "threads", "zipfian", "trans", "update", "range", "tpcc", "nontrivial", "ablation", "all"],
                        help="Experiment to run")
     parser.add_argument("--hytm", action="store_true",
                        help="Include HyTM (limits to 72 threads on 2 sockets)")
@@ -573,6 +660,8 @@ Examples:
         "update": runner.run_update,
         "range": runner.run_range,
         "tpcc": runner.run_tpcc,
+        "nontrivial": runner.run_nontrivial_types,
+        "ablation": runner.run_ablation,
         "all": runner.run_all,
     }
     

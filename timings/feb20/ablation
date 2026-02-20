@@ -1,0 +1,82 @@
+Date: 02-20-2026
+Experiment: ablation
+HYTM: no
+Model name:                           Intel(R) Xeon(R) CPU E7-8867 v4 @ 2.40GHz
+Git: 12ffe37
+---
+# Timestamping: split (default), hwstamp, lazy, eager, fuse hwstamp, multiverse hwstamp
+---
+./btree_mvustm,u=0,trans=4,n=1000000,p=144,z=0.75,pa=0,be=0,mops=442
+./btree_mvustm,u=5,trans=4,n=1000000,p=144,z=0.75,pa=0.281,be=0,mops=311
+./btree_mvustm,u=10,trans=4,n=1000000,p=144,z=0.75,pa=0.891,be=0,mops=244
+./btree_mvustm,u=20,trans=4,n=1000000,p=144,z=0.75,pa=2.68,be=0,mops=209
+./btree_mvustm,u=50,trans=4,n=1000000,p=144,z=0.75,pa=10.5,be=0,mops=113
+./btree_mvustm,u=100,trans=4,n=1000000,p=144,z=0.75,pa=30.3,be=0,mops=74.1
+./btree_mvustm,GEOMETRIC MEAN OF THROUGHPUTS: 197.2
+./btree_mvustm,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
+./btree_mvustm_hwstamp,u=0,trans=4,n=1000000,p=144,z=0.75,pa=0,be=0,mops=425
+./btree_mvustm_hwstamp,u=5,trans=4,n=1000000,p=144,z=0.75,pa=0.194,be=0,mops=344
+./btree_mvustm_hwstamp,u=10,trans=4,n=1000000,p=144,z=0.75,pa=0.655,be=0,mops=291
+./btree_mvustm_hwstamp,u=20,trans=4,n=1000000,p=144,z=0.75,pa=2.05,be=0,mops=242
+./btree_mvustm_hwstamp,u=50,trans=4,n=1000000,p=144,z=0.75,pa=8.48,be=0,mops=161
+./btree_mvustm_hwstamp,u=100,trans=4,n=1000000,p=144,z=0.75,pa=20.8,be=0,mops=95.6
+./btree_mvustm_hwstamp,GEOMETRIC MEAN OF THROUGHPUTS: 232.5
+./btree_mvustm_hwstamp,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
+./btree_mvustm_lzstamp,u=0,trans=4,n=1000000,p=144,z=0.75,pa=0,be=0,mops=453
+./btree_mvustm_lzstamp,u=5,trans=4,n=1000000,p=144,z=0.75,pa=1.44,be=0,mops=301
+./btree_mvustm_lzstamp,u=10,trans=4,n=1000000,p=144,z=0.75,pa=2.69,be=0,mops=269
+./btree_mvustm_lzstamp,u=20,trans=4,n=1000000,p=144,z=0.75,pa=5.07,be=0,mops=187
+./btree_mvustm_lzstamp,u=50,trans=4,n=1000000,p=144,z=0.75,pa=13.8,be=0,mops=124
+./btree_mvustm_lzstamp,u=100,trans=4,n=1000000,p=144,z=0.75,pa=35.4,be=0,mops=65.4
+./btree_mvustm_lzstamp,GEOMETRIC MEAN OF THROUGHPUTS: 195.5
+./btree_mvustm_lzstamp,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
+./btree_mvustm_eager,u=0,trans=4,n=1000000,p=144,z=0.75,pa=0,be=0,mops=435
+./btree_mvustm_eager,u=5,trans=4,n=1000000,p=144,z=0.75,pa=0.295,be=0,mops=130
+./btree_mvustm_eager,u=10,trans=4,n=1000000,p=144,z=0.75,pa=1.03,be=0,mops=87.5
+./btree_mvustm_eager,u=20,trans=4,n=1000000,p=144,z=0.75,pa=3.11,be=0,mops=60.2
+./btree_mvustm_eager,u=50,trans=4,n=1000000,p=144,z=0.75,pa=14.1,be=0,mops=34.7
+./btree_mvustm_eager,u=100,trans=4,n=1000000,p=144,z=0.75,pa=51.4,be=0,mops=18.9
+./btree_mvustm_eager,GEOMETRIC MEAN OF THROUGHPUTS: 76.18
+./btree_mvustm_eager,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
+./btree_mvustm_agg_funnel_eager,u=0,trans=4,n=1000000,p=144,z=0.75,pa=0,be=0,mops=433
+./btree_mvustm_agg_funnel_eager,u=5,trans=4,n=1000000,p=144,z=0.75,pa=0.363,be=0,mops=158
+./btree_mvustm_agg_funnel_eager,u=10,trans=4,n=1000000,p=144,z=0.75,pa=1.2,be=0,mops=118
+./btree_mvustm_agg_funnel_eager,u=20,trans=4,n=1000000,p=144,z=0.75,pa=3.75,be=0,mops=95.8
+./btree_mvustm_agg_funnel_eager,u=50,trans=4,n=1000000,p=144,z=0.75,pa=18.7,be=0,mops=43.4
+./btree_mvustm_agg_funnel_eager,u=100,trans=4,n=1000000,p=144,z=0.75,pa=51.5,be=0,mops=23.5
+./btree_mvustm_agg_funnel_eager,GEOMETRIC MEAN OF THROUGHPUTS: 96.15
+./btree_mvustm_agg_funnel_eager,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
+./btree_fuse_hwstamp,u=0,trans=4,n=1000000,p=144,z=0.75,pa=0,be=0,mops=366
+./btree_fuse_hwstamp,u=5,trans=4,n=1000000,p=144,z=0.75,pa=0,be=0,mops=299
+./btree_fuse_hwstamp,u=10,trans=4,n=1000000,p=144,z=0.75,pa=0,be=0,mops=260
+./btree_fuse_hwstamp,u=20,trans=4,n=1000000,p=144,z=0.75,pa=0,be=0,mops=195
+./btree_fuse_hwstamp,u=50,trans=4,n=1000000,p=144,z=0.75,pa=0,be=0,mops=131
+./btree_fuse_hwstamp,u=100,trans=4,n=1000000,p=144,z=0.75,pa=0,be=0,mops=99.5
+./btree_fuse_hwstamp,GEOMETRIC MEAN OF THROUGHPUTS: 204.2
+./btree_fuse_hwstamp,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
+# Abort mechanism: standard, longjmp, simple_longjmp
+---
+./btree_ustm,u=0,trans=4,n=1000000,p=144,z=0.75,pa=0,be=0,mops=466
+./btree_ustm,u=5,trans=4,n=1000000,p=144,z=0.75,pa=0.287,be=0,mops=291
+./btree_ustm,u=10,trans=4,n=1000000,p=144,z=0.75,pa=0.948,be=0,mops=268
+./btree_ustm,u=20,trans=4,n=1000000,p=144,z=0.75,pa=2.79,be=0,mops=182
+./btree_ustm,u=50,trans=4,n=1000000,p=144,z=0.75,pa=10.9,be=0,mops=127
+./btree_ustm,u=100,trans=4,n=1000000,p=144,z=0.75,pa=29.5,be=0,mops=90.3
+./btree_ustm,GEOMETRIC MEAN OF THROUGHPUTS: 205.7
+./btree_ustm,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
+./btree_ustm_longjmp,u=0,trans=4,n=1000000,p=144,z=0.75,pa=0,be=0,mops=428
+./btree_ustm_longjmp,u=5,trans=4,n=1000000,p=144,z=0.75,pa=1.47,be=0,mops=304
+./btree_ustm_longjmp,u=10,trans=4,n=1000000,p=144,z=0.75,pa=2.7,be=0,mops=256
+./btree_ustm_longjmp,u=20,trans=4,n=1000000,p=144,z=0.75,pa=5.1,be=0,mops=192
+./btree_ustm_longjmp,u=50,trans=4,n=1000000,p=144,z=0.75,pa=13.4,be=0,mops=133
+./btree_ustm_longjmp,u=100,trans=4,n=1000000,p=144,z=0.75,pa=34.9,be=0,mops=74.2
+./btree_ustm_longjmp,GEOMETRIC MEAN OF THROUGHPUTS: 199.5
+./btree_ustm_longjmp,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
+./btree_ustm_simple_longjmp,u=0,trans=4,n=1000000,p=144,z=0.75,pa=0,be=0,mops=439
+./btree_ustm_simple_longjmp,u=5,trans=4,n=1000000,p=144,z=0.75,pa=1.44,be=0,mops=285
+./btree_ustm_simple_longjmp,u=10,trans=4,n=1000000,p=144,z=0.75,pa=2.7,be=0,mops=262
+./btree_ustm_simple_longjmp,u=20,trans=4,n=1000000,p=144,z=0.75,pa=5.09,be=0,mops=208
+./btree_ustm_simple_longjmp,u=50,trans=4,n=1000000,p=144,z=0.75,pa=12.9,be=0,mops=125
+./btree_ustm_simple_longjmp,u=100,trans=4,n=1000000,p=144,z=0.75,pa=32.1,be=0,mops=78.7
+./btree_ustm_simple_longjmp,GEOMETRIC MEAN OF THROUGHPUTS: 201.7
+./btree_ustm_simple_longjmp,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1

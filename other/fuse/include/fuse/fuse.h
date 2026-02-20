@@ -58,12 +58,25 @@ namespace fuse {
     tlf_internal::versioned_ptr<indirect<T>> ptr;
     indirect_atomic(T v) : ptr(tlf_internal::get_pool<indirect<T>>().pool.New(v)) {}
     indirect_atomic() : ptr(nullptr) {}
-    ~indirect_atomic() { Delete(ptr.load()); }
+    indirect_atomic(const indirect_atomic& other) : ptr(nullptr) {
+      auto *src = const_cast<indirect_atomic&>(other).ptr.load();
+      if (src) ptr.init(tlf_internal::get_pool<indirect<T>>().pool.New(src->value));
+    }
+    indirect_atomic& operator=(const indirect_atomic& other) {
+      if (this != &other) {
+          auto *old = ptr.load();
+          auto *src = const_cast<indirect_atomic&>(other).ptr.load();
+          if (src) ptr.store(New<indirect<T>>(src->value));
+          else ptr.store(nullptr);
+          if (old) Retire(old);
+      }
+      return *this;
+    }
     T load() { return ptr.load()->value; }
     void store(T v) {
-      auto old = ptr.load();
+      auto *old = ptr.load();
       ptr.store(New<indirect<T>>(v));
-      Retire(old);
+      if (old) Retire(old);
     }
     T operator=(T b) {
       store(b);
@@ -85,6 +98,18 @@ namespace fuse {
     shared_mutex lock;
     tlf_atomic() = default;
     tlf_atomic(T v) : v(v) {}
+    tlf_atomic(const tlf_atomic& other) {
+      std::shared_lock lck(const_cast<shared_mutex&>(other.lock));
+      v = const_cast<tlf_atomic&>(other).v;
+    }
+    tlf_atomic& operator=(const tlf_atomic& other) {
+      if (this != &other) {
+        std::unique_lock lck1(lock);
+        std::shared_lock lck2(const_cast<shared_mutex&>(other.lock));
+        v = const_cast<tlf_atomic&>(other).v;
+      }
+      return *this;
+    }
     T load() {
       std::shared_lock lck(lock);
       return v.load();

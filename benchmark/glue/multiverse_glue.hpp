@@ -66,8 +66,21 @@ namespace stm {
   struct indirect_atomic {
     ns_multiverse::tx_field<indirect<T>*> ptr;
     indirect_atomic(T v) : ptr(new indirect<T>(v)) { }
-    indirect_atomic() : ptr(nullptr) { }
-    ~indirect_atomic() { delete ptr.load(); }
+    indirect_atomic() : ptr(new indirect<T>(T{})) { }
+    indirect_atomic(const indirect_atomic& other) : ptr(nullptr) {
+      auto *src = const_cast<indirect_atomic&>(other).ptr.load();
+      if (src) ptr.init(New<indirect<T>>(src->value));
+    }
+    indirect_atomic& operator=(const indirect_atomic& other) {
+      if (this != &other) {
+        auto *old = ptr.load();
+        auto *src = const_cast<indirect_atomic&>(other).ptr.load();
+        if (src) ptr.store(New<indirect<T>>(src->value));
+        else ptr.store(nullptr);
+        if (old) Delete(old);
+      }
+      return *this;
+    }
     T load() { return ptr.load()->value; }
     void store(T v) {
       auto old = ptr.load();
@@ -82,7 +95,8 @@ namespace stm {
   };
 
   template <typename T>
-  using atomic = std::conditional_t<sizeof(T) <= sizeof(void*), direct_atomic<T>, indirect_atomic<T>>;
+  using atomic = std::conditional_t<sizeof(T) <= sizeof(void*) && std::is_scalar_v<T>,
+                                    direct_atomic<T>, indirect_atomic<T>>;
 
   std::pair<long,long> statistics() {
     return {0ul, 0ul};

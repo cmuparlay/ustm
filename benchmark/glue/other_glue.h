@@ -93,12 +93,26 @@ namespace stm {
   struct indirect_atomic {
     ext_stm::tmtype<indirect<T>*> ptr;
     indirect_atomic(T v) : ptr(new indirect<T>(v)) {}
-    indirect_atomic() : ptr(nullptr) {}
-    ~indirect_atomic() { delete ptr.load(); }
-    T load() { return ptr.load()->value; }
+    indirect_atomic() : ptr(new indirect<T>(T{})) {}
+    indirect_atomic(const indirect_atomic& other) : ptr(nullptr) {
+      auto *src = other.ptr.pload();
+      if (src) ptr = New<indirect<T>>(src->value);
+    }
+    indirect_atomic& operator=(const indirect_atomic& other) {
+      if (this != &other) {
+        auto *old = ptr.pload();
+        auto *src = other.ptr.pload();
+        if (src) ptr = New<indirect<T>>(src->value);
+        else ptr = nullptr;
+        if (old) Delete(old);
+      }
+      return *this;
+    }
+    ~indirect_atomic() { delete ptr.pload(); }
+    T load() { return ptr.pload()->value; }
     void store(T v) {
-      auto old = ptr.load();
-      ptr.store(New<indirect<T>>(v));
+      auto old = ptr.pload();
+      ptr = New<indirect<T>>(v);
       Delete(old);
     }
     T operator=(T b) {

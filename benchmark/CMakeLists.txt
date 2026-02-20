@@ -15,7 +15,7 @@ set(STRUCT_DIR ${PROJECT_SOURCE_DIR}/structures)
 set(OTHER_DIR ${PROJECT_SOURCE_DIR}/other)
 set(FUSE_DIR ${OTHER_DIR}/fuse)
 
-set(STRUCTS "avltree" "treap" "leaftree" "btree" "arttree" "hash_block" "hash_list" "list" "skiplist")
+set(STRUCTS "avltree" "treap" "leaftree" "btree" "arttree" "hash_block" "hash_list" "list" "skiplist" "hash_probe")
 set(SUB_STRUCTS "btree")
 
 set(COMMON_DEFS "STMStats")
@@ -56,10 +56,14 @@ function(add_benchmark NAME SOURCE STRUCT_NAME DEFS LIB)
   endif()
 endfunction()
 
-add_benchmark(btree_mvustm_inplace ${MIXED} ${STRUCT_DIR}/btree "USTM;MV;UpsertInPlace" "")
+add_benchmark(btree_inplace_mvustm ${MIXED} ${STRUCT_DIR}/btree "USTM;MV;UpsertInPlace" "")
+add_benchmark(btree_inplace_2plsf ${MIXED} ${STRUCT_DIR}/btree "Other;TWOPLSF;UpsertInPlace" "")
+add_benchmark(btree_inplace_fuse ${MIXED} ${STRUCT_DIR}/btree "Other;Fuse;WriteStamp;MV_TLF;UpsertInPlace" "")
+add_benchmark(btree_inplace_multiverse ${MIXED} ${STRUCT_DIR}/btree "MAX_THREADS_POW2=256;CPU_FREQ_GHZ=2.4;MULTIVERSE;UpsertInPlace" "")
 
 foreach(bench ${SUB_STRUCTS})
 
+  add_benchmark(${bench}_ustm ${MIXED} ${STRUCT_DIR}/${bench} "USTM;SimpleSTM" "")
   add_benchmark(${bench}_ustm_simple_longjmp ${MIXED} ${STRUCT_DIR}/${bench} "USTM;SimpleSTM;LongJmp" "")
   add_benchmark(${bench}_ustm_longjmp ${MIXED} ${STRUCT_DIR}/${bench} "USTM;LongJmp" "")
   add_benchmark(${bench}_mvustm_alloc ${MIXED} ${STRUCT_DIR}/${bench} "USTM;MV;ParlayAlloc" "")
@@ -72,6 +76,7 @@ foreach(bench ${SUB_STRUCTS})
     add_benchmark(${bench}_mvustm_hwstamp ${MIXED} ${STRUCT_DIR}/${bench} "USTM;MV;HWStamp" "")  # Use agg funnels for lazy timestamp
     add_benchmark(${bench}_mvustm_hwstamp_unprotected ${MIXED} ${STRUCT_DIR}/${bench} "USTM;MV;UnprotectedLoad;HWStamp" "")
     add_benchmark(${bench}_fuse_hwstamp ${MIXED} ${STRUCT_DIR}/${bench} "Other;Fuse;HWWriteStamp;MV_TLF" "")
+    add_benchmark(${bench}_multiverse_hwstamp ${MIXED} ${STRUCT_DIR}/${bench} "MAX_THREADS_POW2=256;CPU_FREQ_GHZ=2.4;MULTIVERSE;USE_RDTSC" "")
   endif()
 
   add_benchmark(${bench}_mvustm_agg_funnel ${MIXED} ${STRUCT_DIR}/${bench} "USTM;MV;Funnel;SimpleFunnel" "")
@@ -95,12 +100,17 @@ foreach(bench ${STRUCTS})
   add_benchmark(${bench}_2plsf ${MIXED} ${STRUCT_DIR}/${bench} "Other;TWOPLSF" "")
 
   if (CMAKE_SYSTEM_PROCESSOR MATCHES ${X86})
-    add_benchmark(${bench}_hytm ${MIXED} ${STRUCT_DIR}/${bench} "HyTm" "")
-    add_benchmark(${bench}_hytm_htm ${MIXED} ${STRUCT_DIR}/${bench} "HyTm;HyTmHTM" "")
+    if (NOT ${bench} MATCHES "hash_probe|hash_list|hash_block")
+      add_benchmark(${bench}_hytm ${MIXED} ${STRUCT_DIR}/${bench} "HyTm" "")
+      add_benchmark(${bench}_hytm_htm ${MIXED} ${STRUCT_DIR}/${bench} "HyTm;HyTmHTM" "")
+    endif()
   endif()
 
   add_benchmark(${bench}_multiverse ${MIXED} ${STRUCT_DIR}/${bench} "MAX_THREADS_POW2=256;CPU_FREQ_GHZ=2.4;MULTIVERSE" "")
-  add_benchmark(${bench}_dcotl ${MIXED} ${STRUCT_DIR}/${bench} "MAX_THREADS_POW2=256;CPU_FREQ_GHZ=2.4;MICROBENCH;dcotl" "")
+
+  if (NOT ${bench} MATCHES "hash_probe|hash_list|hash_block")
+    add_benchmark(${bench}_dcotl ${MIXED} ${STRUCT_DIR}/${bench} "MAX_THREADS_POW2=256;CPU_FREQ_GHZ=2.4;MICROBENCH;dcotl" "")
+  endif()
 
   if (CMAKE_SYSTEM_PROCESSOR MATCHES ${X86})
     add_benchmark(${bench}_tiny ${MIXED} ${STRUCT_DIR}/${bench} "Other;Tiny" "${PROJECT_SOURCE_DIR}/other/tinystm/lib/libstm.a")
@@ -149,7 +159,7 @@ endif()
 
 add_benchmark(tpcc_hash_probe_mvustm ${TPCC} ${STRUCT_DIR}/hash_probe "USTM;MV" "")
   
-set(NSTRUCTS "hash_probe")
+set(NSTRUCTS "")
 
 foreach(bench ${NSTRUCTS})
   add_benchmark(${bench}_mvustm ${MIXED} ${STRUCT_DIR}/${bench} "USTM;MV" "")

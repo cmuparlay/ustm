@@ -26,9 +26,12 @@ IMPL_COLORS = {
     'mvustm': '#1f77b4',
     'mvustm_hwstamp': '#2ca02c',
     'mvustm_lzstamp': '#ff7f0e',
+    'mvustm_eager': '#9467bd',
+    'mvustm_agg_funnel_eager': '#8c564b',
     'ustm': '#d62728',
-    'ustm_longjmp': '#d62728',
-    'ustm_longjmp_hwstamp': '#e377c2',
+    'ustm_longjmp': '#e377c2',
+    'ustm_simple_longjmp': '#17becf',
+    'ustm_longjmp_hwstamp': '#aec7e8',
     'mvustm_longjmp': '#9467bd',
     'mvustm_trythrow': '#8c564b',
     'mvustm_unprotected': '#17becf',
@@ -36,6 +39,7 @@ IMPL_COLORS = {
     'hytm': '#bcbd22',
     'tiny': '#ff9896',
     'fuse': '#e41a1c',
+    'fuse_hwstamp': '#ff6347',
     'multiverse': '#000000',
 }
 
@@ -43,8 +47,11 @@ IMPL_LABELS = {
     'mvustm': 'MVUSTM',
     'mvustm_hwstamp': 'MVUSTM-HWStamp',
     'mvustm_lzstamp': 'MVUSTM-LZStamp',
+    'mvustm_eager': 'MVUSTM-Eager',
+    'mvustm_agg_funnel_eager': 'MVUSTM-AggFunnel',
     'ustm': 'USTM',
     'ustm_longjmp': 'USTM-Longjmp',
+    'ustm_simple_longjmp': 'USTM-SimpleLongjmp',
     'ustm_longjmp_hwstamp': 'USTM-Longjmp-HWStamp',
     'mvustm_longjmp': 'MVUSTM-Longjmp',
     'mvustm_trythrow': 'MVUSTM-TryThrow',
@@ -53,11 +60,57 @@ IMPL_LABELS = {
     'hytm': 'HyTM',
     'tiny': 'TinySTM',
     'fuse': 'Fuse',
-    'multiverse': 'Multiverse'
+    'fuse_hwstamp': 'Fuse-HWStamp',
+    'multiverse': 'Multiverse',
+}
+
+# Map impl -> marker shape (unique per implementation for easy identification)
+IMPL_MARKERS = {
+    'mvustm': 's',
+    'mvustm_hwstamp': 'P',
+    'mvustm_lzstamp': 'h',
+    'mvustm_eager': 'H',
+    'mvustm_agg_funnel_eager': 'd',
+    'ustm': 'p',
+    'ustm_longjmp': 'v',
+    'ustm_simple_longjmp': '<',
+    'ustm_longjmp_hwstamp': '>',
+    'mvustm_longjmp': '8',
+    'mvustm_trythrow': 'h',
+    'mvustm_unprotected': 'H',
+    '2plsf': '^',
+    'hytm': 'd',
+    'tiny': 'v',
+    'fuse': 'v',
+    'fuse_hwstamp': '<',
+    'multiverse': 'X',
+}
+
+# Map impl -> linestyle (solid for inplace, dashed for non-inplace when pair exists)
+IMPL_LINESTYLES = {
+    'mvustm': '--',
+    'mvustm_hwstamp': '-',
+    'mvustm_lzstamp': '-.',
+    'mvustm_eager': ':',
+    'mvustm_agg_funnel_eager': '-',
+    'ustm': '-',
+    'ustm_longjmp': '--',
+    'ustm_simple_longjmp': '-.',
+    'ustm_longjmp_hwstamp': ':',
+    'mvustm_longjmp': '--',
+    'mvustm_trythrow': '-.',
+    'mvustm_unprotected': ':',
+    '2plsf': '--',
+    'hytm': '-',
+    'tiny': '-',
+    'fuse': '--',
+    'fuse_hwstamp': '-.',
+    'multiverse': '--',
 }
 
 STRUCT_LABELS = {
     'btree': 'B-tree',
+    'btree_inplace': 'B-tree Inplace',
     'arttree': 'ART Tree',
     'avltree': 'AVL Tree',
     'leaftree': 'Leaf Tree',
@@ -65,21 +118,29 @@ STRUCT_LABELS = {
     'skiplist': 'Skip List',
     'list': 'Linked List',
     'hash_block': 'Hash Table',
+    'hash_list': 'Hash List',
     'hash_probe': 'Hash Probe',
+    'mix': 'Mixed',
 }
 
 # Implementation ordering (for consistent legend order)
 IMPL_ORDER = [
-    'mvustm', 'mvustm_hwstamp', 'mvustm_lzstamp', 
-    'ustm_longjmp', 'mvustm_longjmp', 'mvustm_trythrow',
-    'mvustm_unprotected', '2plsf', 'hytm', 'tiny', 'fuse', 'multiverse', 'dcotl'
+    'mvustm', 'mvustm_hwstamp', 'mvustm_lzstamp', 'mvustm_eager',
+    'mvustm_agg_funnel_eager',
+    'ustm', 'ustm_longjmp', 'ustm_simple_longjmp',
+    'mvustm_longjmp', 'mvustm_trythrow',
+    'mvustm_unprotected', '2plsf', 'hytm', 'tiny',
+    'fuse', 'fuse_hwstamp', 'multiverse', 'dcotl',
 ]
 
 # Known implementations (longer matches first)
 KNOWN_IMPLS = [
-    'ustm_longjmp_hwstamp', 'mvustm_lzstamp', 'mvustm_hwstamp', 'mvustm_longjmp', 
-    'mvustm_trythrow', 'mvustm_unprotected', 'ustm_longjmp', 'mvustm', 'ustm',
-    '2plsf', 'hytm', 'tiny', 'fuse'
+    'mvustm_agg_funnel_eager', 'ustm_simple_longjmp',
+    'ustm_longjmp_hwstamp', 'mvustm_lzstamp', 'mvustm_hwstamp',
+    'mvustm_longjmp', 'mvustm_trythrow', 'mvustm_unprotected',
+    'mvustm_eager', 'fuse_hwstamp',
+    'ustm_longjmp', 'mvustm', 'ustm',
+    '2plsf', 'hytm', 'tiny', 'fuse', 'multiverse',
 ]
 
 
@@ -113,7 +174,8 @@ def parse_result_line(line):
             
             # Parse parameters
             param_patterns = {
-                'u': r'u=(\d+)',
+                'u': r'u=(-?\d+)',
+                'upsert': r'upsert=(\d+)',
                 'trans': r'trans=(\d+)',
                 'n': r'n=(\d+)',
                 'p': r'p=(\d+)',
@@ -129,10 +191,16 @@ def parse_result_line(line):
                 pmatch = re.search(pattern, params_str)
                 if pmatch:
                     val = pmatch.group(1)
-                    if param in ['u', 'trans', 'n', 'p', 'rs', 'rqp']:
+                    if param in ['u', 'upsert', 'trans', 'n', 'p', 'rs', 'rqp']:
                         result[param] = int(val)
                     else:
                         result[param] = float(val)
+            
+            # Treat 'upsert' as 'u' for plotting purposes
+            if 'upsert' in result and 'u' not in result:
+                result['u'] = result.pop('upsert')
+            elif 'upsert' in result:
+                result.pop('upsert')
             
             return result if 'mops' in result else None
     
@@ -159,7 +227,8 @@ def parse_result_line(line):
     
     # Parse parameters
     param_patterns = {
-        'u': r'u=(\d+)',
+        'u': r'u=(-?\d+)',
+        'upsert': r'upsert=(\d+)',
         'trans': r'trans=(\d+)',
         'n': r'n=(\d+)',
         'p': r'p=(\d+)',
@@ -175,10 +244,16 @@ def parse_result_line(line):
         pmatch = re.search(pattern, params_str)
         if pmatch:
             val = pmatch.group(1)
-            if param in ['u', 'trans', 'n', 'p', 'rs', 'rqp']:
+            if param in ['u', 'upsert', 'trans', 'n', 'p', 'rs', 'rqp']:
                 result[param] = int(val)
             else:
                 result[param] = float(val)
+    
+    # Treat 'upsert' as 'u' for plotting purposes
+    if 'upsert' in result and 'u' not in result:
+        result['u'] = result.pop('upsert')
+    elif 'upsert' in result:
+        result.pop('upsert')
     
     return result if 'mops' in result else None
 
@@ -406,8 +481,10 @@ def plot_varying_parameter(results, param_name, param_label, output_dir,
             y_vals = [p[1] for p in points]
             color = IMPL_COLORS.get(impl, '#333333')
             label = IMPL_LABELS.get(impl, impl)
-            ax.plot(x_vals, y_vals, marker='o', linewidth=2, markersize=6, 
-                   color=color, label=label)
+            mkr = IMPL_MARKERS.get(impl, 'o')
+            ls = IMPL_LINESTYLES.get(impl, '-')
+            ax.plot(x_vals, y_vals, marker=mkr, linewidth=2, markersize=7, 
+                   color=color, label=label, linestyle=ls)
         
         ax.set_xlabel(param_label, fontsize=12)
         ax.set_ylabel('Throughput (MOps/s)', fontsize=12)
@@ -489,8 +566,10 @@ def plot_range_queries(results, output_dir):
             y_vals = [p[1] for p in points]
             color = IMPL_COLORS.get(impl, '#333333')
             label = IMPL_LABELS.get(impl, impl)
-            ax.plot(x_vals, y_vals, marker='o', linewidth=2, markersize=6,
-                   color=color, label=label)
+            mkr = IMPL_MARKERS.get(impl, 'o')
+            ls = IMPL_LINESTYLES.get(impl, '-')
+            ax.plot(x_vals, y_vals, marker=mkr, linewidth=2, markersize=7,
+                   color=color, label=label, linestyle=ls)
         
         ax.set_xlabel('Range Size', fontsize=12)
         ax.set_ylabel('Range Query Throughput (MOps/s)', fontsize=12)
@@ -574,17 +653,18 @@ def plot_combined_grid(results, geomean_data, output_dir, filename='results_comb
                 y_vals = [p[1] for p in points]
                 color = IMPL_COLORS.get(impl, '#333333')
                 label = IMPL_LABELS.get(impl, impl) if row_idx == 0 else None
-                ax.plot(x_vals, y_vals, marker='o', linewidth=1.5, markersize=4,
-                       color=color, label=label)
+                mkr = IMPL_MARKERS.get(impl, 'o')
+                ls = IMPL_LINESTYLES.get(impl, '-')
+                ax.plot(x_vals, y_vals, marker=mkr, linewidth=1.5, markersize=5,
+                       color=color, label=label, linestyle=ls)
             
             if log_scale:
                 ax.set_xscale('log')
             
             ax.grid(True, alpha=0.3, linewidth=0.5)
             
-            # Labels
-            if row_idx == n_rows - 1:
-                ax.set_xlabel(param_label, fontsize=9)
+            # Labels — every row gets its x-axis label since each row is a different parameter
+            ax.set_xlabel(param_label, fontsize=9)
             if col_idx == 0:
                 ax.set_ylabel('Throughput\n(MOps/s)', fontsize=9)
             if row_idx == 0:
@@ -604,6 +684,324 @@ def plot_combined_grid(results, geomean_data, output_dir, filename='results_comb
     plt.close()
 
 
+def parse_tpcc_file(filepath):
+    """Parse a TPCC timing file. Returns list of {struct, impl, mops, aborts} dicts."""
+    results = []
+    with open(filepath, 'r') as f:
+        for line in f:
+            line = line.strip()
+            if line.startswith('#') or not line.startswith('./'):
+                continue
+            # Format: ./tpcc_<struct>_<impl>: mops/sec = <float>, num_warehouses = <int>, %aborts = <float>
+            # Also handle: ./tpcc_<struct>_<impl>: mops/sec = <float>, num_ warehouses = <int>, %aborts = <float>
+            match = re.match(
+                r'^\./tpcc_(\w+?)_([\w]+):\s*mops/sec\s*=\s*([\d.eE+-]+),\s*num_?\s*warehouses\s*=\s*(\d+),\s*%aborts\s*=\s*([\d.eE+-]+)',
+                line)
+            if match:
+                struct = match.group(1)
+                impl = match.group(2)
+                mops = float(match.group(3))
+                aborts = float(match.group(5))
+                results.append({
+                    'structure': struct,
+                    'impl': impl,
+                    'mops': mops,
+                    'aborts': aborts,
+                })
+    return results
+
+
+def plot_tpcc_bars(tpcc_results, output_dir, filename='tpcc.pdf'):
+    """
+    Create TPCC throughput bar chart.
+    Groups by structure (hash_block, btree, mix), bars for each implementation.
+    Averages multiple trials per (struct, impl).
+    """
+    if not tpcc_results:
+        print("Warning: No TPCC data found")
+        return
+
+    # Average trials per (struct, impl)
+    from collections import defaultdict
+    trial_data = defaultdict(list)
+    for r in tpcc_results:
+        trial_data[(r['structure'], r['impl'])].append(r['mops'])
+
+    tpcc_structs = ['hash_block', 'btree', 'mix']
+    structures = [s for s in tpcc_structs if any(k[0] == s for k in trial_data)]
+    
+    impls_found = set(k[1] for k in trial_data)
+    tpcc_impl_order = ['mvustm', 'fuse', '2plsf', 'multiverse', 'tiny']
+    impls = [i for i in tpcc_impl_order if i in impls_found]
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+    x = np.arange(len(structures))
+    n_impls = len(impls)
+    width = 0.8 / max(n_impls, 1)
+
+    for i, impl in enumerate(impls):
+        values = []
+        for struct in structures:
+            trials = trial_data.get((struct, impl), [])
+            values.append(sum(trials) / len(trials) if trials else 0)
+        offset = (i - n_impls / 2 + 0.5) * width
+        color = IMPL_COLORS.get(impl, '#333333')
+        label = IMPL_LABELS.get(impl, impl)
+        bars = ax.bar(x + offset, values, width, label=label, color=color,
+                      edgecolor='white', linewidth=0.5)
+        # Add value labels on bars
+        for bar, val in zip(bars, values):
+            if val > 0:
+                ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.05,
+                        f'{val:.1f}', ha='center', va='bottom', fontsize=8)
+
+    ax.set_xlabel('Workload', fontsize=12)
+    ax.set_ylabel('Throughput (MOps/s)', fontsize=12)
+    ax.set_title('TPC-C Throughput', fontsize=14)
+    ax.set_xticks(x)
+    ax.set_xticklabels([STRUCT_LABELS.get(s, s) for s in structures])
+    ax.legend(loc='upper right', fontsize=10)
+    ax.grid(axis='y', alpha=0.3)
+
+    plt.tight_layout()
+    plt.savefig(output_dir / filename, dpi=300, bbox_inches='tight')
+    print(f"Generated: {filename}")
+    plt.close()
+
+
+def plot_nontrivial_types(results, output_dir, fmt='pdf'):
+    """
+    Plot non-trivial types experiments.
+    Part 1: btree inplace vs indirect (varying update rate) — single plot
+    Part 2: hash_probe (and hash_list if present) across impls (varying update rate)
+    """
+    if not results:
+        print("Warning: No nontrivial types data found")
+        return
+
+    # Organize data
+    data = defaultdict(lambda: defaultdict(list))
+    for r in results:
+        key = f"{r['structure']}_{r['impl']}"
+        data[r['structure']][r['impl']].append((r.get('u', 0), r['mops']))
+
+    # --- Part 1: btree inplace vs indirect ---
+    inplace_data = data.get('btree_inplace', {})
+    indirect_data = data.get('btree', {})
+    if inplace_data or indirect_data:
+        # Plot order: for each impl, show inplace then indirect
+        btree_impl_order = ['mvustm', '2plsf', 'fuse', 'multiverse']
+        all_impls = set(inplace_data.keys()) | set(indirect_data.keys())
+        ordered_impls = [i for i in btree_impl_order if i in all_impls]
+        ordered_impls += [i for i in all_impls if i not in ordered_impls]
+
+        fig, ax = plt.subplots(figsize=(9, 6))
+        for impl in ordered_impls:
+            color = IMPL_COLORS.get(impl, '#333333')
+            mkr = IMPL_MARKERS.get(impl, 'o')
+            base_label = IMPL_LABELS.get(impl, impl)
+            # Inplace variant (solid line)
+            if impl in inplace_data:
+                points = aggregate_points(inplace_data[impl])
+                x_vals = [p[0] for p in points]
+                y_vals = [p[1] for p in points]
+                ax.plot(x_vals, y_vals, marker=mkr, linewidth=2, markersize=7,
+                        color=color, label=f'{base_label} (inplace)', linestyle='-')
+            # Indirect variant (dashed line)
+            if impl in indirect_data:
+                points = aggregate_points(indirect_data[impl])
+                x_vals = [p[0] for p in points]
+                y_vals = [p[1] for p in points]
+                ax.plot(x_vals, y_vals, marker=mkr, linewidth=2, markersize=7,
+                        color=color, label=f'{base_label} (indirect)', linestyle='--')
+
+        ax.set_xlabel('Update Rate (%)', fontsize=12)
+        ax.set_ylabel('Throughput (MOps/s)', fontsize=12)
+        ax.set_title('B-tree: Inplace vs Indirect Upserts', fontsize=14)
+        ax.grid(True, alpha=0.3)
+        ax.legend(loc='best', fontsize=10)
+        plt.tight_layout()
+        plt.savefig(output_dir / f'nontrivial_btree.{fmt}', dpi=300, bbox_inches='tight')
+        print(f"Generated: nontrivial_btree.{fmt}")
+        plt.close()
+
+    # --- Part 2: hash variants ---
+    hash_structs = [s for s in ['hash_list', 'hash_probe'] if s in data]
+    for struct in hash_structs:
+        impls_found = set(data[struct].keys())
+        impls = [i for i in IMPL_ORDER if i in impls_found]
+
+        fig, ax = plt.subplots(figsize=(9, 6))
+        for impl in impls:
+            points = aggregate_points(data[struct][impl])
+            x_vals = [p[0] for p in points]
+            y_vals = [p[1] for p in points]
+            color = IMPL_COLORS.get(impl, '#333333')
+            label = IMPL_LABELS.get(impl, impl)
+            mkr = IMPL_MARKERS.get(impl, 'o')
+            ls = IMPL_LINESTYLES.get(impl, '-')
+            ax.plot(x_vals, y_vals, marker=mkr, linewidth=2, markersize=7,
+                    color=color, label=label, linestyle=ls)
+
+        ax.set_xlabel('Update Rate (%)', fontsize=12)
+        ax.set_ylabel('Throughput (MOps/s)', fontsize=12)
+        ax.set_title(f'{STRUCT_LABELS.get(struct, struct)} — Varying Update Rate', fontsize=14)
+        ax.grid(True, alpha=0.3)
+        ax.legend(loc='best', fontsize=10)
+        plt.tight_layout()
+        plt.savefig(output_dir / f'nontrivial_{struct}.{fmt}', dpi=300, bbox_inches='tight')
+        print(f"Generated: nontrivial_{struct}.{fmt}")
+        plt.close()
+
+
+def plot_ablation(results, output_dir, fmt='pdf'):
+    """
+    Plot ablation studies on btree.
+    Part 1: Timestamping variants (split/default, hwstamp, lzstamp, eager, agg_funnel_eager, fuse_hwstamp)
+    Part 2: Abort mechanism variants (ustm, ustm_longjmp, ustm_simple_longjmp)
+    """
+    if not results:
+        print("Warning: No ablation data found")
+        return
+
+    data = defaultdict(list)
+    for r in results:
+        data[r['impl']].append((r.get('u', 0), r['mops']))
+
+    # --- Part 1: Timestamping ---
+    timestamp_order = [
+        'mvustm', 'mvustm_hwstamp', 'mvustm_lzstamp',
+        'mvustm_eager', 'mvustm_agg_funnel_eager', 'fuse_hwstamp',
+    ]
+    timestamp_impls = [i for i in timestamp_order if i in data]
+
+    if timestamp_impls:
+        fig, ax = plt.subplots(figsize=(9, 6))
+        # Custom labels for this plot
+        ts_labels = {
+            'mvustm': 'MVUSTM',
+            'mvustm_hwstamp': 'MVUSTM HW Stamp',
+            'mvustm_lzstamp': 'MVUSTM Lazy Stamp',
+            'mvustm_eager': 'MVUSTM Eager',
+            'mvustm_agg_funnel_eager': 'MVUSTM Aggregating Funnel',
+            'fuse_hwstamp': 'Fuse HW Stamp',
+        }
+        for impl in timestamp_impls:
+            points = aggregate_points(data[impl])
+            x_vals = [p[0] for p in points]
+            y_vals = [p[1] for p in points]
+            color = IMPL_COLORS.get(impl, '#333333')
+            label = ts_labels.get(impl, IMPL_LABELS.get(impl, impl))
+            mkr = IMPL_MARKERS.get(impl, 'o')
+            ls = IMPL_LINESTYLES.get(impl, '-')
+            ax.plot(x_vals, y_vals, marker=mkr, linewidth=2, markersize=7,
+                    color=color, label=label, linestyle=ls)
+
+        ax.set_xlabel('Update Rate (%)', fontsize=12)
+        ax.set_ylabel('Throughput (MOps/s)', fontsize=12)
+        ax.set_title('B-tree Ablation: Timestamping Variants', fontsize=14)
+        ax.grid(True, alpha=0.3)
+        ax.legend(loc='best', fontsize=10)
+        plt.tight_layout()
+        plt.savefig(output_dir / f'ablation_timestamp.{fmt}', dpi=300, bbox_inches='tight')
+        print(f"Generated: ablation_timestamp.{fmt}")
+        plt.close()
+
+    # --- Part 2: Abort mechanism ---
+    abort_order = ['ustm', 'ustm_longjmp', 'ustm_simple_longjmp']
+    abort_impls = [i for i in abort_order if i in data]
+
+    if abort_impls:
+        fig, ax = plt.subplots(figsize=(9, 6))
+        abort_labels = {
+            'ustm': 'Standard (try/throw)',
+            'ustm_longjmp': 'Longjmp',
+            'ustm_simple_longjmp': 'Simple Longjmp',
+        }
+        for impl in abort_impls:
+            points = aggregate_points(data[impl])
+            x_vals = [p[0] for p in points]
+            y_vals = [p[1] for p in points]
+            color = IMPL_COLORS.get(impl, '#333333')
+            label = abort_labels.get(impl, IMPL_LABELS.get(impl, impl))
+            mkr = IMPL_MARKERS.get(impl, 'o')
+            ls = IMPL_LINESTYLES.get(impl, '-')
+            ax.plot(x_vals, y_vals, marker=mkr, linewidth=2, markersize=7,
+                    color=color, label=label, linestyle=ls)
+
+        ax.set_xlabel('Update Rate (%)', fontsize=12)
+        ax.set_ylabel('Throughput (MOps/s)', fontsize=12)
+        ax.set_title('B-tree Ablation: Abort Mechanism Variants', fontsize=14)
+        ax.grid(True, alpha=0.3)
+        ax.legend(loc='best', fontsize=10)
+        plt.tight_layout()
+        plt.savefig(output_dir / f'ablation_abort.{fmt}', dpi=300, bbox_inches='tight')
+        print(f"Generated: ablation_abort.{fmt}")
+        plt.close()
+
+
+def plot_machines(machine_dirs, output_dir, fmt='pdf'):
+    """
+    Bar chart comparing btree throughput across different machines.
+    Each machine_dirs entry: (label, dirpath) where dirpath contains a 'geomean' file.
+    Bars grouped by machine, one bar per implementation.
+    """
+    if not machine_dirs:
+        print("Warning: No multi-machine data provided")
+        return
+
+    machine_impls = ['mvustm', 'fuse', '2plsf', 'multiverse', 'tiny']
+    machine_data = {}  # label -> {impl: geomean_mops}
+
+    for label, dirpath in machine_dirs:
+        gfile = Path(dirpath) / 'geomean'
+        if not gfile.exists():
+            print(f"  Skipping machine '{label}' (no geomean file in {dirpath})")
+            continue
+        _, gdata = parse_timing_file(gfile)
+        machine_data[label] = {}
+        for impl in machine_impls:
+            val = gdata.get(('btree', impl), 0)
+            if val:
+                machine_data[label][impl] = val
+
+    machines = [label for label in machine_data if machine_data[label]]
+    if not machines:
+        print("Warning: No btree geomean data found across machines")
+        return
+
+    impls_found = set()
+    for d in machine_data.values():
+        impls_found.update(d.keys())
+    impls = [i for i in machine_impls if i in impls_found]
+
+    fig, ax = plt.subplots(figsize=(12, 6))
+    x = np.arange(len(machines))
+    n_impls = len(impls)
+    width = 0.8 / max(n_impls, 1)
+
+    for i, impl in enumerate(impls):
+        values = [machine_data[m].get(impl, 0) for m in machines]
+        offset = (i - n_impls / 2 + 0.5) * width
+        color = IMPL_COLORS.get(impl, '#333333')
+        label = IMPL_LABELS.get(impl, impl)
+        ax.bar(x + offset, values, width, label=label, color=color,
+               edgecolor='white', linewidth=0.5)
+
+    ax.set_xlabel('Machine', fontsize=12)
+    ax.set_ylabel('Geomean Throughput (MOps/s)', fontsize=12)
+    ax.set_title('B-tree Geomean Throughput Across Machines', fontsize=14)
+    ax.set_xticks(x)
+    ax.set_xticklabels(machines, rotation=45, ha='right')
+    ax.legend(loc='upper right', fontsize=10)
+    ax.grid(axis='y', alpha=0.3)
+
+    plt.tight_layout()
+    plt.savefig(output_dir / f'machines.{fmt}', dpi=300, bbox_inches='tight')
+    print(f"Generated: machines.{fmt}")
+    plt.close()
+
+
 def main():
     parser = argparse.ArgumentParser(description='Plot paper experiments')
     parser.add_argument('input_dir', type=str, 
@@ -611,11 +1009,14 @@ def main():
     parser.add_argument('-o', '--output-dir', type=str, default='plots',
                        help='Output directory for plots (default: plots)')
     parser.add_argument('--plots', nargs='+', 
-                       choices=['geomean', 'varying', 'range', 'combined', 'all'],
+                       choices=['geomean', 'varying', 'range', 'combined', 'tpcc',
+                                'nontrivial', 'ablation', 'machines', 'all'],
                        default=['all'],
                        help='Which plots to generate (default: all)')
     parser.add_argument('--format', type=str, choices=['pdf', 'png', 'svg'], 
                        default='pdf', help='Output format (default: pdf)')
+    parser.add_argument('--machine-dirs', nargs='+', metavar='LABEL:DIR',
+                       help='Machine data dirs for multi-machine plot (e.g. Intel:/path/to/dir AMD:/path/to/dir)')
     
     args = parser.parse_args()
     
@@ -642,12 +1043,16 @@ def main():
         'vary_zipfian',
         'vary_trans',
         'vary_update',
-        'range_queries'
+        'range_queries',
+        'nontrivial_types',
+        'ablation',
     ]
     
     # Keep results separate by experiment file
     exp_results = {}
-    geomean_data = {}
+    exp_geomeans = {}  # per-file geomean data
+    geomean_data = {}  # combined (for non-geomean uses)
+    tpcc_results = []
     
     for filename in exps:
         filepath = input_dir / filename
@@ -655,12 +1060,22 @@ def main():
             print(f"  Parsing {filename}...")
             results, gdata = parse_timing_file(filepath)
             exp_results[filename] = results
+            exp_geomeans[filename] = gdata
             geomean_data.update(gdata)
             print(f"    Found {len(results)} results, {len(gdata)} geomeans")
         else:
             print(f"  Skipping {filename} (not found)")
     
-    total_results = sum(len(r) for r in exp_results.values())
+    # Parse TPCC separately (different format)
+    tpcc_path = input_dir / 'tpcc'
+    if tpcc_path.exists():
+        print(f"  Parsing tpcc...")
+        tpcc_results = parse_tpcc_file(tpcc_path)
+        print(f"    Found {len(tpcc_results)} TPCC results")
+    else:
+        print(f"  Skipping tpcc (not found)")
+    
+    total_results = sum(len(r) for r in exp_results.values()) + len(tpcc_results)
     print(f"\nTotal: {total_results} benchmark results, {len(geomean_data)} geometric mean summaries")
     
     if not total_results and not geomean_data:
@@ -669,12 +1084,15 @@ def main():
     
     plots = args.plots
     if 'all' in plots:
-        plots = ['geomean', 'varying', 'range', 'combined']
+        plots = ['geomean', 'varying', 'range', 'combined', 'tpcc', 'nontrivial', 'ablation', 'machines']
     
-    if 'geomean' in plots and geomean_data:
-        print("\nGenerating Geomean bar chart...")
-        plot_geomean_bars(geomean_data, output_dir, 
-                                  f'geomean.{args.format}')
+    if 'geomean' in plots:
+        # Use only geomean data from the dedicated 'geomean' experiment file
+        geomean_only = exp_geomeans.get('geomean', {})
+        if geomean_only:
+            print("\nGenerating Geomean bar chart...")
+            plot_geomean_bars(geomean_only, output_dir, 
+                                      f'geomean.{args.format}')
     
     if 'varying' in plots:
         print("\nGenerating Parameter variation plots...")
@@ -705,6 +1123,39 @@ def main():
         if all_results:
             plot_combined_grid(all_results, geomean_data, output_dir, 
                               f'results_combined.{args.format}')
+    
+    if 'tpcc' in plots:
+        print("\nGenerating TPCC bar chart...")
+        if tpcc_results:
+            plot_tpcc_bars(tpcc_results, output_dir, f'tpcc.{args.format}')
+        else:
+            print("  No TPCC data found")
+    
+    if 'nontrivial' in plots:
+        print("\nGenerating Non-trivial types plots...")
+        if 'nontrivial_types' in exp_results and exp_results['nontrivial_types']:
+            plot_nontrivial_types(exp_results['nontrivial_types'], output_dir, args.format)
+        else:
+            print("  No nontrivial_types data found")
+    
+    if 'ablation' in plots:
+        print("\nGenerating Ablation study plots...")
+        if 'ablation' in exp_results and exp_results['ablation']:
+            plot_ablation(exp_results['ablation'], output_dir, args.format)
+        else:
+            print("  No ablation data found")
+    
+    if 'machines' in plots and args.machine_dirs:
+        print("\nGenerating Multi-machine comparison plot...")
+        machine_dirs = []
+        for spec in args.machine_dirs:
+            if ':' in spec:
+                label, dirpath = spec.split(':', 1)
+                machine_dirs.append((label, dirpath))
+            else:
+                label = Path(spec).name
+                machine_dirs.append((label, spec))
+        plot_machines(machine_dirs, output_dir, args.format)
     
     print(f"\nAll plots saved to {output_dir}/")
     return 0
