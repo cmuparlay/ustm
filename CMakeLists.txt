@@ -10,8 +10,8 @@ endif(NOT CMAKE_BUILD_TYPE)
 
 set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 -fno-omit-frame-pointer")
 
-#set (ALLOCATOR "deqalloc")
-set (ALLOCATOR "jemalloc")
+set (ALLOCATOR "deqalloc")
+#set (ALLOCATOR "jemalloc")
 
 message(STATUS "--------------- General configuration -------------")
 message(STATUS "CMake Generator:                ${CMAKE_GENERATOR}")
