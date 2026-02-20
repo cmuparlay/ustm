@@ -1,13 +1,5 @@
 set(MIXED mixed.cpp)
 set(TPCC tpcc.cpp)
-find_library(JEMALLOC_LIB jemalloc)
-if(NOT JEMALLOC_LIB)
-  message(FATAL_ERROR "Could not find jemalloc.")
-else()
-  message("-- Found jemalloc: ${JEMALLOC_LIB}")
-  set(COMMON_DEFS JEMALLOC)
-  set(COMMON_LINKS ${JEMALLOC_LIB})
-endif()
 
 set(X86 "(x86)|(X86)|(amd64)|(AMD64)|(i386)")
 
@@ -25,7 +17,11 @@ function(add_benchmark NAME SOURCE STRUCT_NAME DEFS LIB)
   target_compile_definitions(${NAME} PRIVATE ${DEFS} ${COMMON_DEFS})
   target_link_libraries(${NAME} PRIVATE ustm ${LIB} ${COMMON_LINKS})
 
-  target_compile_definitions(${NAME} PRIVATE JEMALLOC)
+  if(ALLOCATOR MATCHES "jemalloc")
+    target_compile_definitions(${NAME} PRIVATE JEMALLOC)
+  else() #deqalloc
+    add_dependencies(${NAME} force_build_deqalloc)
+  endif()
 
   # Fuse include path must come first to use fuse's parlay
   if("${DEFS}" MATCHES "Fuse")
