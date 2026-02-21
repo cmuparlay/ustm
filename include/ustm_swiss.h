@@ -130,6 +130,9 @@ namespace ustm {
   template <typename T>
   struct link : version {
     T value;
+  #ifndef VLA
+    T scratch;
+  #endif // VLA
     link(T* addr, T value) : version{addr}, value(value) {}
   };
   
@@ -214,8 +217,14 @@ namespace ustm {
     // when locked, a pointer to the link containing the value, a pointer
     // to the data within the link and the size in bytes of the value.
     struct logEntry {
-      void* loc; TS oldStamp;
-      version* link; void* data; int size;
+      void* loc;
+      TS oldStamp;
+      version* link;
+      void* data;
+  #ifndef VLA
+      void* scratch;
+  #endif // VLA
+      int size;
     };
 #endif
     
@@ -287,7 +296,12 @@ namespace ustm {
 #ifdef SimpleSTM
           std::memcpy(e.loc, &e.data, e.size);
 #else
-          char* tmp[e.size];
+
+  #ifdef VLA
+          char tmp[e.size];
+  #else
+          auto *tmp = e.scratch;
+  #endif // VLA
           // swap destination and data (from the link)
           std::memcpy(tmp, e.loc, e.size);
           std::memcpy(e.loc, e.data, e.size);
@@ -387,6 +401,7 @@ namespace ustm {
     if (regular) myd->readLog.push_back(&v);
     char tmp[sizeof(T)];
     T* location = reinterpret_cast<T*>(tmp);
+    int delay = 100;
     while (true) { 
       auto prevStatus = status;
       std::memcpy(tmp, &v, sizeof(T));
@@ -397,11 +412,14 @@ namespace ustm {
       status = lck.getStatus();
       if (prevStatus == status) {
         if (status < myd->startStamp) return *location;
-        if (!lck.isLocked(status)) {
+        if (!lock::isLocked(status)) {
           if (!myd->inTransaction) return *location;
           break;
         }
       }
+      for (volatile int i = 0; i < delay; i++)
+        ;
+      delay = std::min(2 * delay, 1000);
     }
     if (regular) {
       myd->lateRead = true;
@@ -539,10 +557,18 @@ namespace ustm {
       myd->writeLog.push_back(e);
 #else
       // temporarily store value in new link
-      link<T>* hp = ustm::New<link<T>>(&loc, v);
+      auto* hp = ustm::New<link<T>>(&loc, v);
       ustm::Delete(hp); // delete is delayed
-      Descriptor::logEntry e{&loc, 0, hp, &hp->value, sizeof(T)};
-      myd->writeLog.push_back(e);
+      myd->writeLog.push_back({
+        .loc = &loc,
+        .oldStamp = 0,
+        .link = hp,
+        .data = &hp->value,
+  #ifndef VLA
+        .scratch = &hp->scratch,
+  #endif // VLA
+        .size = sizeof(T)
+      });
 #endif
     } 
   }

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <type_traits>
 #include <utility>
 
 #ifdef TL2O
@@ -67,12 +68,12 @@ namespace stm {
   T *New(Args... args) { return ext_stm::tmNew<T>(args...); }
 
   template <typename T>
-  struct atomic {
+  struct direct_atomic {
   private:
     ext_stm::tmtype<T> val;
   public:
-    atomic(T v) : val(v) {}
-    atomic() {}
+    direct_atomic(T v) : val(v) {}
+    direct_atomic() {}
     void store(T v) { val = v; }
     T load() const { return val.pload(); }
     T load_unprotected() const { return val.pload();}
@@ -80,6 +81,42 @@ namespace stm {
     void init(T x) { store(x); }
     T operator=(T b) { store(b); return b; }
   };
+
+  template <typename T>
+  struct indirect : versioned {
+    T value;
+    indirect(T value) : value(value) {}
+  };
+
+  // if not a boolean or versioned pointer we need to use indirection
+  template <typename T>
+  struct indirect_atomic {
+    ext_stm::tmtype<indirect<T>*> ptr;
+    indirect_atomic(T v) : ptr(new indirect<T>(v)) {}
+    indirect_atomic() : ptr(new indirect<T>(T{})) {}
+    indirect_atomic(const indirect_atomic& other) : ptr(new indirect<T>(const_cast<indirect_atomic&>(other).load())) {}
+    indirect_atomic& operator=(const indirect_atomic& other) {
+      if (this != &other) {
+        store(const_cast<indirect_atomic&>(other).load());
+      }
+      return *this;
+    }
+    ~indirect_atomic() { delete ptr.pload(); }
+    T load() { return ptr.pload()->value; }
+    void store(T v) {
+      auto old = ptr.pload();
+      ptr = New<indirect<T>>(v);
+      Delete(old);
+    }
+    T operator=(T b) {
+      store(b);
+      return b;
+    }
+    void validate() { }
+  };
+  
+  template<typename T>
+  using atomic = std::conditional_t<sizeof(T) <= sizeof(void*), direct_atomic<T>, indirect_atomic<T>>;
 
   std::pair<long,long> statistics() {
 #if defined(STMStats) && defined(TWOPLSF)

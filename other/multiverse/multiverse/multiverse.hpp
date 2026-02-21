@@ -58,6 +58,7 @@ thread_local int OP_TYPE;
 
 namespace ns_multiverse {
 
+#ifdef USE_RDTSC
 uint64_t rdtsc(){
     unsigned int lo,hi;
     __asm__ __volatile__ ("rdtsc" : "=a" (lo), "=d" (hi));
@@ -77,7 +78,8 @@ uint64_t rdtsc_get_abort_ts() {
     std::atomic_thread_fence(std::memory_order_seq_cst);
     return ts+1;
 }
-
+#endif
+  
 #define FORCE_NO_INLINE __attribute__((noinline))
 #define FORCE_INLINE __attribute__((always_inline))
 #define FORCE_INLINE2 __attribute__((always_inline))

@@ -57,13 +57,13 @@ namespace fuse {
   struct indirect_atomic {
     tlf_internal::versioned_ptr<indirect<T>> ptr;
     indirect_atomic(T v) : ptr(tlf_internal::get_pool<indirect<T>>().pool.New(v)) {}
-    indirect_atomic() : ptr(nullptr) {}
+    indirect_atomic() : ptr(tlf_internal::get_pool<indirect<T>>().pool.New(T{})) {}
     ~indirect_atomic() { Delete(ptr.load()); }
     T load() { return ptr.load()->value; }
     void store(T v) {
-      auto old = ptr.load();
+      auto *old = ptr.load();
       ptr.store(New<indirect<T>>(v));
-      Retire(old);
+      if (old) Retire(old);
     }
     T operator=(T b) {
       store(b);
@@ -85,6 +85,13 @@ namespace fuse {
     shared_mutex lock;
     tlf_atomic() = default;
     tlf_atomic(T v) : v(v) {}
+    tlf_atomic(const tlf_atomic& other) : v(const_cast<tlf_atomic&>(other).load()) {}
+    tlf_atomic& operator=(const tlf_atomic& other) {
+      if (this != &other) {
+        store(const_cast<tlf_atomic&>(other).load());
+      }
+      return *this;
+    }
     T load() {
       std::shared_lock lck(lock);
       return v.load();

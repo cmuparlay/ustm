@@ -1,13 +1,5 @@
 set(MIXED mixed.cpp)
 set(TPCC tpcc.cpp)
-find_library(JEMALLOC_LIB jemalloc)
-if(NOT JEMALLOC_LIB)
-  message(FATAL_ERROR "Could not find jemalloc.")
-else()
-  message("-- Found jemalloc: ${JEMALLOC_LIB}")
-  set(COMMON_DEFS JEMALLOC)
-  set(COMMON_LINKS ${JEMALLOC_LIB})
-endif()
 
 set(X86 "(x86)|(X86)|(amd64)|(AMD64)|(i386)")
 
@@ -15,7 +7,7 @@ set(STRUCT_DIR ${PROJECT_SOURCE_DIR}/structures)
 set(OTHER_DIR ${PROJECT_SOURCE_DIR}/other)
 set(FUSE_DIR ${OTHER_DIR}/fuse)
 
-set(STRUCTS "avltree" "treap" "leaftree" "btree" "arttree" "hash_block" "hash_list" "list" "skiplist")
+set(STRUCTS "avltree" "treap" "leaftree" "btree" "arttree" "hash_block" "hash_list" "list" "skiplist" "hash_probe")
 set(SUB_STRUCTS "btree")
 
 set(COMMON_DEFS "STMStats")
@@ -25,7 +17,11 @@ function(add_benchmark NAME SOURCE STRUCT_NAME DEFS LIB)
   target_compile_definitions(${NAME} PRIVATE ${DEFS} ${COMMON_DEFS})
   target_link_libraries(${NAME} PRIVATE ustm ${LIB} ${COMMON_LINKS})
 
-  target_compile_definitions(${NAME} PRIVATE JEMALLOC)
+  if(ALLOCATOR MATCHES "jemalloc")
+    target_compile_definitions(${NAME} PRIVATE JEMALLOC)
+  else() #deqalloc
+    add_dependencies(${NAME} force_build_deqalloc)
+  endif()
 
   # Fuse include path must come first to use fuse's parlay
   if("${DEFS}" MATCHES "Fuse")
@@ -56,10 +52,14 @@ function(add_benchmark NAME SOURCE STRUCT_NAME DEFS LIB)
   endif()
 endfunction()
 
-add_benchmark(btree_mvustm_inplace ${MIXED} ${STRUCT_DIR}/btree "USTM;MV;UpsertInPlace" "")
+add_benchmark(btree_inplace_mvustm ${MIXED} ${STRUCT_DIR}/btree "USTM;MV;UpsertInPlace" "")
+add_benchmark(btree_inplace_2plsf ${MIXED} ${STRUCT_DIR}/btree "Other;TWOPLSF;UpsertInPlace" "")
+add_benchmark(btree_inplace_fuse ${MIXED} ${STRUCT_DIR}/btree "Other;Fuse;WriteStamp;MV_TLF;UpsertInPlace" "")
+add_benchmark(btree_inplace_multiverse ${MIXED} ${STRUCT_DIR}/btree "MAX_THREADS_POW2=256;CPU_FREQ_GHZ=2.4;MULTIVERSE;UpsertInPlace" "")
 
 foreach(bench ${SUB_STRUCTS})
 
+  add_benchmark(${bench}_ustm ${MIXED} ${STRUCT_DIR}/${bench} "USTM;SimpleSTM" "")
   add_benchmark(${bench}_ustm_simple_longjmp ${MIXED} ${STRUCT_DIR}/${bench} "USTM;SimpleSTM;LongJmp" "")
   add_benchmark(${bench}_ustm_longjmp ${MIXED} ${STRUCT_DIR}/${bench} "USTM;LongJmp" "")
   add_benchmark(${bench}_mvustm_alloc ${MIXED} ${STRUCT_DIR}/${bench} "USTM;MV;ParlayAlloc" "")
@@ -72,6 +72,7 @@ foreach(bench ${SUB_STRUCTS})
     add_benchmark(${bench}_mvustm_hwstamp ${MIXED} ${STRUCT_DIR}/${bench} "USTM;MV;HWStamp" "")  # Use agg funnels for lazy timestamp
     add_benchmark(${bench}_mvustm_hwstamp_unprotected ${MIXED} ${STRUCT_DIR}/${bench} "USTM;MV;UnprotectedLoad;HWStamp" "")
     add_benchmark(${bench}_fuse_hwstamp ${MIXED} ${STRUCT_DIR}/${bench} "Other;Fuse;HWWriteStamp;MV_TLF" "")
+    add_benchmark(${bench}_multiverse_hwstamp ${MIXED} ${STRUCT_DIR}/${bench} "MAX_THREADS_POW2=256;CPU_FREQ_GHZ=2.4;MULTIVERSE;USE_RDTSC" "")
   endif()
 
   add_benchmark(${bench}_mvustm_agg_funnel ${MIXED} ${STRUCT_DIR}/${bench} "USTM;MV;Funnel;SimpleFunnel" "")
@@ -91,13 +92,25 @@ endforeach()
 
 foreach(bench ${STRUCTS})
   add_benchmark(${bench}_mvustm ${MIXED} ${STRUCT_DIR}/${bench} "USTM;MV" "")
-
+  add_benchmark(${bench}_mvustm_vla ${MIXED} ${STRUCT_DIR}/${bench} "USTM;MV;VLA" "")
   add_benchmark(${bench}_2plsf ${MIXED} ${STRUCT_DIR}/${bench} "Other;TWOPLSF" "")
-  add_benchmark(${bench}_hytm ${MIXED} ${STRUCT_DIR}/${bench} "HyTm" "")
-  add_benchmark(${bench}_hytm_htm ${MIXED} ${STRUCT_DIR}/${bench} "HyTm;HyTmHTM" "")
+
+  if (CMAKE_SYSTEM_PROCESSOR MATCHES ${X86})
+    if (NOT ${bench} MATCHES "hash_probe|hash_list|hash_block")
+      add_benchmark(${bench}_hytm ${MIXED} ${STRUCT_DIR}/${bench} "HyTm" "")
+      add_benchmark(${bench}_hytm_htm ${MIXED} ${STRUCT_DIR}/${bench} "HyTm;HyTmHTM" "")
+    endif()
+  endif()
+
   add_benchmark(${bench}_multiverse ${MIXED} ${STRUCT_DIR}/${bench} "MAX_THREADS_POW2=256;CPU_FREQ_GHZ=2.4;MULTIVERSE" "")
-  add_benchmark(${bench}_dcotl ${MIXED} ${STRUCT_DIR}/${bench} "MAX_THREADS_POW2=256;CPU_FREQ_GHZ=2.4;MICROBENCH;dcotl" "")
-  add_benchmark(${bench}_tiny ${MIXED} ${STRUCT_DIR}/${bench} "Other;Tiny" "${PROJECT_SOURCE_DIR}/other/tinystm/lib/libstm.a")
+
+  if (NOT ${bench} MATCHES "hash_probe|hash_list|hash_block")
+    add_benchmark(${bench}_dcotl ${MIXED} ${STRUCT_DIR}/${bench} "MAX_THREADS_POW2=256;CPU_FREQ_GHZ=2.4;MICROBENCH;dcotl" "")
+  endif()
+
+  if (CMAKE_SYSTEM_PROCESSOR MATCHES ${X86})
+    add_benchmark(${bench}_tiny ${MIXED} ${STRUCT_DIR}/${bench} "Other;Tiny" "${PROJECT_SOURCE_DIR}/other/tinystm/lib/libstm.a")
+  endif()
 #  add_benchmark(${bench}_tl2 ${MIXED} ${STRUCT_DIR}/${bench} "Other;TL2O" "${PROJECT_SOURCE_DIR}/other/tl2-x86/libtl2.a")
 #  add_benchmark(${bench}_onefile ${MIXED} ${STRUCT_DIR}/${bench} "Other;OneFile" "")
   add_benchmark(${bench}_fuse ${MIXED} ${STRUCT_DIR}/${bench} "Other;Fuse;WriteStamp;MV_TLF" "")
@@ -118,6 +131,8 @@ foreach(bench ${TPCC_STRUCTS})
   add_benchmark(tpcc_${bench}_ustm_longjmp ${TPCC} ${STRUCT_DIR}/${bench} "USTM;SimpleSTM;LongJmp" "")
   add_benchmark(tpcc_${bench}_mvustm_longjmp ${TPCC} ${STRUCT_DIR}/${bench} "USTM;MV;LongJmp" "")
   add_benchmark(tpcc_${bench}_mvustm_trythrow ${TPCC} ${STRUCT_DIR}/${bench} "USTM;MV;TryThrow" "")
+  add_benchmark(tpcc_${bench}_multiverse ${TPCC} ${STRUCT_DIR}/${bench} "MAX_THREADS_POW2=256;CPU_FREQ_GHZ=2.4;MULTIVERSE" "")
+  add_benchmark(tpcc_${bench}_fuse ${TPCC} ${STRUCT_DIR}/${bench} "Other;Fuse;WriteStamp;MV_TLF" "")
 
   if (CMAKE_SYSTEM_PROCESSOR MATCHES ${X86})
     add_benchmark(tpcc_${bench}_ustm_hwstamp ${TPCC} ${STRUCT_DIR}/${bench} "USTM;SimpleSTM;HWStamp" "")
@@ -131,6 +146,8 @@ add_benchmark(tpcc_mix_2plsf ${TPCC} "${STRUCT_DIR}/arttree;${STRUCT_DIR}/hash_b
 add_benchmark(tpcc_mix_hytm ${TPCC} "${STRUCT_DIR}/arttree;${STRUCT_DIR}/hash_block" "Other;HyTm;Mix" "")
 add_benchmark(tpcc_mix_mvustm ${TPCC} "${STRUCT_DIR}/arttree;${STRUCT_DIR}/hash_block" "USTM;MV;Mix" "")
 add_benchmark(tpcc_mix_ustm ${TPCC} "${STRUCT_DIR}/arttree;${STRUCT_DIR}/hash_block" "USTM;SimpleSTM;Mix" "")
+add_benchmark(tpcc_mix_multiverse ${TPCC} "${STRUCT_DIR}/arttree;${STRUCT_DIR}/hash_block" "MAX_THREADS_POW2=256;CPU_FREQ_GHZ=2.4;MULTIVERSE;Mix" "")
+add_benchmark(tpcc_mix_fuse ${TPCC} "${STRUCT_DIR}/arttree;${STRUCT_DIR}/hash_block" "Other;Fuse;WriteStamp;MV_TLF;Mix" "")
 
 if (CMAKE_SYSTEM_PROCESSOR MATCHES ${X86})
   add_benchmark(tpcc_mix_ustm_longjmp_hwstamp ${TPCC} "${STRUCT_DIR}/arttree;${STRUCT_DIR}/hash_block" "USTM;SimpleSTM;Mix;LongJmp;HWStamp" "")
@@ -138,7 +155,7 @@ endif()
 
 add_benchmark(tpcc_hash_probe_mvustm ${TPCC} ${STRUCT_DIR}/hash_probe "USTM;MV" "")
   
-set(NSTRUCTS "hash_probe")
+set(NSTRUCTS "")
 
 foreach(bench ${NSTRUCTS})
   add_benchmark(${bench}_mvustm ${MIXED} ${STRUCT_DIR}/${bench} "USTM;MV" "")

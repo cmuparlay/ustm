@@ -43,11 +43,11 @@ namespace stm {
   }
 
   template <typename T>
-  struct atomic {
+  struct direct_atomic {
     ns_multiverse::tx_field<T> val;
     
-    atomic() : val() {}
-    atomic(T v) : val() { val = v; }
+    direct_atomic() = default;
+    direct_atomic(T v) : val(v) { }
     void store(T v) { val.store(v); }
     T load() { return val.load(); }
     T load_unprotected() { return val.load(); }
@@ -55,6 +55,45 @@ namespace stm {
     void init(T x) { val = x; }
     T operator=(T b) { val = b; return b; }
   };
+
+  template <typename T>
+  struct indirect : versioned {
+    T value;
+    indirect(T value) : value(value) {}
+  };
+
+  template <typename T>
+  struct indirect_atomic {
+    ns_multiverse::tx_field<indirect<T>*> ptr;
+    indirect_atomic(T v) : ptr(new indirect<T>(v)) { }
+    indirect_atomic() : ptr(new indirect<T>(T{})) { }
+    indirect_atomic(const indirect_atomic& other) : ptr(new indirect<T>(const_cast<indirect_atomic&>(other).load())) {}
+    indirect_atomic& operator=(const indirect_atomic& other) {
+      if (this != &other) {
+        store(const_cast<indirect_atomic&>(other).load());
+      }
+      return *this;
+    }
+    // ~indirect_atomic() {
+    //   auto *p = ptr.load();
+    //   if (p) delete p;
+    // }
+    T load() { return ptr.load()->value; }
+    void store(T v) {
+      auto *old = ptr.load();
+      ptr.store(New<indirect<T>>(v));
+      if (old) Delete(old);
+    }
+    T operator=(T b) {
+      store(b);
+      return b;
+    }
+    void validate() { }
+  };
+
+  template <typename T>
+  using atomic = std::conditional_t<sizeof(T) <= sizeof(void*) && std::is_scalar_v<T>,
+                                    direct_atomic<T>, indirect_atomic<T>>;
 
   std::pair<long,long> statistics() {
     return {0ul, 0ul};

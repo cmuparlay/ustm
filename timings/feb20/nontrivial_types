@@ -1,0 +1,103 @@
+Date: 02-20-2026
+Experiment: nontrivial_types
+HYTM: no
+Model name:                           Intel(R) Xeon(R) CPU E7-8867 v4 @ 2.40GHz
+Git: 12ffe37
+---
+# btree inplace vs indirect (upserts)
+---
+./btree_mvustm_inplace,upsert=0,trans=4,n=1000000,p=144,z=0.75,pa=0,be=0,mops=381
+./btree_mvustm_inplace,upsert=5,trans=4,n=1000000,p=144,z=0.75,pa=0.894,be=0,mops=267
+./btree_mvustm_inplace,upsert=10,trans=4,n=1000000,p=144,z=0.75,pa=2.96,be=0,mops=221
+./btree_mvustm_inplace,upsert=20,trans=4,n=1000000,p=144,z=0.75,pa=10.7,be=0,mops=166
+./btree_mvustm_inplace,upsert=50,trans=4,n=1000000,p=144,z=0.75,pa=34,be=0,mops=83.3
+./btree_mvustm_inplace,upsert=100,trans=4,n=1000000,p=144,z=0.75,pa=292,be=0,mops=40.5
+./btree_mvustm_inplace,GEOMETRIC MEAN OF THROUGHPUTS: 152.6
+./btree_mvustm_inplace,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
+./btree_mvustm,upsert=0,trans=4,n=1000000,p=144,z=0.75,pa=0,be=0,mops=454
+./btree_mvustm,upsert=5,trans=4,n=1000000,p=144,z=0.75,pa=1.38,be=0,mops=235
+./btree_mvustm,upsert=10,trans=4,n=1000000,p=144,z=0.75,pa=4.65,be=0,mops=202
+./btree_mvustm,upsert=20,trans=4,n=1000000,p=144,z=0.75,pa=15.2,be=0,mops=136
+./btree_mvustm,upsert=50,trans=4,n=1000000,p=144,z=0.75,pa=46.8,be=0,mops=48.4
+./btree_mvustm,upsert=100,trans=4,n=1000000,p=144,z=0.75,pa=91.1,be=0,mops=23.6
+./btree_mvustm,GEOMETRIC MEAN OF THROUGHPUTS: 122.3
+./btree_mvustm,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
+./btree_2plsf_inplace,upsert=0,trans=4,n=1000000,p=144,z=0.75,pa=0,be=0,mops=399
+./btree_2plsf_inplace,upsert=5,trans=4,n=1000000,p=144,z=0.75,pa=3.67,be=0,mops=104
+./btree_2plsf_inplace,upsert=10,trans=4,n=1000000,p=144,z=0.75,pa=7.26,be=0,mops=65.6
+./btree_2plsf_inplace,upsert=20,trans=4,n=1000000,p=144,z=0.75,pa=22.6,be=0,mops=47.9
+./btree_2plsf_inplace,upsert=50,trans=4,n=1000000,p=144,z=0.75,pa=99.2,be=0,mops=18.9
+./btree_2plsf_inplace,upsert=100,trans=4,n=1000000,p=144,z=0.75,pa=229,be=0,mops=10.1
+./btree_2plsf_inplace,GEOMETRIC MEAN OF THROUGHPUTS: 54
+./btree_2plsf_inplace,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
+./btree_2plsf,upsert=0,trans=4,n=1000000,p=144,z=0.75,pa=0,be=0,mops=449
+./btree_2plsf,upsert=5,trans=4,n=1000000,p=144,z=0.75,pa=5.25,be=0,mops=99.3
+./btree_2plsf,upsert=10,trans=4,n=1000000,p=144,z=0.75,pa=15.9,be=0,mops=73.4
+./btree_2plsf,upsert=20,trans=4,n=1000000,p=144,z=0.75,pa=36,be=0,mops=36
+./btree_2plsf,upsert=50,trans=4,n=1000000,p=144,z=0.75,pa=84.8,be=0,mops=10.4
+./btree_2plsf,upsert=100,trans=4,n=1000000,p=144,z=0.75,pa=227,be=0,mops=6.62
+./btree_2plsf,GEOMETRIC MEAN OF THROUGHPUTS: 44.83
+./btree_2plsf,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
+./btree_fuse,upsert=0,trans=4,n=1000000,p=144,z=0.75,pa=0,be=0,mops=380
+./btree_fuse,upsert=5,trans=4,n=1000000,p=144,z=0.75,pa=0,be=0,mops=179
+./btree_fuse,upsert=10,trans=4,n=1000000,p=144,z=0.75,pa=0,be=0,mops=128
+./btree_fuse,upsert=20,trans=4,n=1000000,p=144,z=0.75,pa=0,be=0,mops=73.1
+./btree_fuse,upsert=50,trans=4,n=1000000,p=144,z=0.75,pa=0,be=0,mops=30.4
+./btree_fuse,upsert=100,trans=4,n=1000000,p=144,z=0.75,pa=0,be=0,mops=14.7
+./btree_fuse,GEOMETRIC MEAN OF THROUGHPUTS: 81.15
+./btree_fuse,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
+./btree_multiverse,upsert=0,trans=4,n=1000000,p=144,z=0.75,pa=0,be=0,mops=447
+./btree_multiverse,upsert=5,trans=4,n=1000000,p=144,z=0.75,pa=0,be=0,mops=124
+./btree_multiverse,upsert=10,trans=4,n=1000000,p=144,z=0.75,pa=0,be=0,mops=83.2
+./btree_multiverse,upsert=20,trans=4,n=1000000,p=144,z=0.75,pa=0,be=0,mops=35.6
+./btree_multiverse,upsert=50,trans=4,n=1000000,p=144,z=0.75,pa=0,be=0,mops=10.9
+./btree_multiverse,upsert=100,trans=4,n=1000000,p=144,z=0.75,pa=0,be=0,mops=10.2
+./btree_multiverse,GEOMETRIC MEAN OF THROUGHPUTS: 51.36
+./btree_multiverse,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
+# hash_list, hash_probe
+---
+# CRASH: ./hash_list_multiverse -n 1000000 -trans 4 -z 0.75 -p 144 -u 0,5,10,20,50,100 -r 1 -t 1
+./hash_probe_multiverse,u=0,trans=4,n=1000000,p=144,z=0.75,pa=0,be=0,mops=370
+./hash_probe_multiverse,u=5,trans=4,n=1000000,p=144,z=0.75,pa=0,be=0,mops=170
+./hash_probe_multiverse,u=10,trans=4,n=1000000,p=144,z=0.75,pa=0,be=0,mops=131
+./hash_probe_multiverse,u=20,trans=4,n=1000000,p=144,z=0.75,pa=0,be=0,mops=122
+./hash_probe_multiverse,u=50,trans=4,n=1000000,p=144,z=0.75,pa=0,be=0,mops=29
+./hash_probe_multiverse,u=100,trans=4,n=1000000,p=144,z=0.75,pa=0,be=0,mops=7.64
+./hash_probe_multiverse,GEOMETRIC MEAN OF THROUGHPUTS: 77.87
+./hash_probe_multiverse,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
+# CRASH: ./hash_list_mvustm -n 1000000 -trans 4 -z 0.75 -p 144 -u 0,5,10,20,50,100 -r 1 -t 1
+./hash_probe_mvustm,u=0,trans=4,n=1000000,p=144,z=0.75,pa=0,be=0,mops=696
+./hash_probe_mvustm,u=5,trans=4,n=1000000,p=144,z=0.75,pa=0.159,be=0,mops=461
+./hash_probe_mvustm,u=10,trans=4,n=1000000,p=144,z=0.75,pa=0.523,be=0,mops=395
+./hash_probe_mvustm,u=20,trans=4,n=1000000,p=144,z=0.75,pa=1.63,be=0,mops=314
+./hash_probe_mvustm,u=50,trans=4,n=1000000,p=144,z=0.75,pa=7.64,be=0,mops=189
+./hash_probe_mvustm,u=100,trans=4,n=1000000,p=144,z=0.75,pa=18.3,be=0,mops=99.5
+./hash_probe_mvustm,GEOMETRIC MEAN OF THROUGHPUTS: 301.1
+./hash_probe_mvustm,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
+# CRASH: ./hash_list_2plsf -n 1000000 -trans 4 -z 0.75 -p 144 -u 0,5,10,20,50,100 -r 1 -t 1
+./hash_probe_2plsf,u=0,trans=4,n=1000000,p=144,z=0.75,pa=0,be=0,mops=613
+./hash_probe_2plsf,u=5,trans=4,n=1000000,p=144,z=0.75,pa=2.16,be=0,mops=267
+./hash_probe_2plsf,u=10,trans=4,n=1000000,p=144,z=0.75,pa=3.15,be=0,mops=207
+./hash_probe_2plsf,u=20,trans=4,n=1000000,p=144,z=0.75,pa=4.59,be=0,mops=177
+./hash_probe_2plsf,u=50,trans=4,n=1000000,p=144,z=0.75,pa=7.24,be=0,mops=128
+./hash_probe_2plsf,u=100,trans=4,n=1000000,p=144,z=0.75,pa=10.8,be=0,mops=96.9
+./hash_probe_2plsf,GEOMETRIC MEAN OF THROUGHPUTS: 205.1
+./hash_probe_2plsf,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
+./hash_list_fuse,u=0,trans=4,n=1000000,p=144,z=0.75,pa=0,be=0,mops=730
+./hash_list_fuse,u=5,trans=4,n=1000000,p=144,z=0.75,pa=0,be=0,mops=299
+./hash_list_fuse,u=10,trans=4,n=1000000,p=144,z=0.75,pa=0,be=0,mops=231
+./hash_list_fuse,u=20,trans=4,n=1000000,p=144,z=0.75,pa=0,be=0,mops=189
+./hash_list_fuse,u=50,trans=4,n=1000000,p=144,z=0.75,pa=0,be=0,mops=115
+./hash_list_fuse,u=100,trans=4,n=1000000,p=144,z=0.75,pa=0,be=0,mops=73.4
+./hash_list_fuse,GEOMETRIC MEAN OF THROUGHPUTS: 207.8
+./hash_list_fuse,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
+# CRASH: ./hash_probe_fuse -n 1000000 -trans 4 -z 0.75 -p 144 -u 0,5,10,20,50,100 -r 1 -t 1
+# CRASH: ./hash_list_tiny -n 1000000 -trans 4 -z 0.75 -p 144 -u 0,5,10,20,50,100 -r 1 -t 1
+./hash_probe_tiny,u=0,trans=4,n=1000000,p=144,z=0.75,pa=0,be=0,mops=644
+./hash_probe_tiny,u=5,trans=4,n=1000000,p=144,z=0.75,pa=0,be=0,mops=137
+./hash_probe_tiny,u=10,trans=4,n=1000000,p=144,z=0.75,pa=0,be=0,mops=91.2
+./hash_probe_tiny,u=20,trans=4,n=1000000,p=144,z=0.75,pa=0,be=0,mops=64
+./hash_probe_tiny,u=50,trans=4,n=1000000,p=144,z=0.75,pa=0,be=0,mops=35.8
+./hash_probe_tiny,u=100,trans=4,n=1000000,p=144,z=0.75,pa=0,be=0,mops=18.1
+./hash_probe_tiny,GEOMETRIC MEAN OF THROUGHPUTS: 83.27
+./hash_probe_tiny,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1

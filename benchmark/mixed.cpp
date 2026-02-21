@@ -121,7 +121,7 @@ run_mixed_operations(const parlay::sequence<K>& all,
                             int update_percent,
                             int trans_size,
                             long range_size,
-                            bool warmup,
+                            int warmup,
                             const F& endKey,
                             commandLine P) {
   long m = all.size();
@@ -445,7 +445,7 @@ void run_loops(const parlay::sequence<K>& all_keys,
                const parlay::sequence<int>& range_sizes,
                std::vector<double>& throughputs,
                std::vector<double>& bytes,
-               float zipfian_param, bool warm, const F& endKey, const commandLine& P) {
+               float zipfian_param, int warm, const F& endKey, const commandLine& P) {
   for (auto range_size : range_sizes) {
     for (auto update_percent : percents) {
       for (auto trans_size : transaction_sizes) {
@@ -471,7 +471,8 @@ struct RadixString {
 int main(int argc, char* argv[]) {
   commandLine P(argc,argv,command_string);
 
-  bool warmup = !P.getOption("-nowarmup");
+  bool do_warmup = !P.getOption("-nowarmup");
+  int warmup = P.getOptionIntValue("-warmup", do_warmup ? 2 : 0);
   std::string filename = P.getOptionValue("-file", "");
   
   auto sizes = parlay::map(comma_separated_arg(P, "-n", "1000"),
@@ -527,7 +528,6 @@ int main(int argc, char* argv[]) {
 
     for (auto n : sizes) {
       if (upsert) n = n/2;
-      bool warm = warmup;
       K max_key = std::numeric_limits<K>::max();
       auto endKey = [=] (const K& begin, long range_size) {
                       K range_gap = (max_key/n)*range_size;

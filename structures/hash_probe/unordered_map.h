@@ -23,7 +23,7 @@ struct unordered_map {
 private:
   enum State : char {Empty, Full};
   struct entry {State s; K k; V v;};
-  std::vector<entry> entries;
+  std::vector<stm::atomic<entry>> entries;
   unsigned long mask;
   unsigned long table_size;
   //unsigned long hash(const K k) { return Hash{}(k) % table_size; }
@@ -40,64 +40,64 @@ public:
 
   std::optional<V> find(const K k) {
     long loc = hash(k);
-    entry e = stm::load(entries[loc]);
+    entry e = entries[loc].load();
     while (e.s == Full && !KeyEqual{}(e.k, k))
-      e = stm::load(entries[loc = next(loc)]);
+      e = entries[loc = next(loc)].load();
     if (KeyEqual{}(e.k, k)) return e.v;
     else return {};
   }
 
   bool insert(const K k, const V v) {
     long loc = hash(k);
-    entry e = stm::load(entries[loc]);
+    entry e = entries[loc].load();
     while (e.s == Full && !KeyEqual{}(e.k, k))
-      e = stm::load(entries[loc = next(loc)]);
+      e = entries[loc = next(loc)].load();
     if (KeyEqual{}(e.k, k)) return false;
-    stm::store(entries[loc], entry{Full,k,v});
+    entries[loc].store(entry{Full,k,v});
     return true;
   }
 
   template <typename F>
   bool upsert_f(const K& k, const F& f) {
     long loc = hash(k);
-    entry e = stm::load(entries[loc]);
+    entry e = entries[loc].load();
     while (e.s == Full && !KeyEqual{}(e.k, k))
-      e = stm::load(entries[loc = next(loc)]);
+      e = entries[loc = next(loc)].load();
     if (e.s = Full) {
-      stm::store(entries[loc], entry{Full,k,f(std::optional<V>(e.v))});
+      entries[loc].store(entry{Full,k,f(std::optional<V>(e.v))});
       return false;
     } else {
-      stm::store(entries[loc], entry{Full,k,f(std::optional<V>())});
+      entries[loc].store(entry{Full,k,f(std::optional<V>())});
       return true;
     }
   }
 
   bool upsert(const K& k, const V& v) {
     long loc = hash(k);
-    entry e = stm::load(entries[loc]);
+    entry e = entries[loc].load();
     while (e.s == Full && !KeyEqual{}(e.k, k))
-      e = stm::load(entries[loc = next(loc)]);
-    stm::store(entries[loc], entry{Full,k,v});    
+      e = entries[loc = next(loc)].load();
+    entries[loc].store(entry{Full,k,v});    
     if (e.s = Full) return false;
     else return true;
   }
 
   void backfill(unsigned long rloc) {
     unsigned long loc = next(rloc);
-    entry e = stm::load(entries[loc]);
+    entry e = entries[loc].load();
     while (e.s == Full && earlier(rloc, hash(e.k)))
-      e = stm::load(entries[loc = next(loc)]);
+      e = entries[loc = next(loc)].load();
     if (e.s == Full) {
-      stm::store(entries[rloc], e);
+      entries[rloc].store(e);
       backfill(loc);
-    } else stm::store(entries[rloc], entry{Empty,K{},V{}});
+    } else entries[rloc].store(entry{Empty,K{},V{}});
   }
 
   bool remove(const K k) {
     long loc = hash(k);
-    entry e = stm::load(entries[loc]);
+    entry e = entries[loc].load();
     while ((e.s == Full && !KeyEqual{}(e.k, k))) 
-      e = stm::load(entries[loc = next(loc)]);
+      e = entries[loc = next(loc)].load();
     if (!KeyEqual{}(e.k, k)) return false;
     backfill(loc);
     return true;
@@ -107,13 +107,13 @@ public:
     int bits = 1 + std::ceil(std::log2(1.5*n));
     table_size = 1ul << bits;
     mask = table_size - 1;
-    entries = std::vector<entry>(table_size);
+    entries = std::vector<stm::atomic<entry>>(table_size);
   }
     
   ~unordered_map() {}
 
   long size() {
-    return parlay::count_if(entries, [&] (entry& e) {return (long) (e.s == Full);});
+    return parlay::count_if(entries, [&] (stm::atomic<entry>& e) {return (long) (e.load().s == Full);});
   }
 
   void print() {}
