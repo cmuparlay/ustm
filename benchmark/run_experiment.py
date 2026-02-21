@@ -51,7 +51,7 @@ class Config:
             "2plsf",
             "fuse",
             # "onefile",
-            "tiny",
+            # "tiny",
             # "tl2",
             # DCOTL is broken for most benchmarks
             # "dcotl"
@@ -599,7 +599,7 @@ class ExperimentRunner:
         print("=" * 50)
         
         experiments = [
-            ("Experiment 8: TPCC", self.run_tpcc),
+            # ("Experiment 8: TPCC", self.run_tpcc),
             ("Experiment 1: Geometric Mean", self.run_geomean),
             ("Experiment 2: Varying Size", self.run_size),
             ("Experiment 3: Varying Threads", self.run_threads),

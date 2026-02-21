@@ -48,6 +48,23 @@ namespace stm {
     
     direct_atomic() = default;
     direct_atomic(T v) : val(v) { }
+    direct_atomic(const direct_atomic& other) {
+      if (ns_multiverse::tl_opdata)
+        // inside transaction 
+        val.data = const_cast<direct_atomic&>(other).load();
+      else
+        // outside transaction
+        val.data = other.val.data;
+    }
+    direct_atomic& operator=(const direct_atomic& other) {
+      if (ns_multiverse::tl_opdata) 
+        // inside transaction 
+        store(const_cast<direct_atomic&>(other).load());
+      else
+        // outside transaction
+        val.data = other.val.data;
+      return *this;
+    }
     void store(T v) { val.store(v); }
     T load() { return val.load(); }
     T load_unprotected() { return val.load(); }
