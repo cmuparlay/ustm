@@ -69,7 +69,7 @@ namespace stm {
     indirect_atomic() : ptr(new indirect<T>(T{})) { }
     indirect_atomic(const indirect_atomic& other) : ptr(nullptr) {
       auto *src = const_cast<indirect_atomic&>(other).ptr.load();
-      if (src) ptr.init(New<indirect<T>>(src->value));
+      if (src) ptr = New<indirect<T>>(src->value);
     }
     indirect_atomic& operator=(const indirect_atomic& other) {
       if (this != &other) {

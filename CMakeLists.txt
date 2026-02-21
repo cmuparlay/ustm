@@ -60,9 +60,12 @@ elseif(ALLOCATOR MATCHES "deqalloc")
     deqalloc
     GIT_REPOSITORY https://github.com/ajccosta/deqalloc
     GIT_TAG        91d9d20
-    SOURCE_SUBDIR examples/deqalloc
   )
-  FetchContent_MakeAvailable(deqalloc)
+  FetchContent_GetProperties(deqalloc)
+  if(NOT deqalloc_POPULATED)
+    FetchContent_Populate(deqalloc)
+    add_subdirectory(${deqalloc_SOURCE_DIR}/examples/deqalloc ${deqalloc_BINARY_DIR})
+  endif()
   #add target to force deqalloc to be build
   add_custom_target(force_build_deqalloc ALL)
   add_dependencies(force_build_deqalloc deqalloc)
