@@ -67,25 +67,22 @@ namespace stm {
     ns_multiverse::tx_field<indirect<T>*> ptr;
     indirect_atomic(T v) : ptr(new indirect<T>(v)) { }
     indirect_atomic() : ptr(new indirect<T>(T{})) { }
-    indirect_atomic(const indirect_atomic& other) : ptr(nullptr) {
-      auto *src = const_cast<indirect_atomic&>(other).ptr.load();
-      if (src) ptr = New<indirect<T>>(src->value);
-    }
+    indirect_atomic(const indirect_atomic& other) : ptr(new indirect<T>(const_cast<indirect_atomic&>(other).load())) {}
     indirect_atomic& operator=(const indirect_atomic& other) {
       if (this != &other) {
-        auto *old = ptr.load();
-        auto *src = const_cast<indirect_atomic&>(other).ptr.load();
-        if (src) ptr.store(New<indirect<T>>(src->value));
-        else ptr.store(nullptr);
-        if (old) Delete(old);
+        store(const_cast<indirect_atomic&>(other).load());
       }
       return *this;
     }
+    // ~indirect_atomic() {
+    //   auto *p = ptr.load();
+    //   if (p) delete p;
+    // }
     T load() { return ptr.load()->value; }
     void store(T v) {
-      auto old = ptr.load();
+      auto *old = ptr.load();
       ptr.store(New<indirect<T>>(v));
-      Delete(old);
+      if (old) Delete(old);
     }
     T operator=(T b) {
       store(b);

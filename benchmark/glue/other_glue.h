@@ -94,17 +94,10 @@ namespace stm {
     ext_stm::tmtype<indirect<T>*> ptr;
     indirect_atomic(T v) : ptr(new indirect<T>(v)) {}
     indirect_atomic() : ptr(new indirect<T>(T{})) {}
-    indirect_atomic(const indirect_atomic& other) : ptr(nullptr) {
-      auto *src = other.ptr.pload();
-      if (src) ptr = New<indirect<T>>(src->value);
-    }
+    indirect_atomic(const indirect_atomic& other) : ptr(new indirect<T>(const_cast<indirect_atomic&>(other).load())) {}
     indirect_atomic& operator=(const indirect_atomic& other) {
       if (this != &other) {
-        auto *old = ptr.pload();
-        auto *src = other.ptr.pload();
-        if (src) ptr = New<indirect<T>>(src->value);
-        else ptr = nullptr;
-        if (old) Delete(old);
+        store(const_cast<indirect_atomic&>(other).load());
       }
       return *this;
     }
