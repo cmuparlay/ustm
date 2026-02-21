@@ -91,17 +91,17 @@ namespace stm {
       }
       return *this;
     }
-    // ~indirect_atomic() {
-    //   auto *p = ptr.load();
-    //   if (p) delete p;
-    // }
+    ~indirect_atomic() {
+      auto *p = ptr.load();
+      if (p) delete p;
+    }
     T load() { return ptr.load()->value; }
     void store(T v) {
       auto *old = ptr.load();
       ptr.store(New<indirect<T>>(v));
       if (old) Delete(old);
     }
-    T operator=(T b) {
+    T operator=(T b) { 
       store(b);
       return b;
     }

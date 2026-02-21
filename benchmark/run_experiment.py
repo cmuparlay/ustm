@@ -70,8 +70,8 @@ class Config:
         self.structs_nohash = ["btree", "arttree", "avltree", "leaftree", "treap", "skiplist"]
         self.lstructs = ["list"]
         self.range_structs = ["btree", "arttree"]
-        self.small_structs = ["btree", "hash_block"]
-        self.tpcc_structs = ["hash_block", "btree", "mix"]
+        self.small_structs = ["btree", "hash_list"]
+        self.tpcc_structs = ["hash_list", "btree", "mix"]
         self.tpcc_impls = ["mvustm", "fuse", "2plsf", "multiverse"]
 
     """Experiment configuration."""
@@ -531,17 +531,17 @@ class ExperimentRunner:
             'u': ','.join(map(str, updates)),
         }
         for struct in ["btree_inplace", "btree"]:
-            for impl in ["mvustm", "2plsf", "fuse", "multiverse"]:
+            for impl in ["mvustm"]:
                 if not self._binary_exists(f"{struct}_{impl}"):
                     continue
                 print(f"  {struct}_{impl}")
                 self._run_batch(struct, impl, base, extra_args="-up")
 
-        # Part 2: hash_list, hash_probe (vary update rate, otherwise defaults)
-        self.results_file.write("# hash_list, hash_probe\n")
+        # Part 2: hash_list, hash_probe, hash_block (vary update rate, otherwise defaults)
+        self.results_file.write("# hash_list, hash_probe, hash_block\n")
         self.results_file.write("---\n")
-        hash_structs = ["hash_list", "hash_probe"]
-        for impl in self.config.impls:
+        hash_structs = ["hash_list", "hash_probe", "hash_block"]
+        for impl in ["mvustm"]:
             for struct in hash_structs:
                 if not self._binary_exists(f"{struct}_{impl}"):
                     continue
