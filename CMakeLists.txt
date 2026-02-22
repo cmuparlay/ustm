@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.13)
-project(USTM VERSION 1.0 DESCRIPTION "Micro Software Transactional Memory" LANGUAGES CXX)
+project(USTM VERSION 1.0 DESCRIPTION "Micro Software Transactional Memory" LANGUAGES C CXX)
 
 # Set a default build type
 if(NOT CMAKE_BUILD_TYPE)
@@ -10,12 +10,37 @@ endif(NOT CMAKE_BUILD_TYPE)
 
 set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 -fno-omit-frame-pointer")
 
+#stop warnings for benign memcpy
+set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wstringop-overflow=0")
+#silence warning "parameter passing for argument of type ‘std::pair<double, double>’ when C++17 is enabled changed to match C++14 in GCC 10.1"
+set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-psabi")
+
+#lower case arch label
+string(TOLOWER "${CMAKE_SYSTEM_PROCESSOR}" ARCH)
+#detect architecture
+
+if(ARCH MATCHES "^(x86|x86_64|amd64|i[3-6]86)$")
+  set(TARGET_ARCH "x86")
+  list(APPEND COMMON_DEFS "USTM_X86")
+elseif(ARCH MATCHES "^(aarch64|arm64)$")
+  set(TARGET_ARCH "arm")
+  list(APPEND COMMON_DEFS "USTM_ARM")
+elseif(ARCH MATCHES "^(ppc64le|ppc64|powerpc64)$")
+  set(TARGET_ARCH "ppc")
+  list(APPEND COMMON_DEFS "USTM_PPC")
+elseif(ARCH MATCHES "^(arm|ppc|powerpc)$")
+  message(FATAL_ERROR "Unsupported architecture: ${ARCH}.")
+else()
+  message(FATAL_ERROR "Unknown architecture.")
+endif()
+
 set (ALLOCATOR "deqalloc")
 #set (ALLOCATOR "jemalloc")
 
 message(STATUS "--------------- General configuration -------------")
 message(STATUS "CMake Generator:                ${CMAKE_GENERATOR}")
 message(STATUS "Compiler:                       ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}")
+message(STATUS "Architecture:                   ${TARGET_ARCH}")
 message(STATUS "Allocator:                      ${ALLOCATOR}" )
 message(STATUS "Build type:                     ${CMAKE_BUILD_TYPE}")
 message(STATUS "CMAKE_CXX_FLAGS:                ${CMAKE_CXX_FLAGS}")
@@ -34,7 +59,16 @@ set(USTM_INCLUDE_DIR "${USTM_SOURCE_DIR}/include")
 add_library(ustm INTERFACE)
 target_include_directories(ustm INTERFACE ${USTM_INCLUDE_DIR})
 target_compile_features(ustm INTERFACE cxx_std_17)
-target_compile_options(ustm INTERFACE -march=native -g)
+
+set(USTM_COMMON_FLAGS -g)
+if(TARGET_ARCH MATCHES "x86")
+  list(APPEND USTM_COMMON_FLAGS -mcx16 -march=native)
+elseif(TARGET_ARCH MATCHES "ppc")
+  list(APPEND USTM_COMMON_FLAGS -mcpu=native)
+else() #arm
+  list(APPEND USTM_COMMON_FLAGS -march=native -latomic)
+endif()
+target_compile_options(ustm INTERFACE ${USTM_COMMON_FLAGS})
 
 # Find threading library
 find_package(Threads REQUIRED)
@@ -81,8 +115,27 @@ elseif(ALLOCATOR MATCHES "deqalloc")
 else()
   message(FATAL_ERROR "No allocator selected. Allocator options: deqalloc, jemalloc.")
 endif()
+
+#compile tiny
+include(ExternalProject)
+string(REPLACE ";" " " USTM_COMMON_CFLAGS_STR "${USTM_COMMON_FLAGS}")
+ExternalProject_Add(tinystm_ext
+    SOURCE_DIR ${PROJECT_SOURCE_DIR}/other/tinystm
+    BUILD_IN_SOURCE 1
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND $(MAKE)
+      CFLAGS=${USTM_COMMON_CFLAGS_STR}
+    INSTALL_COMMAND ""
+    BUILD_BYPRODUCTS ${PROJECT_SOURCE_DIR}/other/tinystm/lib/libstm.a
+)
+add_library(tinystm STATIC IMPORTED)
+set_target_properties(tinystm PROPERTIES
+    IMPORTED_LOCATION ${PROJECT_SOURCE_DIR}/other/tinystm/lib/libstm.a
+)
+add_dependencies(tinystm tinystm_ext)
+
 # -------------------------------------------------------------------
 #                       Benchmarks
 
 add_subdirectory(benchmark)
-add_subdirectory(test)
+#add_subdirectory(test)
