@@ -13,6 +13,7 @@
 
 
 #include <stdint.h>
+#include <stdatomic.h>
 #include "common.h"
 
 
@@ -43,17 +44,7 @@ cas (intptr_t newVal, intptr_t oldVal, volatile intptr_t* ptr)
 {
     intptr_t prevVal;
 
-    __asm__ __volatile__ (
-        "lock \n"
-#ifdef __LP64__
-        "cmpxchgq %1,%2 \n"
-#else
-        "cmpxchgl %k1,%2 \n"
-#endif
-        : "=a" (prevVal)
-        : "q"(newVal), "m"(*ptr), "0" (oldVal)
-        : "memory"
-    );
+    prevVal = __sync_val_compare_and_swap(ptr, oldVal, newVal);
 
     return prevVal;
 }
@@ -72,7 +63,7 @@ cas (intptr_t newVal, intptr_t oldVal, volatile intptr_t* ptr)
 #else
 #define MEMBARLDLD()                    __asm__ __volatile__ ("" : : : "memory")
 #define MEMBARSTST()                    __asm__ __volatile__ ("" : : : "memory")
-#define MEMBARSTLD()                    __asm__ __volatile__ ("mfence" : : : "memory")
+#define MEMBARSTLD()                    atomic_thread_fence(memory_order_seq_cst);
 #endif
 
 /* =============================================================================
