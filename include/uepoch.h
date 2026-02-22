@@ -38,16 +38,16 @@
 
 namespace uepoch {
 
-  constexpr int max_threads = 1024; // can be increased
+  constexpr int max_threads = 4096; // can be increased
   constexpr long bytes_per_thread = 1ul << 26;
 
   extern inline std::atomic<int>& num_threads() {
       static std::atomic<int> num_threads{0};
       return num_threads;  }
 
-    extern inline int thread_id() {
-      static thread_local int id{num_threads().fetch_add(1, std::memory_order_relaxed)};
-      return id; }
+  extern inline int thread_id() {
+    static thread_local int id{num_threads().fetch_add(1, std::memory_order_relaxed)};
+    return id; }
 
   template <typename T>
   struct pool {
