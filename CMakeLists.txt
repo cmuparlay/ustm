@@ -59,7 +59,7 @@ elseif(ALLOCATOR MATCHES "deqalloc")
   FetchContent_Declare(
     deqalloc
     GIT_REPOSITORY https://github.com/ajccosta/deqalloc
-    GIT_TAG        91d9d20
+    GIT_TAG        d4840fd
   )
   FetchContent_GetProperties(deqalloc)
   if(NOT deqalloc_POPULATED)
