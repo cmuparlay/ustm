@@ -114,7 +114,6 @@ foreach(bench ${TPCC_STRUCTS})
 endforeach()
 
 add_benchmark(tpcc_mix_2plsf ${TPCC} "${STRUCT_DIR}/arttree;${STRUCT_DIR}/hash_block" "Other;TWOPLSF;Mix" "")
-add_benchmark(tpcc_mix_hytm ${TPCC} "${STRUCT_DIR}/arttree;${STRUCT_DIR}/hash_block" "Other;HyTm;Mix" "")
 add_benchmark(tpcc_mix_mvustm ${TPCC} "${STRUCT_DIR}/arttree;${STRUCT_DIR}/hash_block" "USTM;MV;Mix;ParlayAlloc" "")
 add_benchmark(tpcc_mix_ustm ${TPCC} "${STRUCT_DIR}/arttree;${STRUCT_DIR}/hash_block" "USTM;SimpleSTM;Mix;ParlayAlloc" "")
 add_benchmark(tpcc_mix_multiverse ${TPCC} "${STRUCT_DIR}/arttree;${STRUCT_DIR}/hash_block" "MAX_THREADS_POW2=256;CPU_FREQ_GHZ=2.4;MULTIVERSE;Mix" "")
@@ -145,7 +144,6 @@ if (TARGET_ARCH MATCHES "x86")
       add_benchmark(${bench}_hytm ${MIXED} ${STRUCT_DIR}/${bench} "HyTm" "")
       add_benchmark(${bench}_hytm_htm ${MIXED} ${STRUCT_DIR}/${bench} "HyTm;HyTmHTM" "")
     endif()
-    add_benchmark(${bench}_tiny ${MIXED} ${STRUCT_DIR}/${bench} "Other;Tiny" "${PROJECT_SOURCE_DIR}/other/tinystm/lib/libstm.a")
   endforeach()
 
   foreach(bench ${TPCC_STRUCTS})
@@ -165,6 +163,10 @@ endif()
 
 #benchmarks incompatible with arm
 if (NOT TARGET_ARCH MATCHES "arm")
+  foreach(bench ${STRUCTS})
+    add_benchmark(${bench}_tiny ${MIXED} ${STRUCT_DIR}/${bench} "Other;Tiny" tinystm)
+  endforeach()
+
   add_benchmark(tpcc_mix_hytm ${TPCC} "${STRUCT_DIR}/arttree;${STRUCT_DIR}/hash_block" "Other;HyTm;Mix" "")
 
   foreach(bench ${SUB_TPCC_STRUCTS})

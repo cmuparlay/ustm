@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.13)
-project(USTM VERSION 1.0 DESCRIPTION "Micro Software Transactional Memory" LANGUAGES CXX)
+project(USTM VERSION 1.0 DESCRIPTION "Micro Software Transactional Memory" LANGUAGES C CXX)
 
 # Set a default build type
 if(NOT CMAKE_BUILD_TYPE)
@@ -57,13 +57,16 @@ set(USTM_INCLUDE_DIR "${USTM_SOURCE_DIR}/include")
 add_library(ustm INTERFACE)
 target_include_directories(ustm INTERFACE ${USTM_INCLUDE_DIR})
 target_compile_features(ustm INTERFACE cxx_std_17)
+
+set(USTM_COMMON_FLAGS -g)
 if(TARGET_ARCH MATCHES "x86")
-  target_compile_options(ustm INTERFACE -mcx16 -march=native -g)
+  list(APPEND USTM_COMMON_FLAGS -mcx16 -march=native)
 elseif(TARGET_ARCH MATCHES "ppc")
-  target_compile_options(ustm INTERFACE -mcpu=native -g)
+  list(APPEND USTM_COMMON_FLAGS -mcpu=native)
 else() #arm
-  target_compile_options(ustm INTERFACE -march=native -latomic -g)
+  list(APPEND USTM_COMMON_FLAGS -march=native -latomic)
 endif()
+target_compile_options(ustm INTERFACE ${USTM_COMMON_FLAGS})
 
 # Find threading library
 find_package(Threads REQUIRED)
@@ -110,6 +113,25 @@ elseif(ALLOCATOR MATCHES "deqalloc")
 else()
   message(FATAL_ERROR "No allocator selected. Allocator options: deqalloc, jemalloc.")
 endif()
+
+#compile tiny
+include(ExternalProject)
+string(REPLACE ";" " " USTM_COMMON_CFLAGS_STR "${USTM_COMMON_FLAGS}")
+ExternalProject_Add(tinystm_ext
+    SOURCE_DIR ${PROJECT_SOURCE_DIR}/other/tinystm
+    BUILD_IN_SOURCE 1
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND $(MAKE)
+      CFLAGS=${USTM_COMMON_CFLAGS_STR}
+    INSTALL_COMMAND ""
+    BUILD_BYPRODUCTS ${PROJECT_SOURCE_DIR}/other/tinystm/lib/libstm.a
+)
+add_library(tinystm STATIC IMPORTED)
+set_target_properties(tinystm PROPERTIES
+    IMPORTED_LOCATION ${PROJECT_SOURCE_DIR}/other/tinystm/lib/libstm.a
+)
+add_dependencies(tinystm tinystm_ext)
+
 # -------------------------------------------------------------------
 #                       Benchmarks
 
