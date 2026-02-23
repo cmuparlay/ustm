@@ -587,6 +587,105 @@ def plot_range_queries(results, output_dir):
         plt.close()
 
 
+def plot_paper_row(results, output_dir, param, structures, name='plot', fmt='pdf'):
+    """
+    Generate a compact 1x3 subplot figure suitable for a two-column paper.
+    Matches the style of typical systems-conference plots.
+    """
+    param_info = {
+        'n': ('Size (n)', True),
+        'p': ('Number of Threads', False),
+        'z': ('Zipfian Parameter', False),
+        'trans': ('Ops per Transaction', False),
+        'u': ('Update Rate (%)', False),
+    }
+    if param not in param_info:
+        print(f"Warning: Unknown parameter '{param}'")
+        return
+    param_label, log_scale = param_info[param]
+
+    # Organize data
+    data = defaultdict(lambda: defaultdict(list))
+    for r in results:
+        if r.get(param) is not None and r['structure'] in structures:
+            data[r['structure']][r['impl']].append((r[param], r['mops']))
+
+    available = [s for s in structures if s in data]
+    if not available:
+        print(f"Warning: No data for paper row ({param})")
+        return
+
+    impls_found = set()
+    for sd in data.values():
+        impls_found.update(sd.keys())
+    impls = [i for i in IMPL_ORDER if i in impls_found]
+
+    n = len(available)
+    fig, axes = plt.subplots(1, n, figsize=(2.4 * n, 2.0), squeeze=False)
+    axes = axes[0]
+
+    for col, struct in enumerate(available):
+        ax = axes[col]
+        for impl in impls:
+            if impl not in data[struct]:
+                continue
+            points = aggregate_points(data[struct][impl])
+            if not points:
+                continue
+            x_vals = [p[0] for p in points]
+            y_vals = [p[1] for p in points]
+            color = IMPL_COLORS.get(impl, '#333333')
+            label = IMPL_LABELS.get(impl, impl)
+            mkr = IMPL_MARKERS.get(impl, 'o')
+            ls = IMPL_LINESTYLES.get(impl, '-')
+            ax.plot(x_vals, y_vals, marker=mkr, linewidth=1.2, markersize=4,
+                    color=color, label=label, linestyle=ls)
+
+        if log_scale:
+            ax.set_xscale('log')
+        ax.set_xlabel(param_label, fontsize=7)
+        if col == 0:
+            ax.set_ylabel('Throughput\n(MOps/s)', fontsize=7)
+        ax.set_title(STRUCT_LABELS.get(struct, struct), fontsize=8, fontweight='bold')
+        ax.tick_params(axis='both', labelsize=6)
+        ax.grid(True, alpha=0.3, linewidth=0.4)
+
+    # Single shared legend across the top
+    handles, labels = axes[0].get_legend_handles_labels()
+    if handles:
+        fig.legend(handles, labels, loc='upper center',
+                   ncol=min(len(impls), 6), fontsize=6,
+                   bbox_to_anchor=(0.5, 1.12), columnspacing=1.0,
+                   handlelength=2.0)
+
+    plt.tight_layout(rect=[0, 0, 1, 0.95])
+    filename = f'{name}.{fmt}'
+    plt.savefig(output_dir / filename, dpi=300, bbox_inches='tight')
+    print(f"Generated: paper/{filename}")
+    plt.close()
+
+
+def plot_paper_figures(exp_results, output_dir, fmt='pdf'):
+    """
+    Generate compact paper figures for ART, B-tree, Skip List.
+    Thread scalability, update rate, zipfian, ops/txn, and size.
+    """
+    paper_dir = output_dir / 'paper'
+    paper_dir.mkdir(exist_ok=True)
+    structures = ['arttree', 'btree', 'skiplist']
+    file_to_param = {
+        'vary_threads': ('p', 'threads'),
+        'vary_update': ('u', 'update'),
+        'vary_zipfian': ('z', 'zipfian'),
+        'vary_trans': ('trans', 'ops_per_txn'),
+        'vary_size': ('n', 'size'),
+    }
+    for exp_file, (param, name) in file_to_param.items():
+        if exp_file in exp_results and exp_results[exp_file]:
+            plot_paper_row(exp_results[exp_file], paper_dir, param,
+                           structures, name=name, fmt=fmt)
+
+
 def plot_combined_grid(results, geomean_data, output_dir, filename='results_combined.pdf'):
     """
     Multiple subplots arranged in a grid.
@@ -600,7 +699,7 @@ def plot_combined_grid(results, geomean_data, output_dir, filename='results_comb
         return
     
     params = [
-        ('n', 'Dataset Size (n)', True),   # param, label, log_scale
+        ('n', 'Size (n)', True),   # param, label, log_scale
         ('p', 'Number of Threads', False),
         ('z', 'Zipfian Parameter', False),
         ('trans', 'Ops per Transaction', False),
@@ -1010,7 +1109,7 @@ def main():
                        help='Output directory for plots (default: plots)')
     parser.add_argument('--plots', nargs='+', 
                        choices=['geomean', 'varying', 'range', 'combined', 'tpcc',
-                                'nontrivial', 'ablation', 'machines', 'all'],
+                                'nontrivial', 'ablation', 'machines', 'paper', 'all'],
                        default=['all'],
                        help='Which plots to generate (default: all)')
     parser.add_argument('--format', type=str, choices=['pdf', 'png', 'svg'], 
@@ -1084,7 +1183,7 @@ def main():
     
     plots = args.plots
     if 'all' in plots:
-        plots = ['geomean', 'varying', 'range', 'combined', 'tpcc', 'nontrivial', 'ablation', 'machines']
+        plots = ['geomean', 'varying', 'range', 'combined', 'tpcc', 'nontrivial', 'ablation', 'machines', 'paper']
     
     if 'geomean' in plots:
         # Use only geomean data from the dedicated 'geomean' experiment file
@@ -1145,6 +1244,10 @@ def main():
         else:
             print("  No ablation data found")
     
+    if 'paper' in plots:
+        print("\nGenerating compact paper figures (ART, B-tree, Linked List)...")
+        plot_paper_figures(exp_results, output_dir, fmt=args.format)
+
     if 'machines' in plots and args.machine_dirs:
         print("\nGenerating Multi-machine comparison plot...")
         machine_dirs = []
