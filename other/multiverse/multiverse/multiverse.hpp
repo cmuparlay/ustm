@@ -38,6 +38,14 @@
 #include <vector>
 #include <bit>
 
+#ifndef USTM_X86
+#undef USE_RDTSC //dont use x86-specific hardware timestamping
+#endif
+
+#ifdef USTM_PPC
+#warning in our experiments, multiverse reaches an infinite loop on power-pc
+#endif
+
 #include "tm_common/stats.h"
 #include "tm_common/tm_debug.h"
 #include "tm_common/tm_timelines.h"

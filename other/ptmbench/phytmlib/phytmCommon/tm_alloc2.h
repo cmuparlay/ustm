@@ -24,7 +24,13 @@
 
 #define TM_ALLOC_FAA __sync_fetch_and_add
 #define TM_ALLOC_BCAS __sync_bool_compare_and_swap
+#if defined(USTM_X86)
 #define TM_ALLOC_PAUSE __asm__ __volatile__("pause;")
+#elif defined(USTM_PPC) || defined(USTM_ARM)
+#define TM_ALLOC_PAUSE __asm__ __volatile__("yield")
+#else
+#error unknown platform
+#endif
 
 #ifndef SOFTWARE_BARRIER
     #define SOFTWARE_BARRIER asm volatile("": : :"memory")

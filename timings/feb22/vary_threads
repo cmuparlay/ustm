@@ -165,3 +165,8 @@ Fixed: n=1000000, u=5, trans=4, z=0.75
 ./list_2plsf,u=5,trans=4,n=300,p=16,z=0.75,pa=82,be=0,mops=2.22
 ./list_2plsf,u=5,trans=4,n=300,p=32,z=0.75,pa=143,be=0,mops=3.12
 ./list_2plsf,u=5,trans=4,n=300,p=64,z=0.75,pa=233,be=0,mops=3.44
+./list_2plsf,u=5,trans=4,n=300,p=128,z=0.75,pa=376,be=0,mops=3.12
+./list_2plsf,u=5,trans=4,n=300,p=144,z=0.75,pa=406,be=0,mops=3.06
+./btree_fuse,u=5,trans=4,n=1000000,p=1,z=0.75,pa=0,be=0,mops=3.84
+./btree_fuse,u=5,trans=4,n=1000000,p=4,z=0.75,pa=0,be=0,mops=10.1
+./btree_fuse,u=5,trans=4,n=1000000,p=16,z=0.75,pa=0,be=0,mops=28.1

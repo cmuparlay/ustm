@@ -1,1 +1,1 @@
-/home/guyb/cppp-2.9/cppp ustm_swiss.h -UHWStamp -USimpleSTM -ULongJmp -UTryThrow -USTMStats -UParlayAlloc -ULazyStamp -UVLA -DSplitStamp -UFunnel -UFunnelEager -UEager > hold.h
+/home/guyb/cppp-2.9/cppp ustm_swiss.h -UFunnel -UFunnelEager -USimpleFunnel -UEager -UHWStamp -USimpleSTM -ULongJmp -UTryThrow -USTMStats -DParlayAlloc -DLazyStamp -UVLA -DSplitStamp > hold.

@@ -1,0 +1,26 @@
+Date: 02-22-2026
+Experiment: tpcc
+HYTM: no
+Model name:                              Intel(R) Xeon(R) Platinum 8488C
+Git: 090bfaa
+---
+Threads: 192
+---
+./tpcc_arttree_mvustm: mops/sec = 11.52, num_warehouses = 192, %aborts = 1.869
+./tpcc_arttree_mvustm: mops/sec = 10.69, num_warehouses = 192, %aborts = 2.224
+./tpcc_arttree_fuse: mops/sec = 1.572, num_warehouses = 192, %aborts = 0
+./tpcc_arttree_fuse: mops/sec = 1.577, num_warehouses = 192, %aborts = 0
+./tpcc_arttree_2plsf: mops/sec = 3.964, num_warehouses = 192, %aborts = 1.971
+./tpcc_arttree_2plsf: mops/sec = 3.592, num_warehouses = 192, %aborts = 1.427
+./tpcc_btree_mvustm: mops/sec = 7.906, num_warehouses = 192, %aborts = 3.002
+./tpcc_btree_mvustm: mops/sec = 8.077, num_warehouses = 192, %aborts = 3.062
+./tpcc_btree_fuse: mops/sec = 4.979, num_warehouses = 192, %aborts = 0
+./tpcc_btree_fuse: mops/sec = 4.866, num_warehouses = 192, %aborts = 0
+./tpcc_btree_2plsf: mops/sec = 2.793, num_warehouses = 192, %aborts = 0.9673
+./tpcc_btree_2plsf: mops/sec = 2.732, num_warehouses = 192, %aborts = 1.362
+./tpcc_hash_block_mvustm: mops/sec = 11.37, num_warehouses = 192, %aborts = 1.449
+./tpcc_hash_block_mvustm: mops/sec = 11.61, num_warehouses = 192, %aborts = 1.541
+./tpcc_hash_block_fuse: mops/sec = 9.18, num_warehouses = 192, %aborts = 0
+./tpcc_hash_block_fuse: mops/sec = 10.85, num_warehouses = 192, %aborts = 0
+./tpcc_hash_block_2plsf: mops/sec = 3.62, num_warehouses = 192, %aborts = 0.1152
+./tpcc_hash_block_2plsf: mops/sec = 3.436, num_warehouses = 192, %aborts = 0.1223
