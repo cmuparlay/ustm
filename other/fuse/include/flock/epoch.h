@@ -15,7 +15,9 @@
 #endif
 
 // Can use malloc instead of parlay::type_allocator
+#ifndef ParlayAlloc
 #define USE_MALLOC 1
+#endif
 
 //#define USE_STEPPING
 
