@@ -182,11 +182,11 @@ struct Link {
   inline Link* allocate_link() {return (Link*) malloc(sizeof(Link));}
   inline void free_link(Link* x) {return free(x);}
 #else
-  inline Link* allocate_link() {return (Link*) malloc(sizeof(Link));}
-  inline void free_link(Link* x) {return free(x);}
-  // using list_allocator = typename parlay::type_allocator<Link>;
-  // inline Link* allocate_link() {return list_allocator::alloc();}
-  // inline void free_link(Link* x) {return list_allocator::free(x);}
+  //  inline Link* allocate_link() {return (Link*) malloc(sizeof(Link));}
+  // inline void free_link(Link* x) {return free(x);}
+  using list_allocator = typename parlay::type_allocator<Link>;
+  inline Link* allocate_link() {return list_allocator::alloc();}
+  inline void free_link(Link* x) {return list_allocator::free(x);}
 #endif
   
   using namespace std::chrono;
