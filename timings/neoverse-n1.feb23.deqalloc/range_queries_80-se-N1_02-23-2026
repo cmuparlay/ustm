@@ -1,0 +1,39 @@
+Date: 02-23-2026
+Experiment: range_queries
+HYTM: no
+Model name:                              Neoverse-N1
+Git: 37f7bae
+---
+Fixed: n=1000000, u=100, trans=4, z=0, p=80, rqp=50
+---
+./btree_multiverse,u=100,trans=4,n=1000000,p=80,z=0,pa=0,be=0,rs=1,rqp=50,rqmops=46.5,mops=33.1
+./btree_multiverse,u=100,trans=4,n=1000000,p=80,z=0,pa=0,be=0,rs=10,rqp=50,rqmops=39.2,mops=30.6
+./btree_multiverse,u=100,trans=4,n=1000000,p=80,z=0,pa=0,be=0,rs=100,rqp=50,rqmops=18,mops=27.2
+./btree_multiverse,u=100,trans=4,n=1000000,p=80,z=0,pa=0,be=0,rs=1000,rqp=50,rqmops=2.32,mops=22.6
+./btree_multiverse,u=100,trans=4,n=1000000,p=80,z=0,pa=0,be=0,rs=10000,rqp=50,rqmops=0.0807,mops=31.3
+./btree_multiverse,u=100,trans=4,n=1000000,p=80,z=0,pa=0,be=0,rs=100000,rqp=50,rqmops=0.0101,mops=32
+./btree_multiverse,u=100,trans=4,n=1000000,p=80,z=0,pa=0,be=0,rs=1000000,rqp=50,rqmops=0.00122,mops=22.8
+./btree_mvustm,u=100,trans=4,n=1000000,p=80,z=0,pa=0.453,be=0,rs=1,rqp=50,rqmops=43.9,mops=34.3
+./btree_mvustm,u=100,trans=4,n=1000000,p=80,z=0,pa=0.514,be=0,rs=10,rqp=50,rqmops=40.4,mops=35.5
+./btree_mvustm,u=100,trans=4,n=1000000,p=80,z=0,pa=0.866,be=0,rs=100,rqp=50,rqmops=19.5,mops=34.3
+./btree_mvustm,u=100,trans=4,n=1000000,p=80,z=0,pa=2.16,be=0,rs=1000,rqp=50,rqmops=3.28,mops=36.8
+./btree_mvustm,u=100,trans=4,n=1000000,p=80,z=0,pa=2.93,be=0,rs=10000,rqp=50,rqmops=0.321,mops=38.7
+./btree_mvustm,u=100,trans=4,n=1000000,p=80,z=0,pa=3.01,be=0,rs=100000,rqp=50,rqmops=0.0298,mops=40.1
+./btree_mvustm,u=100,trans=4,n=1000000,p=80,z=0,pa=2.69,be=0,rs=1000000,rqp=50,rqmops=0.00265,mops=34.7
+# CRASH: ./arttree_mvustm -n 1000000 -u 100 -trans 4 -z 0 -p 80 -rqp 50 -rs 1,10,100,1000,10000,100000,1000000 -r 1 -t 1
+./btree_2plsf,u=100,trans=4,n=1000000,p=80,z=0,pa=0.202,be=0,rs=1,rqp=50,rqmops=112,mops=20.5
+./btree_2plsf,u=100,trans=4,n=1000000,p=80,z=0,pa=0.224,be=0,rs=10,rqp=50,rqmops=88.9,mops=20.1
+./btree_2plsf,u=100,trans=4,n=1000000,p=80,z=0,pa=0.5,be=0,rs=100,rqp=50,rqmops=27.1,mops=13.7
+./btree_2plsf,u=100,trans=4,n=1000000,p=80,z=0,pa=1.95,be=0,rs=1000,rqp=50,rqmops=2.81,mops=12
+./btree_2plsf,u=100,trans=4,n=1000000,p=80,z=0,pa=16.2,be=0,rs=10000,rqp=50,rqmops=0.295,mops=5.27
+./btree_2plsf,u=100,trans=4,n=1000000,p=80,z=0,pa=247,be=0,rs=100000,rqp=50,rqmops=0.0206,mops=0.253
+./btree_2plsf,u=100,trans=4,n=1000000,p=80,z=0,pa=976,be=0,rs=1000000,rqp=50,rqmops=0.00295,mops=0.0325
+# CRASH: ./arttree_2plsf -n 1000000 -u 100 -trans 4 -z 0 -p 80 -rqp 50 -rs 1,10,100,1000,10000,100000,1000000 -r 1 -t 1
+./btree_fuse,u=100,trans=4,n=1000000,p=80,z=0,pa=0,be=0,rs=1,rqp=50,rqmops=46.1,mops=27.3
+./btree_fuse,u=100,trans=4,n=1000000,p=80,z=0,pa=0,be=0,rs=10,rqp=50,rqmops=40.1,mops=27.2
+./btree_fuse,u=100,trans=4,n=1000000,p=80,z=0,pa=0,be=0,rs=100,rqp=50,rqmops=19.4,mops=26.2
+./btree_fuse,u=100,trans=4,n=1000000,p=80,z=0,pa=0,be=0,rs=1000,rqp=50,rqmops=3.21,mops=26.9
+./btree_fuse,u=100,trans=4,n=1000000,p=80,z=0,pa=0,be=0,rs=10000,rqp=50,rqmops=0.288,mops=27.1
+./btree_fuse,u=100,trans=4,n=1000000,p=80,z=0,pa=0,be=0,rs=100000,rqp=50,rqmops=0.0275,mops=22.1
+./btree_fuse,u=100,trans=4,n=1000000,p=80,z=0,pa=0,be=0,rs=1000000,rqp=50,rqmops=0.00321,mops=23.1
+# CRASH: ./arttree_fuse -n 1000000 -u 100 -trans 4 -z 0 -p 80 -rqp 50 -rs 1,10,100,1000,10000,100000,1000000 -r 1 -t 1

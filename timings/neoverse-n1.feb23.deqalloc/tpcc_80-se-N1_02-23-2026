@@ -1,0 +1,14 @@
+Date: 02-23-2026
+Experiment: tpcc
+HYTM: no
+Model name:                              Neoverse-N1
+Git: 37f7bae
+---
+Threads: 80
+---
+./tpcc_btree_mvustm: mops/sec = 3.227, num_warehouses = 80, %aborts = 1.079
+./tpcc_btree_fuse: mops/sec = 2.472, num_warehouses = 80, %aborts = 0
+./tpcc_btree_2plsf: mops/sec = 1.37, num_warehouses = 80, %aborts = 1.285
+# CRASH: ./tpcc_mix_mvustm -nowarmup -p 80
+# CRASH: ./tpcc_mix_fuse -nowarmup -p 80
+# CRASH: ./tpcc_mix_2plsf -nowarmup -p 80

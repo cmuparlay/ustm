@@ -1,0 +1,200 @@
+Date: 02-23-2026
+Experiment: vary_zipfian
+HYTM: no
+Model name:                              Neoverse-N1
+Git: 37f7bae
+---
+Fixed: n=1000000, u=5, trans=4, p=80
+---
+./btree_multiverse,u=5,trans=4,n=1000000,p=80,z=0,pa=0,be=0,mops=223
+./btree_multiverse,u=5,trans=4,n=1000000,p=80,z=0.5,pa=0,be=0,mops=223
+./btree_multiverse,u=5,trans=4,n=1000000,p=80,z=0.75,pa=0,be=0,mops=216
+./btree_multiverse,u=5,trans=4,n=1000000,p=80,z=0.9,pa=0,be=0,mops=148
+./btree_multiverse,u=5,trans=4,n=1000000,p=80,z=0.99,pa=0,be=0,mops=85.2
+./btree_multiverse,GEOMETRIC MEAN OF THROUGHPUTS: 168.3
+./btree_multiverse,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
+./avltree_multiverse,u=5,trans=4,n=1000000,p=80,z=0,pa=0,be=0,mops=95.9
+./avltree_multiverse,u=5,trans=4,n=1000000,p=80,z=0.5,pa=0,be=0,mops=94.1
+./avltree_multiverse,u=5,trans=4,n=1000000,p=80,z=0.75,pa=0,be=0,mops=99.2
+./avltree_multiverse,u=5,trans=4,n=1000000,p=80,z=0.9,pa=0,be=0,mops=98.5
+./avltree_multiverse,u=5,trans=4,n=1000000,p=80,z=0.99,pa=0,be=0,mops=74
+./avltree_multiverse,GEOMETRIC MEAN OF THROUGHPUTS: 91.83
+./avltree_multiverse,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
+./leaftree_multiverse,u=5,trans=4,n=1000000,p=80,z=0,pa=0,be=0,mops=74.9
+./leaftree_multiverse,u=5,trans=4,n=1000000,p=80,z=0.5,pa=0,be=0,mops=72.1
+./leaftree_multiverse,u=5,trans=4,n=1000000,p=80,z=0.75,pa=0,be=0,mops=75.1
+./leaftree_multiverse,u=5,trans=4,n=1000000,p=80,z=0.9,pa=0,be=0,mops=81.7
+./leaftree_multiverse,u=5,trans=4,n=1000000,p=80,z=0.99,pa=0,be=0,mops=73.8
+./leaftree_multiverse,GEOMETRIC MEAN OF THROUGHPUTS: 75.46
+./leaftree_multiverse,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
+./treap_multiverse,u=5,trans=4,n=1000000,p=80,z=0,pa=0,be=0,mops=136
+./treap_multiverse,u=5,trans=4,n=1000000,p=80,z=0.5,pa=0,be=0,mops=129
+./treap_multiverse,u=5,trans=4,n=1000000,p=80,z=0.75,pa=0,be=0,mops=131
+./treap_multiverse,u=5,trans=4,n=1000000,p=80,z=0.9,pa=0,be=0,mops=131
+./treap_multiverse,u=5,trans=4,n=1000000,p=80,z=0.99,pa=0,be=0,mops=88.7
+./treap_multiverse,GEOMETRIC MEAN OF THROUGHPUTS: 121.7
+./treap_multiverse,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
+./skiplist_multiverse,u=5,trans=4,n=1000000,p=80,z=0,pa=0,be=0,mops=63.9
+./skiplist_multiverse,u=5,trans=4,n=1000000,p=80,z=0.5,pa=0,be=0,mops=64.4
+./skiplist_multiverse,u=5,trans=4,n=1000000,p=80,z=0.75,pa=0,be=0,mops=66.2
+./skiplist_multiverse,u=5,trans=4,n=1000000,p=80,z=0.9,pa=0,be=0,mops=70.5
+./skiplist_multiverse,u=5,trans=4,n=1000000,p=80,z=0.99,pa=0,be=0,mops=62.8
+./skiplist_multiverse,GEOMETRIC MEAN OF THROUGHPUTS: 65.5
+./skiplist_multiverse,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
+./list_multiverse,u=5,trans=4,n=300,p=80,z=0,pa=0,be=0,mops=5.63
+./list_multiverse,u=5,trans=4,n=300,p=80,z=0.5,pa=0,be=0,mops=5.41
+./list_multiverse,u=5,trans=4,n=300,p=80,z=0.75,pa=0,be=0,mops=5.53
+./list_multiverse,u=5,trans=4,n=300,p=80,z=0.9,pa=0,be=0,mops=5.57
+./list_multiverse,u=5,trans=4,n=300,p=80,z=0.99,pa=0,be=0,mops=5.6
+./list_multiverse,GEOMETRIC MEAN OF THROUGHPUTS: 5.544
+./list_multiverse,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
+./btree_mvustm,u=5,trans=4,n=1000000,p=80,z=0,pa=0,be=0,mops=175
+./btree_mvustm,u=5,trans=4,n=1000000,p=80,z=0.5,pa=0,be=0,mops=175
+./btree_mvustm,u=5,trans=4,n=1000000,p=80,z=0.75,pa=0.145,be=0,mops=177
+./btree_mvustm,u=5,trans=4,n=1000000,p=80,z=0.9,pa=1.01,be=0,mops=180
+./btree_mvustm,u=5,trans=4,n=1000000,p=80,z=0.99,pa=3.08,be=0,mops=181
+./btree_mvustm,GEOMETRIC MEAN OF THROUGHPUTS: 177.6
+./btree_mvustm,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
+# CRASH: ./arttree_mvustm -n 1000000 -u 5 -trans 4 -p 80 -z 0,0.5,0.75,0.9,0.99 -r 1 -t 1
+./avltree_mvustm,u=5,trans=4,n=1000000,p=80,z=0,pa=0,be=0,mops=76.9
+./avltree_mvustm,u=5,trans=4,n=1000000,p=80,z=0.5,pa=0,be=0,mops=77.2
+./avltree_mvustm,u=5,trans=4,n=1000000,p=80,z=0.75,pa=0,be=0,mops=79.3
+./avltree_mvustm,u=5,trans=4,n=1000000,p=80,z=0.9,pa=0.691,be=0,mops=86.6
+./avltree_mvustm,u=5,trans=4,n=1000000,p=80,z=0.99,pa=2.21,be=0,mops=94.1
+./avltree_mvustm,GEOMETRIC MEAN OF THROUGHPUTS: 82.53
+./avltree_mvustm,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
+./leaftree_mvustm,u=5,trans=4,n=1000000,p=80,z=0,pa=0,be=0,mops=53.2
+./leaftree_mvustm,u=5,trans=4,n=1000000,p=80,z=0.5,pa=0,be=0,mops=52.6
+./leaftree_mvustm,u=5,trans=4,n=1000000,p=80,z=0.75,pa=0,be=0,mops=54.9
+./leaftree_mvustm,u=5,trans=4,n=1000000,p=80,z=0.9,pa=0.507,be=0,mops=60.4
+./leaftree_mvustm,u=5,trans=4,n=1000000,p=80,z=0.99,pa=1.67,be=0,mops=70.4
+./leaftree_mvustm,GEOMETRIC MEAN OF THROUGHPUTS: 57.94
+./leaftree_mvustm,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
+./treap_mvustm,u=5,trans=4,n=1000000,p=80,z=0,pa=0,be=0,mops=104
+./treap_mvustm,u=5,trans=4,n=1000000,p=80,z=0.5,pa=0,be=0,mops=103
+./treap_mvustm,u=5,trans=4,n=1000000,p=80,z=0.75,pa=0,be=0,mops=106
+./treap_mvustm,u=5,trans=4,n=1000000,p=80,z=0.9,pa=0.653,be=0,mops=113
+./treap_mvustm,u=5,trans=4,n=1000000,p=80,z=0.99,pa=2.14,be=0,mops=119
+./treap_mvustm,GEOMETRIC MEAN OF THROUGHPUTS: 109.1
+./treap_mvustm,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
+./skiplist_mvustm,u=5,trans=4,n=1000000,p=80,z=0,pa=0,be=0,mops=41.8
+./skiplist_mvustm,u=5,trans=4,n=1000000,p=80,z=0.5,pa=0,be=0,mops=41.8
+./skiplist_mvustm,u=5,trans=4,n=1000000,p=80,z=0.75,pa=0,be=0,mops=43
+./skiplist_mvustm,u=5,trans=4,n=1000000,p=80,z=0.9,pa=0.554,be=0,mops=47.5
+./skiplist_mvustm,u=5,trans=4,n=1000000,p=80,z=0.99,pa=1.77,be=0,mops=52.6
+./skiplist_mvustm,GEOMETRIC MEAN OF THROUGHPUTS: 45.17
+./skiplist_mvustm,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
+./hash_block_mvustm,u=5,trans=4,n=1000000,p=80,z=0,pa=0,be=0,mops=251
+./hash_block_mvustm,u=5,trans=4,n=1000000,p=80,z=0.5,pa=0,be=0,mops=252
+./hash_block_mvustm,u=5,trans=4,n=1000000,p=80,z=0.75,pa=0,be=0,mops=262
+./hash_block_mvustm,u=5,trans=4,n=1000000,p=80,z=0.9,pa=1.09,be=0,mops=270
+./hash_block_mvustm,u=5,trans=4,n=1000000,p=80,z=0.99,pa=3.27,be=0,mops=263
+./hash_block_mvustm,GEOMETRIC MEAN OF THROUGHPUTS: 259.3
+./hash_block_mvustm,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
+./list_mvustm,u=5,trans=4,n=300,p=80,z=0,pa=421,be=0,mops=5.55
+./list_mvustm,u=5,trans=4,n=300,p=80,z=0.5,pa=413,be=0,mops=5.64
+./list_mvustm,u=5,trans=4,n=300,p=80,z=0.75,pa=389,be=0,mops=6
+./list_mvustm,u=5,trans=4,n=300,p=80,z=0.9,pa=360,be=0,mops=6.42
+./list_mvustm,u=5,trans=4,n=300,p=80,z=0.99,pa=344,be=0,mops=6.65
+./list_mvustm,GEOMETRIC MEAN OF THROUGHPUTS: 6.037
+./list_mvustm,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
+./btree_2plsf,u=5,trans=4,n=1000000,p=80,z=0,pa=0.383,be=0,mops=211
+./btree_2plsf,u=5,trans=4,n=1000000,p=80,z=0.5,pa=0.384,be=0,mops=214
+./btree_2plsf,u=5,trans=4,n=1000000,p=80,z=0.75,pa=2.45,be=0,mops=191
+./btree_2plsf,u=5,trans=4,n=1000000,p=80,z=0.9,pa=17.7,be=0,mops=78.9
+./btree_2plsf,u=5,trans=4,n=1000000,p=80,z=0.99,pa=37.4,be=0,mops=39.2
+./btree_2plsf,GEOMETRIC MEAN OF THROUGHPUTS: 121.8
+./btree_2plsf,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
+# CRASH: ./arttree_2plsf -n 1000000 -u 5 -trans 4 -p 80 -z 0,0.5,0.75,0.9,0.99 -r 1 -t 1
+./avltree_2plsf,u=5,trans=4,n=1000000,p=80,z=0,pa=0.385,be=0,mops=82.6
+./avltree_2plsf,u=5,trans=4,n=1000000,p=80,z=0.5,pa=0.411,be=0,mops=82.2
+./avltree_2plsf,u=5,trans=4,n=1000000,p=80,z=0.75,pa=2.85,be=0,mops=77.3
+./avltree_2plsf,u=5,trans=4,n=1000000,p=80,z=0.9,pa=27.4,be=0,mops=38.3
+./avltree_2plsf,u=5,trans=4,n=1000000,p=80,z=0.99,pa=52.4,be=0,mops=23.1
+./avltree_2plsf,GEOMETRIC MEAN OF THROUGHPUTS: 54.1
+./avltree_2plsf,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
+./leaftree_2plsf,u=5,trans=4,n=1000000,p=80,z=0,pa=0,be=0,mops=63.7
+./leaftree_2plsf,u=5,trans=4,n=1000000,p=80,z=0.5,pa=0,be=0,mops=63.5
+./leaftree_2plsf,u=5,trans=4,n=1000000,p=80,z=0.75,pa=0.498,be=0,mops=64.1
+./leaftree_2plsf,u=5,trans=4,n=1000000,p=80,z=0.9,pa=11.6,be=0,mops=52.3
+./leaftree_2plsf,u=5,trans=4,n=1000000,p=80,z=0.99,pa=33.4,be=0,mops=32
+./leaftree_2plsf,GEOMETRIC MEAN OF THROUGHPUTS: 53.41
+./leaftree_2plsf,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
+./treap_2plsf,u=5,trans=4,n=1000000,p=80,z=0,pa=0,be=0,mops=121
+./treap_2plsf,u=5,trans=4,n=1000000,p=80,z=0.5,pa=0,be=0,mops=120
+./treap_2plsf,u=5,trans=4,n=1000000,p=80,z=0.75,pa=1.1,be=0,mops=117
+./treap_2plsf,u=5,trans=4,n=1000000,p=80,z=0.9,pa=15.2,be=0,mops=68.8
+./treap_2plsf,u=5,trans=4,n=1000000,p=80,z=0.99,pa=35.5,be=0,mops=37.9
+./treap_2plsf,GEOMETRIC MEAN OF THROUGHPUTS: 84.9
+./treap_2plsf,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
+./skiplist_2plsf,u=5,trans=4,n=1000000,p=80,z=0,pa=0.22,be=0,mops=53.5
+./skiplist_2plsf,u=5,trans=4,n=1000000,p=80,z=0.5,pa=0.202,be=0,mops=54.3
+./skiplist_2plsf,u=5,trans=4,n=1000000,p=80,z=0.75,pa=1.21,be=0,mops=54.2
+./skiplist_2plsf,u=5,trans=4,n=1000000,p=80,z=0.9,pa=18.8,be=0,mops=38.9
+./skiplist_2plsf,u=5,trans=4,n=1000000,p=80,z=0.99,pa=42.6,be=0,mops=25.4
+./skiplist_2plsf,GEOMETRIC MEAN OF THROUGHPUTS: 43.49
+./skiplist_2plsf,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
+./hash_block_2plsf,u=5,trans=4,n=1000000,p=80,z=0,pa=0,be=0,mops=451
+./hash_block_2plsf,u=5,trans=4,n=1000000,p=80,z=0.5,pa=0,be=0,mops=453
+./hash_block_2plsf,u=5,trans=4,n=1000000,p=80,z=0.75,pa=3.35,be=0,mops=293
+./hash_block_2plsf,u=5,trans=4,n=1000000,p=80,z=0.9,pa=18.6,be=0,mops=83.5
+./hash_block_2plsf,u=5,trans=4,n=1000000,p=80,z=0.99,pa=36.9,be=0,mops=40.9
+./hash_block_2plsf,GEOMETRIC MEAN OF THROUGHPUTS: 182.9
+./hash_block_2plsf,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
+./list_2plsf,u=5,trans=4,n=300,p=80,z=0,pa=289,be=0,mops=2.43
+./list_2plsf,u=5,trans=4,n=300,p=80,z=0.5,pa=291,be=0,mops=2.43
+./list_2plsf,u=5,trans=4,n=300,p=80,z=0.75,pa=288,be=0,mops=2.47
+./list_2plsf,u=5,trans=4,n=300,p=80,z=0.9,pa=283,be=0,mops=2.53
+./list_2plsf,u=5,trans=4,n=300,p=80,z=0.99,pa=276,be=0,mops=2.61
+./list_2plsf,GEOMETRIC MEAN OF THROUGHPUTS: 2.492
+./list_2plsf,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
+./btree_fuse,u=5,trans=4,n=1000000,p=80,z=0,pa=0,be=0,mops=155
+./btree_fuse,u=5,trans=4,n=1000000,p=80,z=0.5,pa=0,be=0,mops=155
+./btree_fuse,u=5,trans=4,n=1000000,p=80,z=0.75,pa=0,be=0,mops=156
+./btree_fuse,u=5,trans=4,n=1000000,p=80,z=0.9,pa=0,be=0,mops=153
+./btree_fuse,u=5,trans=4,n=1000000,p=80,z=0.99,pa=0,be=0,mops=138
+./btree_fuse,GEOMETRIC MEAN OF THROUGHPUTS: 151.4
+./btree_fuse,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
+# CRASH: ./arttree_fuse -n 1000000 -u 5 -trans 4 -p 80 -z 0,0.5,0.75,0.9,0.99 -r 1 -t 1
+./avltree_fuse,u=5,trans=4,n=1000000,p=80,z=0,pa=0,be=0,mops=78.6
+./avltree_fuse,u=5,trans=4,n=1000000,p=80,z=0.5,pa=0,be=0,mops=77.8
+./avltree_fuse,u=5,trans=4,n=1000000,p=80,z=0.75,pa=0,be=0,mops=80.2
+./avltree_fuse,u=5,trans=4,n=1000000,p=80,z=0.9,pa=0,be=0,mops=85.2
+./avltree_fuse,u=5,trans=4,n=1000000,p=80,z=0.99,pa=0,be=0,mops=87.8
+./avltree_fuse,GEOMETRIC MEAN OF THROUGHPUTS: 81.83
+./avltree_fuse,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
+./leaftree_fuse,u=5,trans=4,n=1000000,p=80,z=0,pa=0,be=0,mops=66.6
+./leaftree_fuse,u=5,trans=4,n=1000000,p=80,z=0.5,pa=0,be=0,mops=65.9
+./leaftree_fuse,u=5,trans=4,n=1000000,p=80,z=0.75,pa=0,be=0,mops=69.4
+./leaftree_fuse,u=5,trans=4,n=1000000,p=80,z=0.9,pa=0,be=0,mops=73.4
+./leaftree_fuse,u=5,trans=4,n=1000000,p=80,z=0.99,pa=0,be=0,mops=80
+./leaftree_fuse,GEOMETRIC MEAN OF THROUGHPUTS: 70.88
+./leaftree_fuse,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
+./treap_fuse,u=5,trans=4,n=1000000,p=80,z=0,pa=0,be=0,mops=101
+./treap_fuse,u=5,trans=4,n=1000000,p=80,z=0.5,pa=0,be=0,mops=101
+./treap_fuse,u=5,trans=4,n=1000000,p=80,z=0.75,pa=0,be=0,mops=103
+./treap_fuse,u=5,trans=4,n=1000000,p=80,z=0.9,pa=0,be=0,mops=107
+./treap_fuse,u=5,trans=4,n=1000000,p=80,z=0.99,pa=0,be=0,mops=110
+./treap_fuse,GEOMETRIC MEAN OF THROUGHPUTS: 104.3
+./treap_fuse,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
+./skiplist_fuse,u=5,trans=4,n=1000000,p=80,z=0,pa=0,be=0,mops=45.5
+./skiplist_fuse,u=5,trans=4,n=1000000,p=80,z=0.5,pa=0,be=0,mops=45.6
+./skiplist_fuse,u=5,trans=4,n=1000000,p=80,z=0.75,pa=0,be=0,mops=44.9
+./skiplist_fuse,u=5,trans=4,n=1000000,p=80,z=0.9,pa=0,be=0,mops=45
+./skiplist_fuse,u=5,trans=4,n=1000000,p=80,z=0.99,pa=0,be=0,mops=54
+./skiplist_fuse,GEOMETRIC MEAN OF THROUGHPUTS: 46.88
+./skiplist_fuse,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
+./hash_block_fuse,u=5,trans=4,n=1000000,p=80,z=0,pa=0,be=0,mops=203
+./hash_block_fuse,u=5,trans=4,n=1000000,p=80,z=0.5,pa=0,be=0,mops=204
+./hash_block_fuse,u=5,trans=4,n=1000000,p=80,z=0.75,pa=0,be=0,mops=211
+./hash_block_fuse,u=5,trans=4,n=1000000,p=80,z=0.9,pa=0,be=0,mops=202
+./hash_block_fuse,u=5,trans=4,n=1000000,p=80,z=0.99,pa=0,be=0,mops=169
+./hash_block_fuse,GEOMETRIC MEAN OF THROUGHPUTS: 197
+./hash_block_fuse,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
+./list_fuse,u=5,trans=4,n=300,p=80,z=0,pa=0,be=0,mops=4.62
+./list_fuse,u=5,trans=4,n=300,p=80,z=0.5,pa=0,be=0,mops=4.98
+./list_fuse,u=5,trans=4,n=300,p=80,z=0.75,pa=0,be=0,mops=5.04
+./list_fuse,u=5,trans=4,n=300,p=80,z=0.9,pa=0,be=0,mops=5.35
+./list_fuse,u=5,trans=4,n=300,p=80,z=0.99,pa=0,be=0,mops=5.49
+./list_fuse,GEOMETRIC MEAN OF THROUGHPUTS: 5.086
+./list_fuse,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
