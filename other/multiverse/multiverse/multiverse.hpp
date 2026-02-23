@@ -38,12 +38,25 @@
 #include <vector>
 #include <bit>
 
+#ifndef USTM_X86
+#undef USE_RDTSC //dont use x86-specific hardware timestamping
+#endif
+
+#ifdef USTM_PPC
+#warning in our experiments, multiverse reaches an infinite loop on power-pc
+#endif
+
 #include "tm_common/stats.h"
 #include "tm_common/tm_debug.h"
 #include "tm_common/tm_timelines.h"
 #include "bloom_filter.h"
 
 std::atomic<int> debugLock {0};
+// #define TRACK_MULTIVERSE_COUNTERS
+#ifdef TRACK_MULTIVERSE_COUNTERS
+struct alignas(128) PaddedCounter { uint64_t aborts = 0; uint64_t commits = 0; };
+PaddedCounter gMultiverseCounters[256];
+#endif
 
 // #define TRACK_OP_TYPE 1
 #ifdef TRACK_OP_TYPE
@@ -1803,6 +1816,9 @@ public:
     inline bool endTx(OpData* myd, const int tid) {
         std::atomic_thread_fence(std::memory_order_seq_cst);
         if (myd->writeSet.size == 0 && myd->snapshotWriteSet.size == 0) {
+            #ifdef TRACK_MULTIVERSE_COUNTERS
+            gMultiverseCounters[tid % 256].commits++;
+            #endif
             #ifdef TRACK_REGULAR_METRICS
             STATS_COUNTER_ADD(myd->tid, commits, 1);
             #endif
@@ -1911,6 +1927,9 @@ public:
         myd->snapshotWriteSet.removeTBDs(myd->tid, commitTS);
 
         myd->writeSet.unlock(commitTS, tid);
+        #ifdef TRACK_MULTIVERSE_COUNTERS
+        gMultiverseCounters[tid % 256].commits++;
+        #endif
         #ifdef TRACK_REGULAR_METRICS
         STATS_COUNTER_ADD(myd->tid, commits, 1);
         STATS_LIST_APPEND(myd->tid, rdset_size_at_commit, myd->readSet.size);
@@ -2883,12 +2902,15 @@ void thread_registry_deregister_thread() {
     // uint64_t nextClock = globals.gClock.fetch_add(1);
 
     uint64_t nextClock;
-    if (globals.gClock.compare_exchange_strong(myd->rClock, myd->rClock+1)) {
-        nextClock = myd->rClock+1;
+    uint64_t curr = globals.gClock.load();
+    if (curr != myd->rClock) {
+        nextClock = curr;
+    } else if (globals.gClock.compare_exchange_strong(myd->rClock, myd->rClock + 1)) {
+        nextClock = myd->rClock + 1;
+    } else {
+        nextClock = myd->rClock;
     }
-    else {
-        nextClock = globals.gClock.load(std::memory_order_relaxed);
-    }
+
     #else
     uint64_t nextClock = rdtsc_get_abort_ts();
     #endif
@@ -2901,6 +2923,9 @@ void thread_registry_deregister_thread() {
 
     // Unlock with the next sequence
     myd->writeSet.unlock(nextClock, myd->tid);
+    #ifdef TRACK_MULTIVERSE_COUNTERS
+    gMultiverseCounters[myd->tid % 256].aborts++;
+    #endif
     #ifdef TRACK_REGULAR_METRICS
     STATS_COUNTER_ADD(myd->tid, aborts, 1);
     #endif

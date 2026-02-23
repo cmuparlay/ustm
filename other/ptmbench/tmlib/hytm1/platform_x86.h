@@ -79,7 +79,11 @@ void prefetchw (volatile void* x);
  * Ideally we would like to drop the priority of our CMT strand.
  * =============================================================================
  */
+#if defined(USTM_X86)
 #define PAUSE()                         __asm__ __volatile__("pause;")
+#elif defined(USTM_PPC) || defined(USTM_ARM)
+#define PAUSE()                         __asm__ __volatile__("yield")
+#endif
 
 
 /* =============================================================================

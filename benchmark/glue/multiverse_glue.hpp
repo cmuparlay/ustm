@@ -113,6 +113,17 @@ namespace stm {
                                     direct_atomic<T>, indirect_atomic<T>>;
 
   std::pair<long,long> statistics() {
-    return {0ul, 0ul};
+#ifdef TRACK_MULTIVERSE_COUNTERS
+    uint64_t aborts = 0, commits = 0;
+    for (int i = 0; i < 256; i++) {
+      aborts += gMultiverseCounters[i].aborts;
+      commits += gMultiverseCounters[i].commits;
+      gMultiverseCounters[i].aborts = 0;
+      gMultiverseCounters[i].commits = 0;
+    }
+    return {(long)aborts, (long)commits};
+#else
+    return {0, 0};
+#endif
   }
 }

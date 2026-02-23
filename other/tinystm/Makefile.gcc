@@ -3,7 +3,7 @@ ifeq ($(CFG),debug)
   CFLAGS += -O0 -ggdb3
 else
   CFLAGS += -O2
-  CFLAGS += -march=native
+  #CFLAGS += -march=native
 endif
 
 # Disable strict aliasing 
