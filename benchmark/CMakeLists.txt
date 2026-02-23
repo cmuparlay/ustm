@@ -8,7 +8,7 @@ set(FUSE_DIR ${OTHER_DIR}/fuse)
 set(STRUCTS "avltree" "treap" "leaftree" "btree" "arttree" "hash_block" "hash_list" "list" "skiplist" "hash_probe")
 set(SUB_STRUCTS "btree")
 
-set(COMMON_DEFS "STMStats")
+list(APPEND COMMON_DEFS "STMStats")
 
 function(add_benchmark NAME SOURCE STRUCT_NAME DEFS LIB)
   add_executable(${NAME} ${SOURCE})
