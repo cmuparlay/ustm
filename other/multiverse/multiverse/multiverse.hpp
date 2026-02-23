@@ -2905,10 +2905,10 @@ void thread_registry_deregister_thread() {
     uint64_t curr = globals.gClock.load();
     if (curr != myd->rClock) {
         nextClock = curr;
-    } else if (globals.gClock.compare_exchange_strong(myd->rClock, myd->rClock + 1)) {
-        nextClock = myd->rClock + 1;
+    } else if (globals.gClock.compare_exchange_strong(curr, curr + 1)) {
+        nextClock = curr + 1;
     } else {
-        nextClock = myd->rClock;
+        nextClock = curr;
     }
 
     #else
