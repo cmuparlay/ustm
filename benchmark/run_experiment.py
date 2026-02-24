@@ -17,7 +17,7 @@ Experiments:
 Options:
     --hytm        Include HyTM (limits to 72 threads on 2 sockets)
     --output DIR  Output directory for results
-    --small       Restrict to btree, hash_block, and list (geomean uses runall.sh parameters)
+    --small       Restrict to btree, hash_list, and list (geomean uses runall.sh parameters)
 
 Implementations tested:
     mvustm, mvustm_hwstamp, mvustm_longjmp, 2plsf, fuse, hytm, onfile, tinystm, tl2
@@ -73,7 +73,7 @@ class Config:
         self.allocator = args.allocator
 
         if args.struct == None:
-            self.structs = ["btree", "arttree", "avltree", "leaftree", "treap", "skiplist", "hash_block"]
+            self.structs = ["btree", "arttree", "avltree", "leaftree", "treap", "skiplist", "hash_list"]
             self.structs_nohash = ["btree", "arttree", "avltree", "leaftree", "treap", "skiplist"]
             self.lstructs = ["list"]
             self.range_structs = ["btree", "arttree"]
@@ -213,8 +213,8 @@ def get_structs_for_impl(config: Config, impl: str) -> List[str]:
         # Only systems supporting non-transactional allocation work with hash structs
         return config.structs_nohash
     # if impl == "fuse":
-        # Exclude: avltree (uses atomic<int> for height), hash_block (uses atomic<V>)
-        # return [s for s in config.structs if s not in ["avltree", "hash_block"]]
+        # Exclude: avltree (uses atomic<int> for height), hash_list (uses atomic<V>)
+        # return [s for s in config.structs if s not in ["avltree", "hash_list"]]
     return config.structs
 
 
@@ -547,8 +547,8 @@ class ExperimentRunner:
                 print(f"  {struct}_{impl}")
                 self._run_batch(struct, impl, base, extra_args="-up")
 
-        # Part 2: hash_list, hash_probe, hash_block (vary update rate, otherwise defaults)
-        self.results_file.write("# hash_list, hash_probe, hash_block\n")
+        # Part 2: hash_list, hash_probe, hash_list (vary update rate, otherwise defaults)
+        self.results_file.write("# hash_list, hash_probe, hash_list\n")
         self.results_file.write("---\n")
         hash_structs = ["hash_probe", "hash_list"]
         for struct in hash_structs:
@@ -666,14 +666,14 @@ Examples:
     parser.add_argument("--output", "-o", metavar="DIR",
                        help="Output directory for results")
     parser.add_argument("--small", action="store_true",
-                       help="Restrict to btree, hash_block, and list (geomean uses runall.sh parameters)")
+                       help="Restrict to btree, hash_list, and list (geomean uses runall.sh parameters)")
     parser.add_argument("--allocator", default="deqalloc",
                        help="Choose which allocator to use (default: deqalloc)")
     parser.add_argument("--impl", default=None,
                        choices=["mvustm", "fuse", "2plsf", "multiverse"],
                        help="Run a specific stm system only")
     parser.add_argument("--struct", default=None,
-                       choices=["btree", "arttree", "avltree", "leaftree", "treap", "skiplist", "hash_block"],
+                       choices=["btree", "arttree", "avltree", "leaftree", "treap", "skiplist", "hash_list"],
                        help="Run a specific struct only")
     
     args = parser.parse_args()
