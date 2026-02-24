@@ -19,6 +19,37 @@ thread_local TS start_stamp = 0;
 thread_local long num_transactions = 0;
 thread_local long num_aborts = 0;
 
+#ifdef FUSE_STATS
+
+// Per-worker stats array for cross-thread aggregation
+struct alignas(128) padded_stats {
+  long transactions = 0;
+  long aborts = 0;
+};
+padded_stats worker_stats[1024];
+
+std::pair<long,long> get_statistics() {
+  long total_aborts = 0;
+  long total_commits = 0;
+  int nw = epoch::internal::num_workers();
+  for (int i = 0; i < nw; i++) {
+    total_aborts += worker_stats[i].aborts;
+    total_commits += worker_stats[i].transactions;
+    worker_stats[i].aborts = 0;
+    worker_stats[i].transactions = 0;
+  }
+  // commits = transactions - aborts (transactions counts attempts)
+  return {total_aborts, total_commits - total_aborts};
+}
+
+#else
+
+std::pair<long,long> get_statistics() {
+  return {0L, 0L};
+}
+
+#endif // FUSE_STATS
+
 // validate the versioned pointers that were read
 void validate(transaction_descriptor* descriptor) {
   auto &log = descriptor->validate_ptr_log;
@@ -79,6 +110,9 @@ auto atomic_(const F& f) {
   int delay = 0;
   int max_delay = 0;
   num_transactions++;
+#ifdef FUSE_STATS
+  worker_stats[epoch::internal::worker_id()].transactions++;
+#endif
 
   enum abortType : char {FailedSpeculative, FailedLock, FailedValidate};
 
@@ -123,6 +157,9 @@ auto atomic_(const F& f) {
       } else {
         //if (abort_type == FailedLock)
         num_aborts++;
+#ifdef FUSE_STATS
+        worker_stats[epoch::internal::worker_id()].aborts++;
+#endif
         auto& retired_log = descriptor->retired_log;
 
         // undo the logged retires
