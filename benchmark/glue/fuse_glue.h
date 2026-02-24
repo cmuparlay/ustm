@@ -41,7 +41,7 @@ namespace stm {
   using fuse::New;
 
   std::pair<long,long> statistics() {
-    return {0ul, 0ul};
+    return fuse::get_statistics();
   }
 
 }

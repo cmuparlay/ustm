@@ -41,6 +41,7 @@ namespace fuse {
   using tlf_internal::New;
   using tlf_internal::Retire;
   using tlf_internal::versioned;
+  using tlf_internal::get_statistics;
 
   // some functions for managing the memory pool
   using tlf_internal::pool_clear;

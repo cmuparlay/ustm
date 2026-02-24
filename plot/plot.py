@@ -199,10 +199,10 @@ def parse_result_line(line):
                 'p': r'p=(\d+)',
                 'z': r'z=([\d.]+)',
                 'pa': r'pa=([\d.]+)',
-                'mops': r'mops=([\d.eE+-]+)',
+                'rqmops': r'rqmops=([\d.eE+-]+)',
+                'mops': r'(?<!rq)mops=([\d.eE+-]+)',
                 'rs': r'rs=(\d+)',
                 'rqp': r'rqp=(\d+)',
-                'rqmops': r'rqmops=([\d.eE+-]+)',
             }
             
             for param, pattern in param_patterns.items():
@@ -252,10 +252,10 @@ def parse_result_line(line):
         'p': r'p=(\d+)',
         'z': r'z=([\d.]+)',
         'pa': r'pa=([\d.]+)',
-        'mops': r'mops=([\d.eE+-]+)',
+        'rqmops': r'rqmops=([\d.eE+-]+)',
+        'mops': r'(?<!rq)mops=([\d.eE+-]+)',
         'rs': r'rs=(\d+)',
         'rqp': r'rqp=(\d+)',
-        'rqmops': r'rqmops=([\d.eE+-]+)',
     }
     
     for param, pattern in param_patterns.items():
@@ -560,26 +560,33 @@ def plot_range_queries(results, output_dir):
         print("Warning: No range query data found")
         return
     
-    # Organize data
-    data = defaultdict(lambda: defaultdict(list))
+    # Organize data for both metrics
+    rq_data = defaultdict(lambda: defaultdict(list))  # range query throughput
+    normal_data = defaultdict(lambda: defaultdict(list))  # normal throughput
     for r in range_results:
-        data[r['structure']][r['impl']].append((r['rs'], r['rqmops']))
+        struct = r['structure']
+        impl = r['impl']
+        rs = r['rs']
+        if r.get('rqmops') is not None:
+            rq_data[struct][impl].append((rs, r['rqmops']))
+        if r.get('mops') is not None:
+            normal_data[struct][impl].append((rs, r['mops']))
     
-    structures = sorted(data.keys())
+    structures = sorted(rq_data.keys())
     
     impls_found = set()
-    for struct_data in data.values():
+    for struct_data in rq_data.values():
         impls_found.update(struct_data.keys())
     impls = [i for i in IMPL_ORDER if i in impls_found]
     
-    # Generate individual plot for each structure
+    # Generate individual plot for each structure (range query throughput)
     for struct in structures:
         fig, ax = plt.subplots(figsize=(8, 6))
         
         for impl in impls:
-            if impl not in data[struct]:
+            if impl not in rq_data[struct]:
                 continue
-            points = aggregate_points(data[struct][impl])
+            points = aggregate_points(rq_data[struct][impl])
             x_vals = [p[0] for p in points]
             y_vals = [p[1] for p in points]
             color = IMPL_COLORS.get(impl, '#333333')
@@ -600,6 +607,96 @@ def plot_range_queries(results, output_dir):
         plt.tight_layout()
         
         filename = f'{struct}_range.pdf'
+        plt.savefig(output_dir / filename, dpi=300, bbox_inches='tight')
+        print(f"Generated: {filename}")
+        plt.close()
+    
+    # Generate individual plot for each structure (normal throughput)
+    for struct in structures:
+        if struct not in normal_data:
+            continue
+            
+        fig, ax = plt.subplots(figsize=(8, 6))
+        
+        for impl in impls:
+            if impl not in normal_data[struct]:
+                continue
+            points = aggregate_points(normal_data[struct][impl])
+            x_vals = [p[0] for p in points]
+            y_vals = [p[1] for p in points]
+            color = IMPL_COLORS.get(impl, '#333333')
+            label = IMPL_LABELS.get(impl, impl)
+            mkr = IMPL_MARKERS.get(impl, 'o')
+            ls = IMPL_LINESTYLES.get(impl, '-')
+            ax.plot(x_vals, y_vals, marker=mkr, linewidth=2, markersize=7,
+                   color=color, label=label, linestyle=ls)
+        
+        ax.set_xlabel('Range Size', fontsize=12)
+        ax.set_ylabel('Update Throughput (MOps/s)', fontsize=12)
+        ax.set_title(f'{STRUCT_LABELS.get(struct, struct)} - Update Throughput', fontsize=14)
+        ax.set_xscale('log')
+        ax.set_yscale('log')
+        ax.grid(True, alpha=0.3)
+        ax.legend(loc='best', fontsize=10)
+        
+        plt.tight_layout()
+        
+        filename = f'{struct}_range_normal.pdf'
+        plt.savefig(output_dir / filename, dpi=300, bbox_inches='tight')
+        print(f"Generated: {filename}")
+        plt.close()
+    
+    # Generate combined figure for btree with both metrics
+    if 'btree' in structures:
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
+        
+        # Left plot: Range query throughput
+        for impl in impls:
+            if impl not in rq_data['btree']:
+                continue
+            points = aggregate_points(rq_data['btree'][impl])
+            x_vals = [p[0] for p in points]
+            y_vals = [p[1] for p in points]
+            color = IMPL_COLORS.get(impl, '#333333')
+            label = IMPL_LABELS.get(impl, impl)
+            mkr = IMPL_MARKERS.get(impl, 'o')
+            ls = IMPL_LINESTYLES.get(impl, '-')
+            ax1.plot(x_vals, y_vals, marker=mkr, linewidth=2, markersize=7,
+                    color=color, label=label, linestyle=ls)
+        
+        ax1.set_xlabel('Range Size', fontsize=12)
+        ax1.set_ylabel('Range Query Throughput (MOps/s)', fontsize=12)
+        ax1.set_title('B-tree - Range Query Throughput', fontsize=14)
+        ax1.set_xscale('log')
+        ax1.set_yscale('log')
+        ax1.grid(True, alpha=0.3)
+        ax1.legend(loc='best', fontsize=10)
+        
+        # Right plot: Normal throughput
+        for impl in impls:
+            if impl not in normal_data['btree']:
+                continue
+            points = aggregate_points(normal_data['btree'][impl])
+            x_vals = [p[0] for p in points]
+            y_vals = [p[1] for p in points]
+            color = IMPL_COLORS.get(impl, '#333333')
+            label = IMPL_LABELS.get(impl, impl)
+            mkr = IMPL_MARKERS.get(impl, 'o')
+            ls = IMPL_LINESTYLES.get(impl, '-')
+            ax2.plot(x_vals, y_vals, marker=mkr, linewidth=2, markersize=7,
+                    color=color, label=label, linestyle=ls)
+        
+        ax2.set_xlabel('Range Size', fontsize=12)
+        ax2.set_ylabel('Update Throughput (MOps/s)', fontsize=12)
+        ax2.set_title('B-tree - Update Throughput', fontsize=14)
+        ax2.set_xscale('log')
+        ax2.set_yscale('log')
+        ax2.grid(True, alpha=0.3)
+        ax2.legend(loc='best', fontsize=10)
+        
+        plt.tight_layout()
+        
+        filename = 'btree_range_combined.pdf'
         plt.savefig(output_dir / filename, dpi=300, bbox_inches='tight')
         print(f"Generated: {filename}")
         plt.close()
@@ -720,7 +817,7 @@ def plot_combined_grid(exp_results, geomean_data, output_dir, filename='results_
     }
 
     # Select structures to plot
-    structures = ['skiplist', 'treap', 'btree', 'avltree', 'leaftree', 'list']
+    structures = ['btree', 'arttree', 'skiplist', 'treap', 'avltree', 'leaftree', 'hash_block', 'list']
     all_results = []
     for key in param_to_file.values():
         if key in exp_results:
@@ -990,9 +1087,9 @@ def plot_nontrivial_types(results, output_dir, fmt='pdf'):
 
 def plot_ablation(results, output_dir, fmt='pdf'):
     """
-    Plot ablation studies on btree.
-    Part 1: Timestamping variants (split/default, hwstamp, lzstamp, eager, agg_funnel_eager, fuse_hwstamp)
-    Part 2: Abort mechanism variants (ustm, ustm_longjmp, ustm_simple_longjmp)
+    Plot ablation studies on btree as a single side-by-side figure.
+    Left: Timestamping variants (split/default, hwstamp, lzstamp, eager, agg_funnel_eager, fuse, fuse_hwstamp)
+    Right: Abort mechanism variants (ustm, ustm_longjmp, ustm_simple_longjmp)
     """
     if not results:
         print("Warning: No ablation data found")
@@ -1002,78 +1099,76 @@ def plot_ablation(results, output_dir, fmt='pdf'):
     for r in results:
         data[r['impl']].append((r.get('u', 0), r['mops']))
 
-    # --- Part 1: Timestamping ---
     timestamp_order = [
         'mvustm', 'mvustm_hwstamp', 'mvustm_lzstamp',
         'mvustm_eager', 'mvustm_agg_funnel_eager', 'fuse', 'fuse_hwstamp',
     ]
-    timestamp_impls = [i for i in timestamp_order if i in data]
-
-    if timestamp_impls:
-        fig, ax = plt.subplots(figsize=(9, 6))
-        # Custom labels for this plot
-        ts_labels = {
-            'mvustm': '$\\mu$STM (default)',
-            'mvustm_hwstamp': '$\\mu$STM HW Stamp',
-            'mvustm_lzstamp': '$\\mu$STM Lazy Stamp',
-            'mvustm_eager': '$\\mu$STM Eager',
-            'mvustm_agg_funnel_eager': '$\\mu$STM Agg. Funnel',
-            'fuse': 'Fuse',
-            'fuse_hwstamp': 'Fuse HW Stamp',
-        }
-        for impl in timestamp_impls:
-            points = aggregate_points(data[impl])
-            x_vals = [p[0] for p in points]
-            y_vals = [p[1] for p in points]
-            color = IMPL_COLORS.get(impl, '#333333')
-            label = ts_labels.get(impl, IMPL_LABELS.get(impl, impl))
-            mkr = IMPL_MARKERS.get(impl, 'o')
-            ls = IMPL_LINESTYLES.get(impl, '-')
-            ax.plot(x_vals, y_vals, marker=mkr, linewidth=2, markersize=7,
-                    color=color, label=label, linestyle=ls)
-
-        ax.set_xlabel('Update Rate (%)', fontsize=12)
-        ax.set_ylabel('Throughput (MOps/s)', fontsize=12)
-        ax.set_title('B-tree Ablation: Timestamping Variants', fontsize=14)
-        ax.grid(True, alpha=0.3)
-        ax.legend(loc='best', fontsize=10)
-        plt.tight_layout()
-        plt.savefig(output_dir / f'ablation_timestamp.{fmt}', dpi=300, bbox_inches='tight')
-        print(f"Generated: ablation_timestamp.{fmt}")
-        plt.close()
-
-    # --- Part 2: Abort mechanism ---
     abort_order = ['mvustm', 'ustm', 'ustm_longjmp', 'ustm_simple_longjmp']
+    timestamp_impls = [i for i in timestamp_order if i in data]
     abort_impls = [i for i in abort_order if i in data]
 
-    if abort_impls:
-        fig, ax = plt.subplots(figsize=(9, 6))
-        abort_labels = {
-            'mvustm': '$\\mu$STM (default)',
-            'ustm': 'SV-$\\mu$STM (try/throw)',
-            'ustm_longjmp': '$\\mu$STM (Longjmp)',
-            'ustm_simple_longjmp': 'SV-$\\mu$STM (Longjmp)',
-        }
-        for impl in abort_impls:
-            points = aggregate_points(data[impl])
-            x_vals = [p[0] for p in points]
-            y_vals = [p[1] for p in points]
-            color = IMPL_COLORS.get(impl, '#333333')
-            label = abort_labels.get(impl, IMPL_LABELS.get(impl, impl))
-            mkr = IMPL_MARKERS.get(impl, 'o')
-            ls = IMPL_LINESTYLES.get(impl, '-')
-            ax.plot(x_vals, y_vals, marker=mkr, linewidth=2, markersize=7,
-                    color=color, label=label, linestyle=ls)
+    if not timestamp_impls and not abort_impls:
+        print("Warning: No matching ablation implementations found")
+        return
 
-        ax.set_xlabel('Update Rate (%)', fontsize=12)
-        ax.set_ylabel('Throughput (MOps/s)', fontsize=12)
-        ax.set_title('B-tree Ablation: Abort Mechanism Variants', fontsize=14)
-        ax.grid(True, alpha=0.3)
-        ax.legend(loc='best', fontsize=10)
-        plt.tight_layout()
-        plt.savefig(output_dir / f'ablation_abort.{fmt}', dpi=300, bbox_inches='tight')
-        print(f"Generated: ablation_abort.{fmt}")
-        plt.close()
+    ts_labels = {
+        'mvustm': '$\\mu$STM Split Stamp',
+        'mvustm_hwstamp': '$\\mu$STM HW Stamp',
+        'mvustm_lzstamp': '$\\mu$STM Lazy Stamp',
+        'mvustm_eager': '$\\mu$STM Eager',
+        'mvustm_agg_funnel_eager': '$\\mu$STM Aggregating Funnel',
+        'fuse': 'Fuse',
+        'fuse_hwstamp': 'Fuse HW Stamp',
+    }
+    abort_labels = {
+        'mvustm': 'Multiversioned, deferred aborts',
+        'ustm': 'Single-versioned, exceptions',
+        'ustm_longjmp': 'Multiversioned, longjmp',
+        'ustm_simple_longjmp': 'Single-versioned, longjmp',
+    }
+
+    fig, (ax_ts, ax_ab) = plt.subplots(1, 2, figsize=(14, 5))
+
+    # Left: Timestamping variants
+    for impl in timestamp_impls:
+        points = aggregate_points(data[impl])
+        x_vals = [p[0] for p in points]
+        y_vals = [p[1] for p in points]
+        color = IMPL_COLORS.get(impl, '#333333')
+        label = ts_labels.get(impl, IMPL_LABELS.get(impl, impl))
+        mkr = IMPL_MARKERS.get(impl, 'o')
+        ls = IMPL_LINESTYLES.get(impl, '-')
+        ax_ts.plot(x_vals, y_vals, marker=mkr, linewidth=2, markersize=7,
+                   color=color, label=label, linestyle=ls)
+    ax_ts.set_xlabel('Update Rate (%)', fontsize=12)
+    ax_ts.set_ylabel('Throughput (MOps/s)', fontsize=12)
+    ax_ts.set_title('Timestamping Variants', fontsize=13)
+    ax_ts.grid(True, alpha=0.3)
+    ax_ts.legend(loc='best', fontsize=9)
+
+    # Right: Abort mechanism variants
+    for impl in abort_impls:
+        points = aggregate_points(data[impl])
+        x_vals = [p[0] for p in points]
+        y_vals = [p[1] for p in points]
+        color = IMPL_COLORS.get(impl, '#333333')
+        label = abort_labels.get(impl, IMPL_LABELS.get(impl, impl))
+        mkr = IMPL_MARKERS.get(impl, 'o')
+        ls = IMPL_LINESTYLES.get(impl, '-')
+        ax_ab.plot(x_vals, y_vals, marker=mkr, linewidth=2, markersize=7,
+                   color=color, label=label, linestyle=ls)
+    ax_ab.set_xlabel('Update Rate (%)', fontsize=12)
+    ax_ab.set_ylabel('Throughput (MOps/s)', fontsize=12)
+    ax_ab.set_title('Abort Mechanism Variants', fontsize=13)
+    ax_ab.grid(True, alpha=0.3)
+    ax_ab.legend(loc='best', fontsize=9)
+
+    plt.tight_layout()
+    plt.savefig(output_dir / f'ablation.{fmt}', dpi=300, bbox_inches='tight')
+    print(f"Generated: ablation.{fmt}")
+    plt.close()
+
+
 
 
 def plot_machines(machine_dirs, output_dir, fmt='pdf'):

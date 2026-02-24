@@ -1,0 +1,50 @@
+Date: 02-22-2026
+Experiment: nontrivial_types
+HYTM: no
+Model name:                           Intel(R) Xeon(R) CPU E7-8867 v4 @ 2.40GHz
+Git: e1b1705
+---
+# btree inplace vs indirect (upserts)
+---
+./btree_inplace_mvustm,upsert=0,trans=4,n=1000000,p=144,z=0.75,pa=0,be=0,mops=441
+./btree_inplace_mvustm,upsert=5,trans=4,n=1000000,p=144,z=0.75,pa=0.859,be=0,mops=301
+./btree_inplace_mvustm,upsert=10,trans=4,n=1000000,p=144,z=0.75,pa=3.2,be=0,mops=247
+./btree_inplace_mvustm,upsert=20,trans=4,n=1000000,p=144,z=0.75,pa=10.6,be=0,mops=180
+./btree_inplace_mvustm,upsert=50,trans=4,n=1000000,p=144,z=0.75,pa=33.5,be=0,mops=85.2
+./btree_inplace_mvustm,upsert=100,trans=4,n=1000000,p=144,z=0.75,pa=285,be=0,mops=41.6
+./btree_inplace_mvustm,GEOMETRIC MEAN OF THROUGHPUTS: 166.1
+./btree_inplace_mvustm,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
+./btree_mvustm,upsert=0,trans=4,n=1000000,p=144,z=0.75,pa=0,be=0,mops=498
+./btree_mvustm,upsert=5,trans=4,n=1000000,p=144,z=0.75,pa=1.44,be=0,mops=288
+./btree_mvustm,upsert=10,trans=4,n=1000000,p=144,z=0.75,pa=4.73,be=0,mops=215
+./btree_mvustm,upsert=20,trans=4,n=1000000,p=144,z=0.75,pa=15.7,be=0,mops=141
+./btree_mvustm,upsert=50,trans=4,n=1000000,p=144,z=0.75,pa=57.5,be=0,mops=66.4
+./btree_mvustm,upsert=100,trans=4,n=1000000,p=144,z=0.75,pa=137,be=0,mops=31
+./btree_mvustm,GEOMETRIC MEAN OF THROUGHPUTS: 144.2
+./btree_mvustm,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
+# hash_list, hash_probe, hash_block
+---
+./hash_list_mvustm,u=0,trans=4,n=1000000,p=144,z=0.75,pa=0,be=0,mops=814
+./hash_list_mvustm,u=5,trans=4,n=1000000,p=144,z=0.75,pa=0.164,be=0,mops=482
+./hash_list_mvustm,u=10,trans=4,n=1000000,p=144,z=0.75,pa=0.531,be=0,mops=402
+./hash_list_mvustm,u=20,trans=4,n=1000000,p=144,z=0.75,pa=1.64,be=0,mops=311
+./hash_list_mvustm,u=50,trans=4,n=1000000,p=144,z=0.75,pa=7.54,be=0,mops=194
+./hash_list_mvustm,u=100,trans=4,n=1000000,p=144,z=0.75,pa=19.4,be=0,mops=103
+./hash_list_mvustm,GEOMETRIC MEAN OF THROUGHPUTS: 315.1
+./hash_list_mvustm,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
+./hash_probe_mvustm,u=0,trans=4,n=1000000,p=144,z=0.75,pa=0,be=0,mops=819
+./hash_probe_mvustm,u=5,trans=4,n=1000000,p=144,z=0.75,pa=0.165,be=0,mops=484
+./hash_probe_mvustm,u=10,trans=4,n=1000000,p=144,z=0.75,pa=0.54,be=0,mops=408
+./hash_probe_mvustm,u=20,trans=4,n=1000000,p=144,z=0.75,pa=1.68,be=0,mops=319
+./hash_probe_mvustm,u=50,trans=4,n=1000000,p=144,z=0.75,pa=7.92,be=0,mops=204
+./hash_probe_mvustm,u=100,trans=4,n=1000000,p=144,z=0.75,pa=18.8,be=0,mops=102
+./hash_probe_mvustm,GEOMETRIC MEAN OF THROUGHPUTS: 320.2
+./hash_probe_mvustm,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
+./hash_block_mvustm,u=0,trans=4,n=1000000,p=144,z=0.75,pa=0,be=0,mops=771
+./hash_block_mvustm,u=5,trans=4,n=1000000,p=144,z=0.75,pa=0.167,be=0,mops=480
+./hash_block_mvustm,u=10,trans=4,n=1000000,p=144,z=0.75,pa=0.536,be=0,mops=400
+./hash_block_mvustm,u=20,trans=4,n=1000000,p=144,z=0.75,pa=1.64,be=0,mops=309
+./hash_block_mvustm,u=50,trans=4,n=1000000,p=144,z=0.75,pa=5.14,be=0,mops=100
+./hash_block_mvustm,u=100,trans=4,n=1000000,p=144,z=0.75,pa=19.6,be=0,mops=107
+./hash_block_mvustm,GEOMETRIC MEAN OF THROUGHPUTS: 280.9
+./hash_block_mvustm,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
