@@ -550,9 +550,10 @@ class ExperimentRunner:
         # Part 2: hash_list, hash_probe, hash_block (vary update rate, otherwise defaults)
         self.results_file.write("# hash_list, hash_probe, hash_block\n")
         self.results_file.write("---\n")
-        hash_structs = ["hash_list", "hash_probe", "hash_block"]
-        for impl in ["mvustm"]:
-            for struct in hash_structs:
+        hash_structs = ["hash_probe", "hash_list"]
+        for struct in hash_structs:
+            impls = ["mvustm", "mvustm_indirect"] if struct == "hash_probe" else ["mvustm"]
+            for impl in impls:
                 if not self._binary_exists(f"{struct}_{impl}"):
                     continue
                 print(f"  {struct}_{impl}")
@@ -602,46 +603,6 @@ class ExperimentRunner:
 
         self.results_file.close()
 
-    def run_ablation_trans(self):
-        """Run ablation study varying transaction size on btree.
-
-        Same timestamping and abort variants as run_ablation, but the
-        independent variable is ops-per-transaction instead of update rate.
-        """
-        self.setup_output("ablation_trans")
-        trans_vals = [1, 2, 4, 8, 16, 32]
-
-        base = {
-            'n': self.config.default_n,
-            'z': self.config.default_z,
-            'u': self.config.default_u,
-            'p': self.config.default_p,
-            'trans': ','.join(map(str, trans_vals)),
-        }
-
-        # Part 1: Timestamping variants
-        self.results_file.write("# Timestamping variants — varying transaction size\n")
-        self.results_file.write("---\n")
-        ts_impls = ["mvustm", "mvustm_hwstamp", "mvustm_lzstamp", "mvustm_eager",
-                    "mvustm_agg_funnel_eager", "fuse", "fuse_hwstamp"]
-        for impl in ts_impls:
-            if not self._binary_exists(f"btree_{impl}"):
-                continue
-            print(f"  btree_{impl}")
-            self._run_batch("btree", impl, base)
-
-        # Part 2: Abort mechanism variants
-        self.results_file.write("# Abort mechanism variants — varying transaction size\n")
-        self.results_file.write("---\n")
-        abort_impls = ["ustm", "ustm_longjmp", "ustm_simple_longjmp"]
-        for impl in abort_impls:
-            if not self._binary_exists(f"btree_{impl}"):
-                continue
-            print(f"  btree_{impl}")
-            self._run_batch("btree", impl, base)
-
-        self.results_file.close()
-
     def run_all(self):
         """Run all experiments."""
         print("=" * 50)
@@ -659,7 +620,6 @@ class ExperimentRunner:
             ("Experiment 7: Range Queries", self.run_range),
             ("Experiment 9: Non-trivial Types", self.run_nontrivial_types),
             ("Experiment 10: Ablation Study", self.run_ablation),
-            ("Experiment 11: Ablation Study (Trans)", self.run_ablation_trans),
         ]
         
         for name, func in experiments:
@@ -690,7 +650,6 @@ Experiments:
   tpcc       TPCC benchmark
   nontrivial Non-trivial types (btree upsert variants, hash_list/hash_probe)
   ablation   Ablation studies (timestamping, abort mechanism)
-  ablation_trans  Ablation studies varying transaction size
   all        Run all experiments
 
 Examples:
@@ -700,7 +659,7 @@ Examples:
 """)
     
     parser.add_argument("experiment", 
-                       choices=["geomean", "size", "threads", "zipfian", "trans", "update", "range", "tpcc", "nontrivial", "ablation", "ablation_trans", "all"],
+                       choices=["geomean", "size", "threads", "zipfian", "trans", "update", "range", "tpcc", "nontrivial", "ablation", "all"],
                        help="Experiment to run")
     parser.add_argument("--hytm", action="store_true",
                        help="Include HyTM (limits to 72 threads on 2 sockets)")
@@ -719,9 +678,6 @@ Examples:
     
     args = parser.parse_args()
     
-    # Resolve output path to absolute *before* chdir into build directory
-    output_dir = os.path.abspath(args.output) if args.output else None
-
     #make sure we are in the build directory
     benchmark_dir=subprocess.getoutput("realpath "+re.sub(os.path.basename(__file__), "", os.path.realpath(__file__)))+"/"
     build_dir = benchmark_dir + "../build/benchmark"
@@ -729,7 +685,7 @@ Examples:
     os.chdir(build_dir) #pushd
 
     config = Config(args)
-    runner = ExperimentRunner(config, output_dir)
+    runner = ExperimentRunner(config, args.output)
 
     experiments = {
         "geomean": runner.run_geomean,
@@ -742,7 +698,6 @@ Examples:
         "tpcc": runner.run_tpcc,
         "nontrivial": runner.run_nontrivial_types,
         "ablation": runner.run_ablation,
-        "ablation_trans": runner.run_ablation_trans,
         "all": runner.run_all,
     }
     

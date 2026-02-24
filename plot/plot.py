@@ -27,6 +27,7 @@ from itertools import product
 # Map impl -> color
 IMPL_COLORS = {
     'mvustm': '#1f77b4',
+    'mvustm_indirect': '#1f77b4',
     'mvustm_hwstamp': '#2ca02c',
     'mvustm_lzstamp': '#ff7f0e',
     'mvustm_eager': '#9467bd',
@@ -48,6 +49,7 @@ IMPL_COLORS = {
 
 IMPL_LABELS = {
     'mvustm': '$\\mu$STM',
+    'mvustm_indirect': '$\\mu$STM-Indirect',
     'mvustm_hwstamp': '$\\mu$STM-HWStamp',
     'mvustm_lzstamp': '$\\mu$STM-LZStamp',
     'mvustm_eager': '$\\mu$STM-Eager',
@@ -70,6 +72,7 @@ IMPL_LABELS = {
 # Map impl -> marker shape (unique per implementation for easy identification)
 IMPL_MARKERS = {
     'mvustm': 's',
+    'mvustm_indirect': 'o',
     'mvustm_hwstamp': 'P',
     'mvustm_lzstamp': 'h',
     'mvustm_eager': 'H',
@@ -92,6 +95,7 @@ IMPL_MARKERS = {
 # Map impl -> linestyle (solid for inplace, dashed for non-inplace when pair exists)
 IMPL_LINESTYLES = {
     'mvustm': '--',
+    'mvustm_indirect': ':',
     'mvustm_hwstamp': '-',
     'mvustm_lzstamp': '-.',
     'mvustm_eager': ':',
@@ -156,7 +160,7 @@ KNOWN_IMPLS = [
     'mvustm_agg_funnel_eager', 'ustm_simple_longjmp',
     'ustm_longjmp_hwstamp', 'mvustm_lzstamp', 'mvustm_hwstamp',
     'mvustm_longjmp', 'mvustm_trythrow', 'mvustm_unprotected',
-    'mvustm_eager', 'fuse_hwstamp',
+    'mvustm_indirect', 'mvustm_eager', 'fuse_hwstamp',
     'ustm_longjmp', 'mvustm', 'ustm',
     '2plsf', 'hytm', 'tiny', 'fuse', 'multiverse',
 ]
@@ -1056,33 +1060,39 @@ def plot_nontrivial_types(results, output_dir, fmt='pdf'):
         print(f"Generated: nontrivial_btree.{fmt}")
         plt.close()
 
-    # --- Part 2: hash variants ---
-    hash_structs = [s for s in ['hash_list', 'hash_probe'] if s in data]
-    for struct in hash_structs:
-        impls_found = set(data[struct].keys())
-        impls = [i for i in IMPL_ORDER if i in impls_found]
-
+    # --- Part 2: hash_probe and hash_list together ---
+    hash_structs = [s for s in ['hash_probe', 'hash_list'] if s in data]
+    if hash_structs:
+        target_impls = ['mvustm', 'mvustm_indirect', 'multiverse', 'fuse', '2plsf']
         fig, ax = plt.subplots(figsize=(9, 6))
-        for impl in impls:
-            points = aggregate_points(data[struct][impl])
-            x_vals = [p[0] for p in points]
-            y_vals = [p[1] for p in points]
-            color = IMPL_COLORS.get(impl, '#333333')
-            label = IMPL_LABELS.get(impl, impl)
-            mkr = IMPL_MARKERS.get(impl, 'o')
-            ls = IMPL_LINESTYLES.get(impl, '-')
-            ax.plot(x_vals, y_vals, marker=mkr, linewidth=2, markersize=7,
-                    color=color, label=label, linestyle=ls)
+        has_lines = False
+        for struct in hash_structs:
+            impls_found = set(data[struct].keys())
+            impls = [i for i in target_impls if i in impls_found]
+            struct_label = STRUCT_LABELS.get(struct, struct)
+            for impl in impls:
+                points = aggregate_points(data[struct][impl])
+                x_vals = [p[0] for p in points]
+                y_vals = [p[1] for p in points]
+                color = IMPL_COLORS.get(impl, '#333333')
+                impl_label = IMPL_LABELS.get(impl, impl)
+                mkr = IMPL_MARKERS.get(impl, 'o')
+                ls = IMPL_LINESTYLES.get(impl, '-')
+                label = f'{struct_label} {impl_label}'
+                ax.plot(x_vals, y_vals, marker=mkr, linewidth=2, markersize=7,
+                        color=color, label=label, linestyle=ls)
+                has_lines = True
 
-        ax.set_xlabel('Update Rate (%)', fontsize=12)
-        ax.set_ylabel('Throughput (MOps/s)', fontsize=12)
-        ax.set_title(f'{STRUCT_LABELS.get(struct, struct)} — Varying Update Rate', fontsize=14)
-        ax.grid(True, alpha=0.3)
-        ax.legend(loc='best', fontsize=10)
-        plt.tight_layout()
-        plt.savefig(output_dir / f'nontrivial_{struct}.{fmt}', dpi=300, bbox_inches='tight')
-        print(f"Generated: nontrivial_{struct}.{fmt}")
-        plt.close()
+        if has_lines:
+            ax.set_xlabel('Update Rate (%)', fontsize=12)
+            ax.set_ylabel('Throughput (MOps/s)', fontsize=12)
+            ax.set_title('Hash Tables — Varying Update Rate', fontsize=14)
+            ax.grid(True, alpha=0.3)
+            ax.legend(loc='best', fontsize=10)
+            plt.tight_layout()
+            plt.savefig(output_dir / f'nontrivial_hash.{fmt}', dpi=300, bbox_inches='tight')
+            print(f"Generated: nontrivial_hash.{fmt}")
+            plt.close()
 
 
 def plot_ablation(results, output_dir, fmt='pdf'):

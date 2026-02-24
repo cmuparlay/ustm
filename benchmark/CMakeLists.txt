@@ -95,6 +95,8 @@ foreach(bench ${STRUCTS})
   add_benchmark(${bench}_fuse ${MIXED} ${STRUCT_DIR}/${bench} "Other;Fuse;WriteStamp;MV_TLF" "")
 endforeach()
 
+add_benchmark(hash_probe_mvustm_indirect ${MIXED} ${STRUCT_DIR}/hash_probe "USTM;MV;USTM_INDIRECT" "")
+
 set(TPCC_STRUCTS "btree" "hash_block" "arttree" "avltree")
 set(SUB_TPCC_STRUCTS "btree")
 

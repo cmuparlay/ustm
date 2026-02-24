@@ -29,12 +29,10 @@ namespace stm {
   void store(T& val, T v) { ustm::store(val, v); }
 
   template <typename T>
-  struct atomic {
-  private:
-  public:
+  struct direct_atomic {
     T val;
-    atomic(const T& v) : val(v) { }
-    atomic()  {}
+    direct_atomic(const T& v) : val(v) { }
+    direct_atomic()  {}
     void store(const T& v) { ustm::store(val, v); }
     T load() const { return ustm::load(val); }
 #ifdef UnprotectedLoad
@@ -48,6 +46,42 @@ namespace stm {
   };
 
   struct versioned {};
+
+#ifdef USTM_INDIRECT
+  template <typename T>
+  struct indirect {
+    T value;
+    indirect(T value) : value(value) {}
+  };
+
+  template <typename T>
+  struct indirect_atomic {
+    indirect<T>* ptr;
+    indirect_atomic(T v) : ptr(new indirect<T>(v)) {}
+    indirect_atomic() : ptr(new indirect<T>(T{})) {}
+    ~indirect_atomic() { delete ustm::load(ptr); }
+    indirect_atomic(const indirect_atomic& other)
+      : ptr(new indirect<T>(other.load())) {}
+    indirect_atomic& operator=(const indirect_atomic& other) {
+      if (this != &other) store(other.load());
+      return *this;
+    }
+    T load() const { return ustm::load(ptr)->value; }
+    void store(T v) {
+      auto *old = ustm::load(ptr);
+      ustm::store(ptr, ustm::New<indirect<T>>(v));
+      ustm::Delete(old);
+    }
+    T operator=(T b) { store(b); return b; }
+  };
+
+  template<typename T>
+  using atomic = std::conditional_t<sizeof(T) <= sizeof(void*),
+                                    direct_atomic<T>, indirect_atomic<T>>;
+#else
+  template<typename T>
+  using atomic = direct_atomic<T>;
+#endif
 
   std::pair<long,long> statistics() {
 #ifdef STMStats
