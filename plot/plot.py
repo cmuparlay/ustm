@@ -1153,15 +1153,19 @@ def main():
     geomean_data = {}  # combined (for non-geomean uses)
     tpcc_results = []
     
+    files = os.listdir(input_dir)
+
     for filename in exps:
-        filepath = input_dir / filename
-        if filepath.exists():
-            print(f"  Parsing {filename}...")
-            results, gdata = parse_timing_file(filepath)
-            exp_results[filename] = results
-            exp_geomeans[filename] = gdata
-            geomean_data.update(gdata)
-            print(f"    Found {len(results)} results, {len(gdata)} geomeans")
+        for f in files:
+            if filename in f:
+                filepath = input_dir / f
+                print(f"  Parsing {filename}...")
+                results, gdata = parse_timing_file(filepath)
+                exp_results[filename] = results
+                exp_geomeans[filename] = gdata
+                geomean_data.update(gdata)
+                print(f"    Found {len(results)} results, {len(gdata)} geomeans")
+                break
         else:
             print(f"  Skipping {filename} (not found)")
     
