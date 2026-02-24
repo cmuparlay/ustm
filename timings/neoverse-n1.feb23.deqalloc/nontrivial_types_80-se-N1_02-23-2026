@@ -1,0 +1,50 @@
+Date: 02-23-2026
+Experiment: nontrivial_types
+HYTM: no
+Model name:                              Neoverse-N1
+Git: 37f7bae
+---
+# btree inplace vs indirect (upserts)
+---
+./btree_inplace_mvustm,upsert=0,trans=4,n=1000000,p=80,z=0.75,pa=0,be=0,mops=213
+./btree_inplace_mvustm,upsert=5,trans=4,n=1000000,p=80,z=0.75,pa=0.386,be=0,mops=138
+./btree_inplace_mvustm,upsert=10,trans=4,n=1000000,p=80,z=0.75,pa=1.35,be=0,mops=109
+./btree_inplace_mvustm,upsert=20,trans=4,n=1000000,p=80,z=0.75,pa=4.27,be=0,mops=83.8
+./btree_inplace_mvustm,upsert=50,trans=4,n=1000000,p=80,z=0.75,pa=16.9,be=0,mops=60.7
+./btree_inplace_mvustm,upsert=100,trans=4,n=1000000,p=80,z=0.75,pa=107,be=0,mops=42.8
+./btree_inplace_mvustm,GEOMETRIC MEAN OF THROUGHPUTS: 94.24
+./btree_inplace_mvustm,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
+./btree_mvustm,upsert=0,trans=4,n=1000000,p=80,z=0.75,pa=0,be=0,mops=247
+./btree_mvustm,upsert=5,trans=4,n=1000000,p=80,z=0.75,pa=0.679,be=0,mops=145
+./btree_mvustm,upsert=10,trans=4,n=1000000,p=80,z=0.75,pa=2.23,be=0,mops=112
+./btree_mvustm,upsert=20,trans=4,n=1000000,p=80,z=0.75,pa=6.52,be=0,mops=83.6
+./btree_mvustm,upsert=50,trans=4,n=1000000,p=80,z=0.75,pa=24.8,be=0,mops=58.6
+./btree_mvustm,upsert=100,trans=4,n=1000000,p=80,z=0.75,pa=66.2,be=0,mops=45.8
+./btree_mvustm,GEOMETRIC MEAN OF THROUGHPUTS: 98.21
+./btree_mvustm,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
+# hash_list, hash_probe, hash_block
+---
+./hash_list_mvustm,u=0,trans=4,n=1000000,p=80,z=0.75,pa=0,be=0,mops=549
+./hash_list_mvustm,u=5,trans=4,n=1000000,p=80,z=0.75,pa=0,be=0,mops=234
+./hash_list_mvustm,u=10,trans=4,n=1000000,p=80,z=0.75,pa=0.288,be=0,mops=178
+./hash_list_mvustm,u=20,trans=4,n=1000000,p=80,z=0.75,pa=0.876,be=0,mops=132
+./hash_list_mvustm,u=50,trans=4,n=1000000,p=80,z=0.75,pa=3.55,be=0,mops=88.3
+./hash_list_mvustm,u=100,trans=4,n=1000000,p=80,z=0.75,pa=12.3,be=0,mops=69.2
+./hash_list_mvustm,GEOMETRIC MEAN OF THROUGHPUTS: 162.5
+./hash_list_mvustm,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
+./hash_probe_mvustm,u=0,trans=4,n=1000000,p=80,z=0.75,pa=0,be=0,mops=556
+./hash_probe_mvustm,u=5,trans=4,n=1000000,p=80,z=0.75,pa=0,be=0,mops=230
+./hash_probe_mvustm,u=10,trans=4,n=1000000,p=80,z=0.75,pa=0.286,be=0,mops=181
+./hash_probe_mvustm,u=20,trans=4,n=1000000,p=80,z=0.75,pa=0.871,be=0,mops=134
+./hash_probe_mvustm,u=50,trans=4,n=1000000,p=80,z=0.75,pa=3.53,be=0,mops=89.7
+./hash_probe_mvustm,u=100,trans=4,n=1000000,p=80,z=0.75,pa=12.9,be=0,mops=69.9
+./hash_probe_mvustm,GEOMETRIC MEAN OF THROUGHPUTS: 164
+./hash_probe_mvustm,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
+./hash_block_mvustm,u=0,trans=4,n=1000000,p=80,z=0.75,pa=0,be=0,mops=562
+./hash_block_mvustm,u=5,trans=4,n=1000000,p=80,z=0.75,pa=0,be=0,mops=239
+./hash_block_mvustm,u=10,trans=4,n=1000000,p=80,z=0.75,pa=0.296,be=0,mops=181
+./hash_block_mvustm,u=20,trans=4,n=1000000,p=80,z=0.75,pa=0.9,be=0,mops=134
+./hash_block_mvustm,u=50,trans=4,n=1000000,p=80,z=0.75,pa=3.63,be=0,mops=89.5
+./hash_block_mvustm,u=100,trans=4,n=1000000,p=80,z=0.75,pa=13.7,be=0,mops=68.7
+./hash_block_mvustm,GEOMETRIC MEAN OF THROUGHPUTS: 164.8
+./hash_block_mvustm,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1

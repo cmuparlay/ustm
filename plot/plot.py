@@ -44,18 +44,18 @@ IMPL_COLORS = {
 }
 
 IMPL_LABELS = {
-    'mvustm': 'MVUSTM',
-    'mvustm_hwstamp': 'MVUSTM-HWStamp',
-    'mvustm_lzstamp': 'MVUSTM-LZStamp',
-    'mvustm_eager': 'MVUSTM-Eager',
-    'mvustm_agg_funnel_eager': 'MVUSTM-AggFunnel',
-    'ustm': 'USTM',
-    'ustm_longjmp': 'USTM-Longjmp',
-    'ustm_simple_longjmp': 'USTM-SimpleLongjmp',
-    'ustm_longjmp_hwstamp': 'USTM-Longjmp-HWStamp',
-    'mvustm_longjmp': 'MVUSTM-Longjmp',
-    'mvustm_trythrow': 'MVUSTM-TryThrow',
-    'mvustm_unprotected': 'MVUSTM-Unprotected',
+    'mvustm': '$\\mu$STM',
+    'mvustm_hwstamp': '$\\mu$STM-HWStamp',
+    'mvustm_lzstamp': '$\\mu$STM-LZStamp',
+    'mvustm_eager': '$\\mu$STM-Eager',
+    'mvustm_agg_funnel_eager': '$\\mu$STM-AggFunnel',
+    'ustm': 'SV-$\\mu$STM',
+    'ustm_longjmp': '$\\mu$STM-Longjmp',
+    'ustm_simple_longjmp': 'SV-$\\mu$STM-Longjmp',
+    'ustm_longjmp_hwstamp': '$\\mu$STM-Longjmp-HWStamp',
+    'mvustm_longjmp': '$\\mu$STM-Longjmp',
+    'mvustm_trythrow': '$\\mu$STM-TryThrow',
+    'mvustm_unprotected': '$\\mu$STM-Unprotected',
     '2plsf': '2PLSF',
     'hytm': 'HyTM',
     'tiny': 'TinySTM',
@@ -686,13 +686,28 @@ def plot_paper_figures(exp_results, output_dir, fmt='pdf'):
                            structures, name=name, fmt=fmt)
 
 
-def plot_combined_grid(results, geomean_data, output_dir, filename='results_combined.pdf'):
+def plot_combined_grid(exp_results, geomean_data, output_dir, filename='results_combined.pdf'):
     """
     Multiple subplots arranged in a grid.
+    Uses per-experiment-file results so each row only plots data from the
+    experiment where that parameter was actually varied.
     """
+    # Map each parameter to its corresponding experiment file
+    param_to_file = {
+        'n': 'vary_size',
+        'p': 'vary_threads',
+        'z': 'vary_zipfian',
+        'trans': 'vary_trans',
+        'u': 'vary_update',
+    }
+
     # Select structures to plot
     structures = ['skiplist', 'treap', 'btree', 'avltree', 'leaftree', 'list']
-    available_structs = [s for s in structures if any(r['structure'] == s for r in results)]
+    all_results = []
+    for key in param_to_file.values():
+        if key in exp_results:
+            all_results.extend(exp_results[key])
+    available_structs = [s for s in structures if any(r['structure'] == s for r in all_results)]
     
     if not available_structs:
         print("Warning: No data for combined grid plot")
@@ -706,12 +721,13 @@ def plot_combined_grid(results, geomean_data, output_dir, filename='results_comb
         ('u', 'Update Rate (%)', False),
     ]
     
-    # Filter to params that have data
+    # Filter to params that have data in their corresponding experiment file
     params_with_data = []
     for param, label, log in params:
-        if any(r.get(param) is not None for r in results):
-            # Check if there's variation in this parameter
-            unique_vals = set(r.get(param) for r in results if r.get(param) is not None)
+        exp_file = param_to_file[param]
+        file_results = exp_results.get(exp_file, [])
+        if file_results:
+            unique_vals = set(r.get(param) for r in file_results if r.get(param) is not None)
             if len(unique_vals) > 1:
                 params_with_data.append((param, label, log))
     
@@ -724,13 +740,14 @@ def plot_combined_grid(results, geomean_data, output_dir, filename='results_comb
     
     fig, axes = plt.subplots(n_rows, n_cols, figsize=(3.5*n_cols, 2.8*n_rows), squeeze=False)
     
-    # Get all implementations
-    impls_found = set(r['impl'] for r in results)
+    # Get all implementations across all experiment files
+    impls_found = set(r['impl'] for r in all_results)
     impls = [i for i in IMPL_ORDER if i in impls_found]
     
     for row_idx, (param, param_label, log_scale) in enumerate(params_with_data):
-        # Filter results for this parameter
-        param_results = [r for r in results if r.get(param) is not None]
+        # Use only results from the correct experiment file for this parameter
+        exp_file = param_to_file[param]
+        param_results = [r for r in exp_results.get(exp_file, []) if r.get(param) is not None]
         
         for col_idx, struct in enumerate(available_structs):
             ax = axes[row_idx, col_idx]
@@ -970,7 +987,7 @@ def plot_ablation(results, output_dir, fmt='pdf'):
     # --- Part 1: Timestamping ---
     timestamp_order = [
         'mvustm', 'mvustm_hwstamp', 'mvustm_lzstamp',
-        'mvustm_eager', 'mvustm_agg_funnel_eager', 'fuse_hwstamp',
+        'mvustm_eager', 'mvustm_agg_funnel_eager', 'fuse', 'fuse_hwstamp',
     ]
     timestamp_impls = [i for i in timestamp_order if i in data]
 
@@ -978,11 +995,12 @@ def plot_ablation(results, output_dir, fmt='pdf'):
         fig, ax = plt.subplots(figsize=(9, 6))
         # Custom labels for this plot
         ts_labels = {
-            'mvustm': 'MVUSTM',
-            'mvustm_hwstamp': 'MVUSTM HW Stamp',
-            'mvustm_lzstamp': 'MVUSTM Lazy Stamp',
-            'mvustm_eager': 'MVUSTM Eager',
-            'mvustm_agg_funnel_eager': 'MVUSTM Aggregating Funnel',
+            'mvustm': '$\\mu$STM (default)',
+            'mvustm_hwstamp': '$\\mu$STM HW Stamp',
+            'mvustm_lzstamp': '$\\mu$STM Lazy Stamp',
+            'mvustm_eager': '$\\mu$STM Eager',
+            'mvustm_agg_funnel_eager': '$\\mu$STM Agg. Funnel',
+            'fuse': 'Fuse',
             'fuse_hwstamp': 'Fuse HW Stamp',
         }
         for impl in timestamp_impls:
@@ -1007,15 +1025,16 @@ def plot_ablation(results, output_dir, fmt='pdf'):
         plt.close()
 
     # --- Part 2: Abort mechanism ---
-    abort_order = ['ustm', 'ustm_longjmp', 'ustm_simple_longjmp']
+    abort_order = ['mvustm', 'ustm', 'ustm_longjmp', 'ustm_simple_longjmp']
     abort_impls = [i for i in abort_order if i in data]
 
     if abort_impls:
         fig, ax = plt.subplots(figsize=(9, 6))
         abort_labels = {
-            'ustm': 'Standard (try/throw)',
-            'ustm_longjmp': 'Longjmp',
-            'ustm_simple_longjmp': 'Simple Longjmp',
+            'mvustm': '$\\mu$STM (default)',
+            'ustm': 'SV-$\\mu$STM (try/throw)',
+            'ustm_longjmp': '$\\mu$STM (Longjmp)',
+            'ustm_simple_longjmp': 'SV-$\\mu$STM (Longjmp)',
         }
         for impl in abort_impls:
             points = aggregate_points(data[impl])
@@ -1217,15 +1236,8 @@ def main():
     
     if 'combined' in plots:
         print("\nGenerating Combined grid plot...")
-        # For combined plot, use only varying-experiment results (not geomean)
-        vary_files = ['vary_size', 'vary_threads', 'vary_zipfian', 'vary_trans', 'vary_update']
-        all_results = []
-        for key in vary_files:
-            if key in exp_results:
-                all_results.extend(exp_results[key])
-        if all_results:
-            plot_combined_grid(all_results, geomean_data, output_dir, 
-                              f'results_combined.{args.format}')
+        plot_combined_grid(exp_results, geomean_data, output_dir, 
+                          f'results_combined.{args.format}')
     
     if 'tpcc' in plots:
         print("\nGenerating TPCC bar chart...")
