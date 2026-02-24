@@ -1072,10 +1072,18 @@ def plot_machines(machine_dirs, output_dir, fmt='pdf'):
     machine_data = {}  # label -> {impl: geomean_mops}
 
     for label, dirpath in machine_dirs:
-        gfile = Path(dirpath) / 'geomean'
-        if not gfile.exists():
+        #find file
+        found = False
+        files = os.listdir(dirpath)
+        for f in files:
+            if "geomean" in f:
+                found = True
+                break
+        if not found:
             print(f"  Skipping machine '{label}' (no geomean file in {dirpath})")
             continue
+        gfile = Path(dirpath) / f
+
         _, gdata = parse_timing_file(gfile)
         machine_data[label] = {}
         for impl in machine_impls:
