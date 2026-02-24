@@ -43,19 +43,25 @@ from typing import List, Optional, Tuple
 class Config:
     def __init__(self, args):
         self.small = args.small
-        self.impls = [
-            "multiverse",
-            "mvustm",
-            # "mvustm_hwstamp",
-            # "mvustm_longjmp",
-            "2plsf",
-            "fuse",
-            # "onefile",
-            # "tiny",
-            # "tl2",
-            # DCOTL is broken for most benchmarks
-            # "dcotl"
-        ]
+        if args.impl == None:
+            self.impls = [
+                "multiverse",
+                "mvustm",
+                # "mvustm_hwstamp",
+                # "mvustm_longjmp",
+                "2plsf",
+                "fuse",
+                # "onefile",
+                # "tiny",
+                # "tl2",
+                # DCOTL is broken for most benchmarks
+                # "dcotl"
+            ]
+            self.tpcc_impls = ["mvustm", "fuse", "2plsf", "multiverse"]
+        else:
+            #only run impl
+            self.impls = self.tpcc_impls = [ args.impl ]
+
         if args.hytm:
             self.impls.append("hytm")
             self.max_threads = 72
@@ -66,13 +72,17 @@ class Config:
         self.default_p = self.max_threads
         self.allocator = args.allocator
 
-        self.structs = ["btree", "arttree", "avltree", "leaftree", "treap", "skiplist", "hash_block"]
-        self.structs_nohash = ["btree", "arttree", "avltree", "leaftree", "treap", "skiplist"]
-        self.lstructs = ["list"]
-        self.range_structs = ["btree", "arttree"]
-        self.small_structs = ["btree", "hash_list"]
-        self.tpcc_structs = ["hash_list", "btree", "mix"]
-        self.tpcc_impls = ["mvustm", "fuse", "2plsf", "multiverse"]
+        if args.struct == None:
+            self.structs = ["btree", "arttree", "avltree", "leaftree", "treap", "skiplist", "hash_block"]
+            self.structs_nohash = ["btree", "arttree", "avltree", "leaftree", "treap", "skiplist"]
+            self.lstructs = ["list"]
+            self.range_structs = ["btree", "arttree"]
+            self.small_structs = ["btree", "hash_list"]
+            self.tpcc_structs = ["hash_list", "btree", "mix"]
+        else:
+            self.structs = self.structs_nohash = self.lstructs = \
+                self.range_structs = self.small_structs = self.tpcc_structs = [ args.struct ]
+        print(self)
 
     """Experiment configuration."""
     # Data structures
@@ -658,6 +668,12 @@ Examples:
                        help="Restrict to btree, hash_block, and list (geomean uses runall.sh parameters)")
     parser.add_argument("--allocator", default="deqalloc",
                        help="Choose which allocator to use (default: deqalloc)")
+    parser.add_argument("--impl", default=None,
+                       choices=["mvustm", "fuse", "2plsf", "multiverse"],
+                       help="Run a specific stm system only")
+    parser.add_argument("--struct", default=None,
+                       choices=["btree", "arttree", "avltree", "leaftree", "treap", "skiplist", "hash_block"],
+                       help="Run a specific struct only")
     
     args = parser.parse_args()
     
