@@ -28,7 +28,6 @@
 
 #include <array>
 #include <atomic>
-#include <forward_list>
 #include <functional>
 #include <iostream>
 #include <utility>
@@ -41,57 +40,48 @@ namespace uepoch {
   constexpr int max_threads = 4096; // can be increased
   constexpr long bytes_per_thread = 1ul << 26;
 
-  extern inline std::atomic<int>& num_threads() {
-      static std::atomic<int> num_threads{0};
-      return num_threads;  }
-
-  extern inline int thread_id() {
-    static thread_local int id{num_threads().fetch_add(1, std::memory_order_relaxed)};
-    return id; }
-
-  template <typename T>
-  struct pool {
-    struct alignas(128) poolList { T* head = nullptr; size_t n = 0; };
-    static std::array<poolList, max_threads>& lists() {
-      static std::array<poolList, max_threads> lists;
-      return lists;
-    }
-
-    template <typename... Args>
-    static inline T* New(int tid, Args&&... args) {
-      auto& l = lists()[tid];
-      if (l.n == 0) return new T(std::forward<Args>(args)...);
-      l.n--;
-      T* h = l.head;
-      l.head = *((T**) h);
-      return new (h) T(std::forward<Args>(args)...);
-    }
-
-    static inline void Delete(int tid, T* obj) {
-      auto& l = lists()[tid];
-      if (l.n * sizeof(T) > bytes_per_thread) delete obj;
-      else {
-        obj->~T();
-        l.n++;
-        *((T**) obj) = l.head;
-        l.head = obj;
-      }
-    }
-
-    static void clear() {
-      for (auto& l : lists()) {
-        T* h = l.head;
-        while (h != nullptr) {
-          T* nxt = *((T**) h);
-          free(h);
-          h = nxt;
-        }
-        l.n = 0;
-      }
-    }
+  // Keeps an array of flags to indicate what thread ids are
+  // available (0 = available), and max id that has been used.
+  struct thread_id_registry {
+    std::array<std::atomic<long>,max_threads> flags;
+    std::atomic<long> max_seen = 0;
+    thread_id_registry() { for (auto& x : flags) x = 0; }
   };
     
+  extern inline thread_id_registry& get_thread_id_registry() {
+    static thread_id_registry ti;
+    return ti;
+  }
 
+  // This is used as a thread local and keeps the thread's id.  Its
+  // constructor finds a free id from the registry marking it as used,
+  // and its destructor marks the id as unused.
+  struct registered_id {
+    long id;
+    registered_id() {
+      auto& ti = get_thread_id_registry();
+      for (int i = 0; i < max_threads; i++) {
+        long x = 0;
+        if (ti.flags[i].load() == 0 &&
+            ti.flags[i].compare_exchange_strong(x, 1)) {
+          id = i;
+          auto max = ti.max_seen.load();
+          while (i > max && !ti.max_seen.compare_exchange_strong(max,i));
+          return;
+        }
+      }
+      std::cout << "thread registry is full, max threads is " << max_threads << std::endl;
+      abort();
+    }
+    ~registered_id() { get_thread_id_registry().flags[id] = 0;}
+  };
+
+  long num_threads() {
+    return get_thread_id_registry().max_seen.load(); }
+
+  extern inline int thread_id() {
+    static thread_local registered_id id_s;
+    return id_s.id; }
   
   namespace internal {
     using thunk = std::function<void()>;
@@ -103,7 +93,7 @@ namespace uepoch {
         std::atomic<long> last;
         announce() : last(-1l) {}};
 
-      // the various delayed lists for each thread
+      // the various delayed pools for each thread
       struct alignas(256) thread_state {
         std::vector<thunk> current; // delayed functions from current epoch
         std::vector<thunk> old;  // delayed functions from previous epoch
@@ -156,7 +146,8 @@ namespace uepoch {
           for (const auto& h : after_epoch_hooks) h();
       }
 
-      void clear_list(std::vector<thunk>& v) {
+      // runs all thunks in the pool and then empties it
+      void clear_pool(std::vector<thunk>& v) {
         for (auto& x : v) x();
         v.clear();
       }
@@ -166,7 +157,7 @@ namespace uepoch {
         if (pool.epoch + 1 < current_epoch.load()) {
           // could call all the delayed functions in old at this point, but
           // we delay and put them in safe so they can be applied over time
-          clear_list(pool.old);
+          clear_pool(pool.old);
           std::swap(pool.old, pool.current);  // current is now empty
           pool.epoch = current_epoch.load();
         }
@@ -185,8 +176,8 @@ namespace uepoch {
         for (long i = 0; i < max_threads; i++) {
           auto& p = pools[i];
           cnt += (p.old.size() + p.current.size());
-          clear_list(p.old);
-          clear_list(p.current);
+          clear_pool(p.old);
+          clear_pool(p.current);
         }
         return cnt;
       }
@@ -229,19 +220,12 @@ namespace uepoch {
   void delay(std::function<void()>&& f) {
     get_epoch().delay(std::forward<std::function<void()>>(f)); }
 
-  template<typename T>
-  void Retire(T *ptr) { delay([=] { delete ptr; }); }
-
-  template<typename T, typename... Args>
-  T *New(Args&& ...args) { 
-    return pool<T>::New(thread_id(), std::forward<Args>(args)...);
-  }
-
   void add_before_epoch_hook(std::function<void()> f) {
     get_epoch().before_epoch_hooks.push_back(f); }
 
   void add_after_epoch_hook(std::function<void()> f) {
     get_epoch().after_epoch_hooks.push_back(f); }
+
   long clear() {return get_epoch().clear();}
 } // end namespace uepoch
 

@@ -401,7 +401,6 @@ namespace ustm {
     if (regular) myd->readLog.push_back(&v);
     char tmp[sizeof(T)];
     T* location = reinterpret_cast<T*>(tmp);
-    int delay = 100;
     while (true) { 
       auto prevStatus = status;
       std::memcpy(tmp, &v, sizeof(T));
@@ -417,9 +416,6 @@ namespace ustm {
           break;
         }
       }
-      for (volatile int i = 0; i < delay; i++)
-        ;
-      delay = std::min(2 * delay, 1000);
     }
     if (regular) {
       myd->lateRead = true;
@@ -505,10 +501,8 @@ namespace ustm {
     if (myd->inTransaction) {
       myd->inConstructor++;
 #ifdef ParlayAlloc
-      //T* ptr = parlay::type_allocator<T>::create(args...);
-      //myd->allocLog.push_back([=] {parlay::type_allocator<T>::destroy(ptr);});
-      T* ptr = uepoch::pool<T>::New(myd->tid, args...);
-      myd->allocLog.push_back([=] {uepoch::pool<T>::Delete(myd->tid, ptr);});
+      T* ptr = parlay::type_allocator<T>::create(args...);
+      myd->allocLog.push_back([=] {parlay::type_allocator<T>::destroy(ptr);});
 #else
       T* ptr = new T(args...);
       myd->allocLog.push_back([=] {delete ptr;});
@@ -517,8 +511,7 @@ namespace ustm {
       return ptr;
     } else
 #ifdef ParlayAlloc
-      //return parlay::type_allocator<T>::create(args...);
-      return uepoch::pool<T>::New(myd->tid, args...);
+      return parlay::type_allocator<T>::create(args...);
 #else
       return new T(args...);
 #endif
@@ -530,10 +523,8 @@ namespace ustm {
     if (obj == nullptr) return;
     Descriptor* myd = getDescriptor();
 #ifdef ParlayAlloc
-    //if (!myd->inTransaction) parlay::type_allocator<T>::destroy(obj);
-    //else myd->deleteLog.push_back([=] { parlay::type_allocator<T>::destroy(obj);});
-    if (!myd->inTransaction) uepoch::pool<T>::Delete(myd->tid, obj);
-    else myd->deleteLog.push_back([=] { uepoch::pool<T>::Delete(myd->tid, obj);});
+    if (!myd->inTransaction) parlay::type_allocator<T>::destroy(obj);
+    else myd->deleteLog.push_back([=] { parlay::type_allocator<T>::destroy(obj);});
 #else
     if (!myd->inTransaction) delete obj;
     else myd->deleteLog.push_back([=] { delete obj;});
@@ -545,6 +536,7 @@ namespace ustm {
     Descriptor* myd = getDescriptor();
     if (myd->inConstructor > 0) loc = v;
     else if (!myd->inTransaction)
+      // guy : why is this commented out?
       loc = v; //ustm::transaction([&] {ustm::store(loc, v); return true;});
     else {
       // insert into hash filter and map so reads can find it
@@ -582,7 +574,7 @@ namespace ustm {
     STMState* stm = getDescriptor()->stmState;
     uint64_t totalAborts = 0;
     uint64_t totalCommits = 0;
-    for (int i=0; i < uepoch::num_threads().load(); i++) {
+    for (int i=0; i < uepoch::num_threads(); i++) {
       auto& d = stm->descriptors[i];
       totalAborts += d.numAborts;
       totalCommits += d.numCommits;

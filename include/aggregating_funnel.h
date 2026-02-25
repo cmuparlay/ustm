@@ -44,8 +44,8 @@ namespace SIMPLE_AGG_FUNNEL
         T update(Node *child, T child_from, T child_to)
         {
             T root_from = counter.fetch_add(child_to - child_from);
-            // MappingListNode *new_mapping = new MappingListNode();
-            auto *new_mapping = uepoch::New<MappingListNode>();
+            MappingListNode *new_mapping = new MappingListNode();
+            //auto *new_mapping = uepoch::New<MappingListNode>();
 
             MappingListNode *existing_mapping = child->mapping_list.load();
             new_mapping->prev = existing_mapping;
@@ -55,7 +55,8 @@ namespace SIMPLE_AGG_FUNNEL
             child->mapping_list.store(new_mapping, std::memory_order_release);
             child->sent.store(child_to, std::memory_order_release);
 
-            uepoch::Retire(existing_mapping);
+            //uepoch::Retire(existing_mapping);
+            uepoch::delay([=] {delete(existing_mapping);});
             return root_from;
         }
 
