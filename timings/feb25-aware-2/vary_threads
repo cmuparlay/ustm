@@ -1,0 +1,24 @@
+Date: 02-25-2026
+Experiment: vary_threads
+Threads: 144
+Model name:                           Intel(R) Xeon(R) CPU E7-8867 v4 @ 2.40GHz
+Git: 1d903a1
+---
+Fixed: n=1000000, u=5, trans=4, z=0.75
+---
+./btree_multiverse,u=5,trans=4,n=1000000,p=1,z=0.75,pa=0,be=0,mops=3.9
+./btree_multiverse,u=5,trans=4,n=1000000,p=4,z=0.75,pa=0,be=0,mops=13.3
+./btree_multiverse,u=5,trans=4,n=1000000,p=16,z=0.75,pa=0,be=0,mops=45.7
+./btree_multiverse,u=5,trans=4,n=1000000,p=32,z=0.75,pa=0,be=0,mops=92.2
+./btree_multiverse,u=5,trans=4,n=1000000,p=64,z=0.75,pa=0,be=0,mops=171
+./btree_multiverse,u=5,trans=4,n=1000000,p=128,z=0.75,pa=0,be=0,mops=249
+./btree_multiverse,u=5,trans=4,n=1000000,p=144,z=0.75,pa=0,be=0,mops=160
+./arttree_multiverse,u=5,trans=4,n=1000000,p=1,z=0.75,pa=0,be=0,mops=8.24
+./arttree_multiverse,u=5,trans=4,n=1000000,p=4,z=0.75,pa=0,be=0,mops=19.7
+./arttree_multiverse,u=5,trans=4,n=1000000,p=16,z=0.75,pa=0,be=0,mops=76.8
+./arttree_multiverse,u=5,trans=4,n=1000000,p=32,z=0.75,pa=0,be=0,mops=158
+./arttree_multiverse,u=5,trans=4,n=1000000,p=64,z=0.75,pa=0,be=0,mops=264
+./arttree_multiverse,u=5,trans=4,n=1000000,p=128,z=0.75,pa=0,be=0,mops=378
+./arttree_multiverse,u=5,trans=4,n=1000000,p=144,z=0.75,pa=0,be=0,mops=253
+./avltree_multiverse,u=5,trans=4,n=1000000,p=1,z=0.75,pa=0,be=0,mops=1.29
+./avltree_multiverse,u=5,trans=4,n=1000000,p=4,z=0.75,pa=0,be=0,mops=4.86

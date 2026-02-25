@@ -2,30 +2,7 @@ Date: 02-25-2026
 Experiment: vary_threads
 Threads: 144
 Model name:                           Intel(R) Xeon(R) CPU E7-8867 v4 @ 2.40GHz
-Git: 5dd49ac
+Git: 1d903a1
 ---
 Fixed: n=1000000, u=5, trans=4, z=0.75
 ---
-./hash_list_multiverse,u=5,trans=4,n=1000000,p=1,z=0.75,pa=0,be=0,mops=5.16
-./hash_list_multiverse,u=5,trans=4,n=1000000,p=4,z=0.75,pa=0,be=0,mops=20.7
-./hash_list_multiverse,u=5,trans=4,n=1000000,p=16,z=0.75,pa=0,be=0,mops=83.4
-./hash_list_multiverse,u=5,trans=4,n=1000000,p=32,z=0.75,pa=0,be=0,mops=172
-./hash_list_multiverse,u=5,trans=4,n=1000000,p=64,z=0.75,pa=0,be=0,mops=327
-./hash_list_multiverse,u=5,trans=4,n=1000000,p=128,z=0.75,pa=0,be=0,mops=450
-./hash_list_multiverse,u=5,trans=4,n=1000000,p=144,z=0.75,pa=0,be=0,mops=482
-./hash_list_mvustm,u=5,trans=4,n=1000000,p=1,z=0.75,pa=0,be=0,mops=5.2
-./hash_list_mvustm,u=5,trans=4,n=1000000,p=4,z=0.75,pa=0,be=0,mops=15.3
-./hash_list_mvustm,u=5,trans=4,n=1000000,p=16,z=0.75,pa=0,be=0,mops=73
-./hash_list_mvustm,u=5,trans=4,n=1000000,p=32,z=0.75,pa=0,be=0,mops=150
-./hash_list_mvustm,u=5,trans=4,n=1000000,p=64,z=0.75,pa=0,be=0,mops=266
-./hash_list_mvustm,u=5,trans=4,n=1000000,p=128,z=0.75,pa=0.146,be=0,mops=448
-./hash_list_mvustm,u=5,trans=4,n=1000000,p=144,z=0.75,pa=0.164,be=0,mops=467
-./hash_list_2plsf,u=5,trans=4,n=1000000,p=1,z=0.75,pa=0,be=0,mops=4.22
-./hash_list_2plsf,u=5,trans=4,n=1000000,p=4,z=0.75,pa=0,be=0,mops=17.6
-./hash_list_2plsf,u=5,trans=4,n=1000000,p=16,z=0.75,pa=0,be=0,mops=61.2
-./hash_list_2plsf,u=5,trans=4,n=1000000,p=32,z=0.75,pa=0.266,be=0,mops=121
-./hash_list_2plsf,u=5,trans=4,n=1000000,p=64,z=0.75,pa=0.703,be=0,mops=225
-./hash_list_2plsf,u=5,trans=4,n=1000000,p=128,z=0.75,pa=2.22,be=0,mops=250
-./hash_list_2plsf,u=5,trans=4,n=1000000,p=144,z=0.75,pa=2.2,be=0,mops=248
-./hash_list_fuse,u=5,trans=4,n=1000000,p=1,z=0.75,pa=0,be=0,mops=3.61
-./hash_list_fuse,u=5,trans=4,n=1000000,p=4,z=0.75,pa=0,be=0,mops=15.1

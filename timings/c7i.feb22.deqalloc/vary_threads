@@ -13,6 +13,7 @@ Fixed: n=1000000, u=5, trans=4, z=0.75
 ./btree_multiverse,u=5,trans=4,n=1000000,p=64,z=0.75,pa=0,be=0,mops=205
 ./btree_multiverse,u=5,trans=4,n=1000000,p=128,z=0.75,pa=0,be=0,mops=241
 ./btree_multiverse,u=5,trans=4,n=1000000,p=144,z=0.75,pa=0,be=0,mops=244
+./btree_multiverse,u=5,trans=4,n=1000000,p=192,z=0.75,pa=0,be=0,mops=228
 ./arttree_multiverse,u=5,trans=4,n=1000000,p=1,z=0.75,pa=0,be=0,mops=10.4
 ./arttree_multiverse,u=5,trans=4,n=1000000,p=4,z=0.75,pa=0,be=0,mops=37.6
 ./arttree_multiverse,u=5,trans=4,n=1000000,p=16,z=0.75,pa=0,be=0,mops=132
@@ -20,6 +21,7 @@ Fixed: n=1000000, u=5, trans=4, z=0.75
 ./arttree_multiverse,u=5,trans=4,n=1000000,p=64,z=0.75,pa=0,be=0,mops=283
 ./arttree_multiverse,u=5,trans=4,n=1000000,p=128,z=0.75,pa=0,be=0,mops=273
 ./arttree_multiverse,u=5,trans=4,n=1000000,p=144,z=0.75,pa=0,be=0,mops=248
+./arttree_multiverse,u=5,trans=4,n=1000000,p=192,z=0.75,pa=0,be=0,mops=362
 ./avltree_multiverse,u=5,trans=4,n=1000000,p=1,z=0.75,pa=0,be=0,mops=1.87
 ./avltree_multiverse,u=5,trans=4,n=1000000,p=4,z=0.75,pa=0,be=0,mops=7.85
 ./avltree_multiverse,u=5,trans=4,n=1000000,p=16,z=0.75,pa=0,be=0,mops=30.8
@@ -27,6 +29,7 @@ Fixed: n=1000000, u=5, trans=4, z=0.75
 ./avltree_multiverse,u=5,trans=4,n=1000000,p=64,z=0.75,pa=0,be=0,mops=109
 ./avltree_multiverse,u=5,trans=4,n=1000000,p=128,z=0.75,pa=0,be=0,mops=169
 ./avltree_multiverse,u=5,trans=4,n=1000000,p=144,z=0.75,pa=0,be=0,mops=182
+./avltree_multiverse,u=5,trans=4,n=1000000,p=192,z=0.75,pa=0,be=0,mops=245
 ./leaftree_multiverse,u=5,trans=4,n=1000000,p=1,z=0.75,pa=0,be=0,mops=1.51
 ./leaftree_multiverse,u=5,trans=4,n=1000000,p=4,z=0.75,pa=0,be=0,mops=6.09
 ./leaftree_multiverse,u=5,trans=4,n=1000000,p=16,z=0.75,pa=0,be=0,mops=24.8
@@ -34,6 +37,7 @@ Fixed: n=1000000, u=5, trans=4, z=0.75
 ./leaftree_multiverse,u=5,trans=4,n=1000000,p=64,z=0.75,pa=0,be=0,mops=87.1
 ./leaftree_multiverse,u=5,trans=4,n=1000000,p=128,z=0.75,pa=0,be=0,mops=142
 ./leaftree_multiverse,u=5,trans=4,n=1000000,p=144,z=0.75,pa=0,be=0,mops=148
+./leaftree_multiverse,u=5,trans=4,n=1000000,p=192,z=0.75,pa=0,be=0,mops=208
 ./treap_multiverse,u=5,trans=4,n=1000000,p=1,z=0.75,pa=0,be=0,mops=2.98
 ./treap_multiverse,u=5,trans=4,n=1000000,p=4,z=0.75,pa=0,be=0,mops=12.1
 ./treap_multiverse,u=5,trans=4,n=1000000,p=16,z=0.75,pa=0,be=0,mops=45.5
@@ -41,6 +45,7 @@ Fixed: n=1000000, u=5, trans=4, z=0.75
 ./treap_multiverse,u=5,trans=4,n=1000000,p=64,z=0.75,pa=0,be=0,mops=158
 ./treap_multiverse,u=5,trans=4,n=1000000,p=128,z=0.75,pa=0,be=0,mops=229
 ./treap_multiverse,u=5,trans=4,n=1000000,p=144,z=0.75,pa=0,be=0,mops=235
+./treap_multiverse,u=5,trans=4,n=1000000,p=192,z=0.75,pa=0,be=0,mops=310
 ./skiplist_multiverse,u=5,trans=4,n=1000000,p=1,z=0.75,pa=0,be=0,mops=1.47
 ./skiplist_multiverse,u=5,trans=4,n=1000000,p=4,z=0.75,pa=0,be=0,mops=5.69
 ./skiplist_multiverse,u=5,trans=4,n=1000000,p=16,z=0.75,pa=0,be=0,mops=23.4
@@ -48,6 +53,7 @@ Fixed: n=1000000, u=5, trans=4, z=0.75
 ./skiplist_multiverse,u=5,trans=4,n=1000000,p=64,z=0.75,pa=0,be=0,mops=77.7
 ./skiplist_multiverse,u=5,trans=4,n=1000000,p=128,z=0.75,pa=0,be=0,mops=125
 ./skiplist_multiverse,u=5,trans=4,n=1000000,p=144,z=0.75,pa=0,be=0,mops=132
+./skiplist_multiverse,u=5,trans=4,n=1000000,p=192,z=0.75,pa=0,be=0,mops=179
 ./list_multiverse,u=5,trans=4,n=300,p=1,z=0.75,pa=0,be=0,mops=2.41
 ./list_multiverse,u=5,trans=4,n=300,p=4,z=0.75,pa=0,be=0,mops=6.28
 ./list_multiverse,u=5,trans=4,n=300,p=16,z=0.75,pa=0,be=0,mops=6.16
@@ -55,6 +61,7 @@ Fixed: n=1000000, u=5, trans=4, z=0.75
 ./list_multiverse,u=5,trans=4,n=300,p=64,z=0.75,pa=0,be=0,mops=4.56
 ./list_multiverse,u=5,trans=4,n=300,p=128,z=0.75,pa=0,be=0,mops=2.74
 ./list_multiverse,u=5,trans=4,n=300,p=144,z=0.75,pa=0,be=0,mops=2.12
+./list_multiverse,u=5,trans=4,n=300,p=192,z=0.75,pa=0,be=0,mops=4.22
 ./btree_mvustm,u=5,trans=4,n=1000000,p=1,z=0.75,pa=0,be=0,mops=4.88
 ./btree_mvustm,u=5,trans=4,n=1000000,p=4,z=0.75,pa=0,be=0,mops=17.2
 ./btree_mvustm,u=5,trans=4,n=1000000,p=16,z=0.75,pa=0,be=0,mops=62.1
@@ -62,6 +69,7 @@ Fixed: n=1000000, u=5, trans=4, z=0.75
 ./btree_mvustm,u=5,trans=4,n=1000000,p=64,z=0.75,pa=0.143,be=0,mops=209
 ./btree_mvustm,u=5,trans=4,n=1000000,p=128,z=0.75,pa=0.264,be=0,mops=316
 ./btree_mvustm,u=5,trans=4,n=1000000,p=144,z=0.75,pa=0.296,be=0,mops=343
+./btree_mvustm,u=5,trans=4,n=1000000,p=192,z=0.75,pa=0.382,be=0,mops=411
 ./arttree_mvustm,u=5,trans=4,n=1000000,p=1,z=0.75,pa=0,be=0,mops=12.2
 ./arttree_mvustm,u=5,trans=4,n=1000000,p=4,z=0.75,pa=0,be=0,mops=43.9
 ./arttree_mvustm,u=5,trans=4,n=1000000,p=16,z=0.75,pa=0,be=0,mops=105
@@ -69,6 +77,7 @@ Fixed: n=1000000, u=5, trans=4, z=0.75
 ./arttree_mvustm,u=5,trans=4,n=1000000,p=64,z=0.75,pa=0.154,be=0,mops=253
 ./arttree_mvustm,u=5,trans=4,n=1000000,p=128,z=0.75,pa=0.3,be=0,mops=416
 ./arttree_mvustm,u=5,trans=4,n=1000000,p=144,z=0.75,pa=0.336,be=0,mops=441
+./arttree_mvustm,u=5,trans=4,n=1000000,p=192,z=0.75,pa=0.436,be=0,mops=537
 ./avltree_mvustm,u=5,trans=4,n=1000000,p=1,z=0.75,pa=0,be=0,mops=1.79
 ./avltree_mvustm,u=5,trans=4,n=1000000,p=4,z=0.75,pa=0,be=0,mops=6.99
 ./avltree_mvustm,u=5,trans=4,n=1000000,p=16,z=0.75,pa=0,be=0,mops=27.4
@@ -76,6 +85,7 @@ Fixed: n=1000000, u=5, trans=4, z=0.75
 ./avltree_mvustm,u=5,trans=4,n=1000000,p=64,z=0.75,pa=0,be=0,mops=102
 ./avltree_mvustm,u=5,trans=4,n=1000000,p=128,z=0.75,pa=0.157,be=0,mops=168
 ./avltree_mvustm,u=5,trans=4,n=1000000,p=144,z=0.75,pa=0.179,be=0,mops=182
+./avltree_mvustm,u=5,trans=4,n=1000000,p=192,z=0.75,pa=0.243,be=0,mops=217
 ./leaftree_mvustm,u=5,trans=4,n=1000000,p=1,z=0.75,pa=0,be=0,mops=1.31
 ./leaftree_mvustm,u=5,trans=4,n=1000000,p=4,z=0.75,pa=0,be=0,mops=5.09
 ./leaftree_mvustm,u=5,trans=4,n=1000000,p=16,z=0.75,pa=0,be=0,mops=21
@@ -83,6 +93,7 @@ Fixed: n=1000000, u=5, trans=4, z=0.75
 ./leaftree_mvustm,u=5,trans=4,n=1000000,p=64,z=0.75,pa=0,be=0,mops=77.9
 ./leaftree_mvustm,u=5,trans=4,n=1000000,p=128,z=0.75,pa=0,be=0,mops=130
 ./leaftree_mvustm,u=5,trans=4,n=1000000,p=144,z=0.75,pa=0,be=0,mops=142
+./leaftree_mvustm,u=5,trans=4,n=1000000,p=192,z=0.75,pa=0.132,be=0,mops=166
 ./treap_mvustm,u=5,trans=4,n=1000000,p=1,z=0.75,pa=0,be=0,mops=2.83
 ./treap_mvustm,u=5,trans=4,n=1000000,p=4,z=0.75,pa=0,be=0,mops=10.2
 ./treap_mvustm,u=5,trans=4,n=1000000,p=16,z=0.75,pa=0,be=0,mops=41
@@ -90,6 +101,7 @@ Fixed: n=1000000, u=5, trans=4, z=0.75
 ./treap_mvustm,u=5,trans=4,n=1000000,p=64,z=0.75,pa=0,be=0,mops=138
 ./treap_mvustm,u=5,trans=4,n=1000000,p=128,z=0.75,pa=0.149,be=0,mops=220
 ./treap_mvustm,u=5,trans=4,n=1000000,p=144,z=0.75,pa=0.164,be=0,mops=239
+./treap_mvustm,u=5,trans=4,n=1000000,p=192,z=0.75,pa=0.224,be=0,mops=280
 ./skiplist_mvustm,u=5,trans=4,n=1000000,p=1,z=0.75,pa=0,be=0,mops=1.31
 ./skiplist_mvustm,u=5,trans=4,n=1000000,p=4,z=0.75,pa=0,be=0,mops=5
 ./skiplist_mvustm,u=5,trans=4,n=1000000,p=16,z=0.75,pa=0,be=0,mops=19.9
@@ -97,6 +109,7 @@ Fixed: n=1000000, u=5, trans=4, z=0.75
 ./skiplist_mvustm,u=5,trans=4,n=1000000,p=64,z=0.75,pa=0,be=0,mops=72.9
 ./skiplist_mvustm,u=5,trans=4,n=1000000,p=128,z=0.75,pa=0.138,be=0,mops=112
 ./skiplist_mvustm,u=5,trans=4,n=1000000,p=144,z=0.75,pa=0.15,be=0,mops=122
+./skiplist_mvustm,u=5,trans=4,n=1000000,p=192,z=0.75,pa=0.199,be=0,mops=141
 ./hash_list_multiverse,u=5,trans=4,n=1000000,p=1,z=0.75,pa=0,be=0,mops=16.7
 ./hash_list_multiverse,u=5,trans=4,n=1000000,p=4,z=0.75,pa=0,be=0,mops=69.7
 ./hash_list_multiverse,u=5,trans=4,n=1000000,p=16,z=0.75,pa=0,be=0,mops=198
@@ -104,6 +117,7 @@ Fixed: n=1000000, u=5, trans=4, z=0.75
 ./hash_list_multiverse,u=5,trans=4,n=1000000,p=64,z=0.75,pa=0,be=0,mops=405
 ./hash_list_multiverse,u=5,trans=4,n=1000000,p=128,z=0.75,pa=0,be=0,mops=302
 ./hash_list_multiverse,u=5,trans=4,n=1000000,p=144,z=0.75,pa=0,be=0,mops=345
+./hash_list_multiverse,u=5,trans=4,n=1000000,p=192,z=0.75,pa=0,be=0,mops=271
 ./hash_list_mvustm,u=5,trans=4,n=1000000,p=1,z=0.75,pa=0,be=0,mops=16.8
 ./hash_list_mvustm,u=5,trans=4,n=1000000,p=4,z=0.75,pa=0,be=0,mops=65
 ./hash_list_mvustm,u=5,trans=4,n=1000000,p=16,z=0.75,pa=0,be=0,mops=138
@@ -111,6 +125,7 @@ Fixed: n=1000000, u=5, trans=4, z=0.75
 ./hash_list_mvustm,u=5,trans=4,n=1000000,p=64,z=0.75,pa=0,be=0,mops=280
 ./hash_list_mvustm,u=5,trans=4,n=1000000,p=128,z=0.75,pa=0.146,be=0,mops=446
 ./hash_list_mvustm,u=5,trans=4,n=1000000,p=144,z=0.75,pa=0.164,be=0,mops=525
+./hash_list_mvustm,u=5,trans=4,n=1000000,p=192,z=0.75,pa=0.205,be=0,mops=615
 ./list_mvustm,u=5,trans=4,n=300,p=1,z=0.75,pa=0,be=0,mops=2.09
 ./list_mvustm,u=5,trans=4,n=300,p=4,z=0.75,pa=6.17,be=0,mops=6.83
 ./list_mvustm,u=5,trans=4,n=300,p=16,z=0.75,pa=56.2,be=0,mops=11.5
@@ -118,6 +133,7 @@ Fixed: n=1000000, u=5, trans=4, z=0.75
 ./list_mvustm,u=5,trans=4,n=300,p=64,z=0.75,pa=297,be=0,mops=9.91
 ./list_mvustm,u=5,trans=4,n=300,p=128,z=0.75,pa=536,be=0,mops=7.66
 ./list_mvustm,u=5,trans=4,n=300,p=144,z=0.75,pa=591,be=0,mops=7.16
+./list_mvustm,u=5,trans=4,n=300,p=192,z=0.75,pa=915,be=0,mops=4.78
 ./btree_2plsf,u=5,trans=4,n=1000000,p=1,z=0.75,pa=0,be=0,mops=4.67
 ./btree_2plsf,u=5,trans=4,n=1000000,p=4,z=0.75,pa=0,be=0,mops=16.4
 ./btree_2plsf,u=5,trans=4,n=1000000,p=16,z=0.75,pa=0.125,be=0,mops=58.7
@@ -125,6 +141,7 @@ Fixed: n=1000000, u=5, trans=4, z=0.75
 ./btree_2plsf,u=5,trans=4,n=1000000,p=64,z=0.75,pa=0.735,be=0,mops=175
 ./btree_2plsf,u=5,trans=4,n=1000000,p=128,z=0.75,pa=1.76,be=0,mops=227
 ./btree_2plsf,u=5,trans=4,n=1000000,p=144,z=0.75,pa=1.98,be=0,mops=229
+./btree_2plsf,u=5,trans=4,n=1000000,p=192,z=0.75,pa=2.76,be=0,mops=240
 ./arttree_2plsf,u=5,trans=4,n=1000000,p=1,z=0.75,pa=0,be=0,mops=10.2
 ./arttree_2plsf,u=5,trans=4,n=1000000,p=4,z=0.75,pa=0,be=0,mops=30.9
 ./arttree_2plsf,u=5,trans=4,n=1000000,p=16,z=0.75,pa=0.128,be=0,mops=93.6
@@ -132,6 +149,7 @@ Fixed: n=1000000, u=5, trans=4, z=0.75
 ./arttree_2plsf,u=5,trans=4,n=1000000,p=64,z=0.75,pa=1.15,be=0,mops=231
 ./arttree_2plsf,u=5,trans=4,n=1000000,p=128,z=0.75,pa=2.58,be=0,mops=287
 ./arttree_2plsf,u=5,trans=4,n=1000000,p=144,z=0.75,pa=2.8,be=0,mops=291
+./arttree_2plsf,u=5,trans=4,n=1000000,p=192,z=0.75,pa=3.78,be=0,mops=302
 ./avltree_2plsf,u=5,trans=4,n=1000000,p=1,z=0.75,pa=0,be=0,mops=1.69
 ./avltree_2plsf,u=5,trans=4,n=1000000,p=4,z=0.75,pa=0,be=0,mops=6.18
 ./avltree_2plsf,u=5,trans=4,n=1000000,p=16,z=0.75,pa=0.175,be=0,mops=22.4
@@ -139,6 +157,7 @@ Fixed: n=1000000, u=5, trans=4, z=0.75
 ./avltree_2plsf,u=5,trans=4,n=1000000,p=64,z=0.75,pa=1.15,be=0,mops=62
 ./avltree_2plsf,u=5,trans=4,n=1000000,p=128,z=0.75,pa=3.01,be=0,mops=72.9
 ./avltree_2plsf,u=5,trans=4,n=1000000,p=144,z=0.75,pa=7.17,be=0,mops=67.8
+./avltree_2plsf,u=5,trans=4,n=1000000,p=192,z=0.75,pa=3.84,be=0,mops=71.1
 ./leaftree_2plsf,u=5,trans=4,n=1000000,p=1,z=0.75,pa=0,be=0,mops=1.19
 ./leaftree_2plsf,u=5,trans=4,n=1000000,p=4,z=0.75,pa=0,be=0,mops=5.08
 ./leaftree_2plsf,u=5,trans=4,n=1000000,p=16,z=0.75,pa=0,be=0,mops=19.2
@@ -146,6 +165,7 @@ Fixed: n=1000000, u=5, trans=4, z=0.75
 ./leaftree_2plsf,u=5,trans=4,n=1000000,p=64,z=0.75,pa=0.213,be=0,mops=66.3
 ./leaftree_2plsf,u=5,trans=4,n=1000000,p=128,z=0.75,pa=0.681,be=0,mops=95.1
 ./leaftree_2plsf,u=5,trans=4,n=1000000,p=144,z=0.75,pa=0.745,be=0,mops=98.3
+./leaftree_2plsf,u=5,trans=4,n=1000000,p=192,z=0.75,pa=1.18,be=0,mops=101
 ./treap_2plsf,u=5,trans=4,n=1000000,p=1,z=0.75,pa=0,be=0,mops=2.71
 ./treap_2plsf,u=5,trans=4,n=1000000,p=4,z=0.75,pa=0,be=0,mops=10
 ./treap_2plsf,u=5,trans=4,n=1000000,p=16,z=0.75,pa=0,be=0,mops=35.3
@@ -153,6 +173,7 @@ Fixed: n=1000000, u=5, trans=4, z=0.75
 ./treap_2plsf,u=5,trans=4,n=1000000,p=64,z=0.75,pa=0.374,be=0,mops=99
 ./treap_2plsf,u=5,trans=4,n=1000000,p=128,z=0.75,pa=0.925,be=0,mops=123
 ./treap_2plsf,u=5,trans=4,n=1000000,p=144,z=0.75,pa=0.94,be=0,mops=126
+./treap_2plsf,u=5,trans=4,n=1000000,p=192,z=0.75,pa=1.28,be=0,mops=124
 ./skiplist_2plsf,u=5,trans=4,n=1000000,p=1,z=0.75,pa=0,be=0,mops=1.12
 ./skiplist_2plsf,u=5,trans=4,n=1000000,p=4,z=0.75,pa=0,be=0,mops=4.07
 ./skiplist_2plsf,u=5,trans=4,n=1000000,p=16,z=0.75,pa=0,be=0,mops=15.8
@@ -160,6 +181,7 @@ Fixed: n=1000000, u=5, trans=4, z=0.75
 ./skiplist_2plsf,u=5,trans=4,n=1000000,p=64,z=0.75,pa=0.575,be=0,mops=52.3
 ./skiplist_2plsf,u=5,trans=4,n=1000000,p=128,z=0.75,pa=1.47,be=0,mops=70
 ./skiplist_2plsf,u=5,trans=4,n=1000000,p=144,z=0.75,pa=1.75,be=0,mops=71.8
+./skiplist_2plsf,u=5,trans=4,n=1000000,p=192,z=0.75,pa=2.06,be=0,mops=76.1
 ./hash_list_2plsf,u=5,trans=4,n=1000000,p=1,z=0.75,pa=0,be=0,mops=11.8
 ./hash_list_2plsf,u=5,trans=4,n=1000000,p=4,z=0.75,pa=0,be=0,mops=38.6
 ./hash_list_2plsf,u=5,trans=4,n=1000000,p=16,z=0.75,pa=0.188,be=0,mops=116
@@ -167,6 +189,7 @@ Fixed: n=1000000, u=5, trans=4, z=0.75
 ./hash_list_2plsf,u=5,trans=4,n=1000000,p=64,z=0.75,pa=1.26,be=0,mops=287
 ./hash_list_2plsf,u=5,trans=4,n=1000000,p=128,z=0.75,pa=2.54,be=0,mops=312
 ./hash_list_2plsf,u=5,trans=4,n=1000000,p=144,z=0.75,pa=2.83,be=0,mops=316
+./hash_list_2plsf,u=5,trans=4,n=1000000,p=192,z=0.75,pa=3.72,be=0,mops=312
 ./list_2plsf,u=5,trans=4,n=300,p=1,z=0.75,pa=0,be=0,mops=1.61
 ./list_2plsf,u=5,trans=4,n=300,p=4,z=0.75,pa=16,be=0,mops=4.57
 ./list_2plsf,u=5,trans=4,n=300,p=16,z=0.75,pa=86.3,be=0,mops=5.41
@@ -174,6 +197,7 @@ Fixed: n=1000000, u=5, trans=4, z=0.75
 ./list_2plsf,u=5,trans=4,n=300,p=64,z=0.75,pa=236,be=0,mops=4.78
 ./list_2plsf,u=5,trans=4,n=300,p=128,z=0.75,pa=383,be=0,mops=3.71
 ./list_2plsf,u=5,trans=4,n=300,p=144,z=0.75,pa=415,be=0,mops=3.55
+./list_2plsf,u=5,trans=4,n=300,p=192,z=0.75,pa=517,be=0,mops=3.32
 ./btree_fuse,u=5,trans=4,n=1000000,p=1,z=0.75,pa=0,be=0,mops=4.59
 ./btree_fuse,u=5,trans=4,n=1000000,p=4,z=0.75,pa=0,be=0,mops=17.1
 ./btree_fuse,u=5,trans=4,n=1000000,p=16,z=0.75,pa=0,be=0,mops=51.7
@@ -181,6 +205,7 @@ Fixed: n=1000000, u=5, trans=4, z=0.75
 ./btree_fuse,u=5,trans=4,n=1000000,p=64,z=0.75,pa=0,be=0,mops=129
 ./btree_fuse,u=5,trans=4,n=1000000,p=128,z=0.75,pa=0,be=0,mops=195
 ./btree_fuse,u=5,trans=4,n=1000000,p=144,z=0.75,pa=0,be=0,mops=202
+./btree_fuse,u=5,trans=4,n=1000000,p=192,z=0.75,pa=0,be=0,mops=270
 ./arttree_fuse,u=5,trans=4,n=1000000,p=1,z=0.75,pa=0,be=0,mops=10.3
 ./arttree_fuse,u=5,trans=4,n=1000000,p=4,z=0.75,pa=0,be=0,mops=29.5
 ./arttree_fuse,u=5,trans=4,n=1000000,p=16,z=0.75,pa=0,be=0,mops=73.4
@@ -188,6 +213,7 @@ Fixed: n=1000000, u=5, trans=4, z=0.75
 ./arttree_fuse,u=5,trans=4,n=1000000,p=64,z=0.75,pa=0,be=0,mops=161
 ./arttree_fuse,u=5,trans=4,n=1000000,p=128,z=0.75,pa=0,be=0,mops=222
 ./arttree_fuse,u=5,trans=4,n=1000000,p=144,z=0.75,pa=0,be=0,mops=252
+./arttree_fuse,u=5,trans=4,n=1000000,p=192,z=0.75,pa=0,be=0,mops=288
 ./avltree_fuse,u=5,trans=4,n=1000000,p=1,z=0.75,pa=0,be=0,mops=1.46
 ./avltree_fuse,u=5,trans=4,n=1000000,p=4,z=0.75,pa=0,be=0,mops=5.95
 ./avltree_fuse,u=5,trans=4,n=1000000,p=16,z=0.75,pa=0,be=0,mops=23.6
@@ -195,6 +221,7 @@ Fixed: n=1000000, u=5, trans=4, z=0.75
 ./avltree_fuse,u=5,trans=4,n=1000000,p=64,z=0.75,pa=0,be=0,mops=79.7
 ./avltree_fuse,u=5,trans=4,n=1000000,p=128,z=0.75,pa=0,be=0,mops=116
 ./avltree_fuse,u=5,trans=4,n=1000000,p=144,z=0.75,pa=0,be=0,mops=131
+./avltree_fuse,u=5,trans=4,n=1000000,p=192,z=0.75,pa=0,be=0,mops=130
 ./leaftree_fuse,u=5,trans=4,n=1000000,p=1,z=0.75,pa=0,be=0,mops=1.13
 ./leaftree_fuse,u=5,trans=4,n=1000000,p=4,z=0.75,pa=0,be=0,mops=4.59
 ./leaftree_fuse,u=5,trans=4,n=1000000,p=16,z=0.75,pa=0,be=0,mops=18.6
@@ -202,6 +229,7 @@ Fixed: n=1000000, u=5, trans=4, z=0.75
 ./leaftree_fuse,u=5,trans=4,n=1000000,p=64,z=0.75,pa=0,be=0,mops=66.1
 ./leaftree_fuse,u=5,trans=4,n=1000000,p=128,z=0.75,pa=0,be=0,mops=107
 ./leaftree_fuse,u=5,trans=4,n=1000000,p=144,z=0.75,pa=0,be=0,mops=113
+./leaftree_fuse,u=5,trans=4,n=1000000,p=192,z=0.75,pa=0,be=0,mops=133
 ./treap_fuse,u=5,trans=4,n=1000000,p=1,z=0.75,pa=0,be=0,mops=2.36
 ./treap_fuse,u=5,trans=4,n=1000000,p=4,z=0.75,pa=0,be=0,mops=8.92
 ./treap_fuse,u=5,trans=4,n=1000000,p=16,z=0.75,pa=0,be=0,mops=33.2
@@ -209,6 +237,7 @@ Fixed: n=1000000, u=5, trans=4, z=0.75
 ./treap_fuse,u=5,trans=4,n=1000000,p=64,z=0.75,pa=0,be=0,mops=97.7
 ./treap_fuse,u=5,trans=4,n=1000000,p=128,z=0.75,pa=0,be=0,mops=153
 ./treap_fuse,u=5,trans=4,n=1000000,p=144,z=0.75,pa=0,be=0,mops=157
+./treap_fuse,u=5,trans=4,n=1000000,p=192,z=0.75,pa=0,be=0,mops=197
 ./skiplist_fuse,u=5,trans=4,n=1000000,p=1,z=0.75,pa=0,be=0,mops=0.936
 ./skiplist_fuse,u=5,trans=4,n=1000000,p=4,z=0.75,pa=0,be=0,mops=3.6
 ./skiplist_fuse,u=5,trans=4,n=1000000,p=16,z=0.75,pa=0,be=0,mops=15.3
@@ -216,6 +245,7 @@ Fixed: n=1000000, u=5, trans=4, z=0.75
 ./skiplist_fuse,u=5,trans=4,n=1000000,p=64,z=0.75,pa=0,be=0,mops=55.5
 ./skiplist_fuse,u=5,trans=4,n=1000000,p=128,z=0.75,pa=0,be=0,mops=79.8
 ./skiplist_fuse,u=5,trans=4,n=1000000,p=144,z=0.75,pa=0,be=0,mops=66.2
+./skiplist_fuse,u=5,trans=4,n=1000000,p=192,z=0.75,pa=0,be=0,mops=101
 ./hash_list_fuse,u=5,trans=4,n=1000000,p=1,z=0.75,pa=0,be=0,mops=14.2
 ./hash_list_fuse,u=5,trans=4,n=1000000,p=4,z=0.75,pa=0,be=0,mops=40.5
 ./hash_list_fuse,u=5,trans=4,n=1000000,p=16,z=0.75,pa=0,be=0,mops=82.2
@@ -223,6 +253,7 @@ Fixed: n=1000000, u=5, trans=4, z=0.75
 ./hash_list_fuse,u=5,trans=4,n=1000000,p=64,z=0.75,pa=0,be=0,mops=157
 ./hash_list_fuse,u=5,trans=4,n=1000000,p=128,z=0.75,pa=0,be=0,mops=255
 ./hash_list_fuse,u=5,trans=4,n=1000000,p=144,z=0.75,pa=0,be=0,mops=295
+./hash_list_fuse,u=5,trans=4,n=1000000,p=192,z=0.75,pa=0,be=0,mops=338
 ./list_fuse,u=5,trans=4,n=300,p=1,z=0.75,pa=0,be=0,mops=0.694
 ./list_fuse,u=5,trans=4,n=300,p=4,z=0.75,pa=0,be=0,mops=2.82
 ./list_fuse,u=5,trans=4,n=300,p=16,z=0.75,pa=0,be=0,mops=4.88
@@ -230,3 +261,4 @@ Fixed: n=1000000, u=5, trans=4, z=0.75
 ./list_fuse,u=5,trans=4,n=300,p=64,z=0.75,pa=0,be=0,mops=2.6
 ./list_fuse,u=5,trans=4,n=300,p=128,z=0.75,pa=0,be=0,mops=0.776
 ./list_fuse,u=5,trans=4,n=300,p=144,z=0.75,pa=0,be=0,mops=0.678
+./list_fuse,u=5,trans=4,n=300,p=192,z=0.75,pa=0,be=0,mops=0.425
