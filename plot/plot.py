@@ -1234,10 +1234,10 @@ def plot_machines(machine_dirs, output_dir, fmt='pdf'):
     n_groups = len(pairs)
     n_impls = len(impls)
     n_structs = len(structs)
-    width = 0.8 / max(n_groups, 1)
+    width = 0.6 / max(n_groups, 1)
 
-    inner_spacing = 1
-    group_spacing = 1.1
+    inner_spacing = 1.5
+    group_spacing = 1.5
 
     normalized_data = {}
     for m in machines:
@@ -1265,18 +1265,21 @@ def plot_machines(machine_dirs, output_dir, fmt='pdf'):
                    color=color,
                    edgecolor='black', linewidth=1)
 
+    fontsize = 8
     ax.set_ylim(0, 1.10)
-    ax.set_ylabel('Geomean Throughput (MOps/s)', fontsize=10)
+    ax.set_ylabel('Geomean Throughput (MOps/s)', fontsize=fontsize)
+    ax.tick_params(axis='y', labelsize=fontsize)
     #ax.set_title('Geomean Throughput Across Machines', fontsize=14)
-    ax.legend(loc='upper right', fontsize=10)
+    ax.legend(loc='upper right', fontsize=fontsize)
     ax.grid(axis='y', alpha=0.3)
 
     ax.set_xticks(x)
-    ax.set_xticklabels(machines, ha='center', fontsize=10)
+    ax.set_xticklabels(machines, ha='center', fontsize=fontsize)
     ax.xaxis.set_ticks_position('top')
     ax.xaxis.set_label_position('top')
     ax.tick_params(axis='x', top=True, labeltop=True, pad=-14, length=0)
     
+    #draw separators
     ymin, ymax = ax.get_ylim()
     separator_width = width * 0.5
     for xi in x:
@@ -1308,7 +1311,7 @@ def plot_machines(machine_dirs, output_dir, fmt='pdf'):
                     STRUCT_LABELS.get(struct, struct),
                     ha='center',
                     va='bottom',
-                    fontsize=9)
+                    fontsize=fontsize-1)
 
     #stm labels
     impl_handles = [
@@ -1326,7 +1329,7 @@ def plot_machines(machine_dirs, output_dir, fmt='pdf'):
     )
 
     plt.tight_layout()
-    plt.savefig(output_dir / f'machines.{fmt}', dpi=300, bbox_inches='tight', pad_inches=0.01)
+    plt.savefig(output_dir / f'machines.{fmt}', dpi=300, bbox_inches='tight', pad_inches=0.015)
     print(f"Generated: machines.{fmt}")
     plt.close()
 
