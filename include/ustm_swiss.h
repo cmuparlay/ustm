@@ -317,8 +317,9 @@ namespace ustm {
            getLock(e.loc).unlock(endStamp);
       }
       // Since successful, apply the deletes.
+      // note that each e is a function that does the delete
       for (auto& e : myd->deleteLog)
-        uepoch::delay(std::move(e));
+        uepoch::delay(std::move(e));  
       myd->reset();
 #ifdef SplitStamp
       if (hasWrite) ts.nextStamp(endStamp);
@@ -505,10 +506,8 @@ namespace ustm {
     if (myd->inTransaction) {
       myd->inConstructor++;
 #ifdef ParlayAlloc
-      //T* ptr = parlay::type_allocator<T>::create(args...);
-      //myd->allocLog.push_back([=] {parlay::type_allocator<T>::destroy(ptr);});
-      T* ptr = uepoch::pool<T>::New(myd->tid, args...);
-      myd->allocLog.push_back([=] {uepoch::pool<T>::Delete(myd->tid, ptr);});
+      T* ptr = parlay::type_allocator<T>::create(args...);
+      myd->allocLog.push_back([=] {parlay::type_allocator<T>::destroy(ptr);});
 #else
       T* ptr = new T(args...);
       myd->allocLog.push_back([=] {delete ptr;});
@@ -517,8 +516,7 @@ namespace ustm {
       return ptr;
     } else
 #ifdef ParlayAlloc
-      //return parlay::type_allocator<T>::create(args...);
-      return uepoch::pool<T>::New(myd->tid, args...);
+      return parlay::type_allocator<T>::create(args...);
 #else
       return new T(args...);
 #endif
@@ -530,10 +528,8 @@ namespace ustm {
     if (obj == nullptr) return;
     Descriptor* myd = getDescriptor();
 #ifdef ParlayAlloc
-    //if (!myd->inTransaction) parlay::type_allocator<T>::destroy(obj);
-    //else myd->deleteLog.push_back([=] { parlay::type_allocator<T>::destroy(obj);});
-    if (!myd->inTransaction) uepoch::pool<T>::Delete(myd->tid, obj);
-    else myd->deleteLog.push_back([=] { uepoch::pool<T>::Delete(myd->tid, obj);});
+    if (!myd->inTransaction) parlay::type_allocator<T>::destroy(obj);
+    else myd->deleteLog.push_back([=] { parlay::type_allocator<T>::destroy(obj);});
 #else
     if (!myd->inTransaction) delete obj;
     else myd->deleteLog.push_back([=] { delete obj;});
@@ -557,7 +553,11 @@ namespace ustm {
       myd->writeLog.push_back(e);
 #else
       // temporarily store value in new link
-      auto* hp = ustm::New<link<T>>(&loc, v);
+#ifdef ParlayAlloc
+      auto hp = parlay::type_allocator<link<T>>::create(&loc, v);
+#else
+      auto hp = ustm::New<link<T>>(&loc, v);
+#endif
       ustm::Delete(hp); // delete is delayed
       myd->writeLog.push_back({
         .loc = &loc,
@@ -582,7 +582,7 @@ namespace ustm {
     STMState* stm = getDescriptor()->stmState;
     uint64_t totalAborts = 0;
     uint64_t totalCommits = 0;
-    for (int i=0; i < uepoch::num_threads().load(); i++) {
+    for (int i=0; i < uepoch::num_threads(); i++) {
       auto& d = stm->descriptors[i];
       totalAborts += d.numAborts;
       totalCommits += d.numCommits;
