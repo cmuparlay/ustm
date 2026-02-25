@@ -1,0 +1,16 @@
+Date: 02-24-2026
+Experiment: nontrivial_types
+HYTM: no
+Model name:                           Intel(R) Xeon(R) CPU E7-8867 v4 @ 2.40GHz
+Git: 315de0b
+---
+# btree inplace vs indirect (upserts)
+---
+./btree_inplace_mvustm,upsert=0,trans=4,n=1000000,p=144,z=0.75,pa=0,be=0,mops=432
+./btree_inplace_mvustm,upsert=5,trans=4,n=1000000,p=144,z=0.75,pa=0.849,be=0,mops=298
+./btree_inplace_mvustm,upsert=10,trans=4,n=1000000,p=144,z=0.75,pa=3.2,be=0,mops=247
+./btree_inplace_mvustm,upsert=20,trans=4,n=1000000,p=144,z=0.75,pa=11.1,be=0,mops=173
+./btree_inplace_mvustm,upsert=50,trans=4,n=1000000,p=144,z=0.75,pa=33.7,be=0,mops=86.3
+./btree_inplace_mvustm,upsert=100,trans=4,n=1000000,p=144,z=0.75,pa=296,be=0,mops=41.5
+./btree_inplace_mvustm,GEOMETRIC MEAN OF THROUGHPUTS: 164.2
+./btree_inplace_mvustm,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1

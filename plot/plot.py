@@ -19,11 +19,15 @@ from pathlib import Path
 from collections import defaultdict
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
+from matplotlib.patches import Patch
+import matplotlib.patches as patches
 import numpy as np
+from itertools import product
 
 # Map impl -> color
 IMPL_COLORS = {
     'mvustm': '#1f77b4',
+    'mvustm_indirect': '#1f77b4',
     'mvustm_hwstamp': '#2ca02c',
     'mvustm_lzstamp': '#ff7f0e',
     'mvustm_eager': '#9467bd',
@@ -40,11 +44,12 @@ IMPL_COLORS = {
     'tiny': '#ff9896',
     'fuse': '#e41a1c',
     'fuse_hwstamp': '#ff6347',
-    'multiverse': '#000000',
+    'multiverse': '#333333',
 }
 
 IMPL_LABELS = {
     'mvustm': '$\\mu$STM',
+    'mvustm_indirect': '$\\mu$STM-Indirect',
     'mvustm_hwstamp': '$\\mu$STM-HWStamp',
     'mvustm_lzstamp': '$\\mu$STM-LZStamp',
     'mvustm_eager': '$\\mu$STM-Eager',
@@ -67,6 +72,7 @@ IMPL_LABELS = {
 # Map impl -> marker shape (unique per implementation for easy identification)
 IMPL_MARKERS = {
     'mvustm': 's',
+    'mvustm_indirect': 'o',
     'mvustm_hwstamp': 'P',
     'mvustm_lzstamp': 'h',
     'mvustm_eager': 'H',
@@ -89,6 +95,7 @@ IMPL_MARKERS = {
 # Map impl -> linestyle (solid for inplace, dashed for non-inplace when pair exists)
 IMPL_LINESTYLES = {
     'mvustm': '--',
+    'mvustm_indirect': ':',
     'mvustm_hwstamp': '-',
     'mvustm_lzstamp': '-.',
     'mvustm_eager': ':',
@@ -111,7 +118,7 @@ IMPL_LINESTYLES = {
 STRUCT_LABELS = {
     'btree': 'B-tree',
     'btree_inplace': 'B-tree Inplace',
-    'arttree': 'ART Tree',
+    'arttree': 'AR Tree',
     'avltree': 'AVL Tree',
     'leaftree': 'Leaf Tree',
     'treap': 'Treap',
@@ -121,6 +128,21 @@ STRUCT_LABELS = {
     'hash_list': 'Hash List',
     'hash_probe': 'Hash Probe',
     'mix': 'Mixed',
+}
+
+STRUCT_HATCHES = {
+    'btree': '/',
+    'btree_inplace': '//',
+    'arttree': '\\',
+    'avltree': '|',
+    'leaftree': '\\/',
+    'treap': '-',
+    'skiplist': 'x',
+    'list': '.',
+    'hash_block': '+',
+    'hash_list': '++',
+    'hash_probe': '+++',
+    'mix': '+/|',
 }
 
 # Implementation ordering (for consistent legend order)
@@ -138,7 +160,7 @@ KNOWN_IMPLS = [
     'mvustm_agg_funnel_eager', 'ustm_simple_longjmp',
     'ustm_longjmp_hwstamp', 'mvustm_lzstamp', 'mvustm_hwstamp',
     'mvustm_longjmp', 'mvustm_trythrow', 'mvustm_unprotected',
-    'mvustm_eager', 'fuse_hwstamp',
+    'mvustm_indirect', 'mvustm_eager', 'fuse_hwstamp',
     'ustm_longjmp', 'mvustm', 'ustm',
     '2plsf', 'hytm', 'tiny', 'fuse', 'multiverse',
 ]
@@ -1038,33 +1060,39 @@ def plot_nontrivial_types(results, output_dir, fmt='pdf'):
         print(f"Generated: nontrivial_btree.{fmt}")
         plt.close()
 
-    # --- Part 2: hash variants ---
-    hash_structs = [s for s in ['hash_list', 'hash_probe'] if s in data]
-    for struct in hash_structs:
-        impls_found = set(data[struct].keys())
-        impls = [i for i in IMPL_ORDER if i in impls_found]
-
+    # --- Part 2: hash_probe and hash_list together ---
+    hash_structs = [s for s in ['hash_probe', 'hash_list'] if s in data]
+    if hash_structs:
+        target_impls = ['mvustm', 'mvustm_indirect', 'multiverse', 'fuse', '2plsf']
         fig, ax = plt.subplots(figsize=(9, 6))
-        for impl in impls:
-            points = aggregate_points(data[struct][impl])
-            x_vals = [p[0] for p in points]
-            y_vals = [p[1] for p in points]
-            color = IMPL_COLORS.get(impl, '#333333')
-            label = IMPL_LABELS.get(impl, impl)
-            mkr = IMPL_MARKERS.get(impl, 'o')
-            ls = IMPL_LINESTYLES.get(impl, '-')
-            ax.plot(x_vals, y_vals, marker=mkr, linewidth=2, markersize=7,
-                    color=color, label=label, linestyle=ls)
+        has_lines = False
+        for struct in hash_structs:
+            impls_found = set(data[struct].keys())
+            impls = [i for i in target_impls if i in impls_found]
+            struct_label = STRUCT_LABELS.get(struct, struct)
+            for impl in impls:
+                points = aggregate_points(data[struct][impl])
+                x_vals = [p[0] for p in points]
+                y_vals = [p[1] for p in points]
+                color = IMPL_COLORS.get(impl, '#333333')
+                impl_label = IMPL_LABELS.get(impl, impl)
+                mkr = IMPL_MARKERS.get(impl, 'o')
+                ls = IMPL_LINESTYLES.get(impl, '-')
+                label = f'{struct_label} {impl_label}'
+                ax.plot(x_vals, y_vals, marker=mkr, linewidth=2, markersize=7,
+                        color=color, label=label, linestyle=ls)
+                has_lines = True
 
-        ax.set_xlabel('Update Rate (%)', fontsize=12)
-        ax.set_ylabel('Throughput (MOps/s)', fontsize=12)
-        ax.set_title(f'{STRUCT_LABELS.get(struct, struct)} — Varying Update Rate', fontsize=14)
-        ax.grid(True, alpha=0.3)
-        ax.legend(loc='best', fontsize=10)
-        plt.tight_layout()
-        plt.savefig(output_dir / f'nontrivial_{struct}.{fmt}', dpi=300, bbox_inches='tight')
-        print(f"Generated: nontrivial_{struct}.{fmt}")
-        plt.close()
+        if has_lines:
+            ax.set_xlabel('Update Rate (%)', fontsize=12)
+            ax.set_ylabel('Throughput (MOps/s)', fontsize=12)
+            ax.set_title('Hash Tables — Varying Update Rate', fontsize=14)
+            ax.grid(True, alpha=0.3)
+            ax.legend(loc='best', fontsize=10)
+            plt.tight_layout()
+            plt.savefig(output_dir / f'nontrivial_hash.{fmt}', dpi=300, bbox_inches='tight')
+            print(f"Generated: nontrivial_hash.{fmt}")
+            plt.close()
 
 
 def plot_ablation(results, output_dir, fmt='pdf'):
@@ -1165,6 +1193,7 @@ def plot_machines(machine_dirs, output_dir, fmt='pdf'):
 
     machine_impls = ['mvustm', 'fuse', '2plsf', 'multiverse', 'tiny']
     machine_data = {}  # label -> {impl: geomean_mops}
+    structs = ['arttree', 'btree', 'skiplist']
 
     for label, dirpath in machine_dirs:
         #find file
@@ -1181,44 +1210,126 @@ def plot_machines(machine_dirs, output_dir, fmt='pdf'):
 
         _, gdata = parse_timing_file(gfile)
         machine_data[label] = {}
-        for impl in machine_impls:
-            val = gdata.get(('btree', impl), 0)
-            if val:
-                machine_data[label][impl] = val
+        for struct in structs:
+            machine_data[label][struct] = {}
+            for impl in machine_impls:
+                val = gdata.get((struct, impl), 0)
+                if val:
+                    machine_data[label][struct][impl] = val
 
     machines = [label for label in machine_data if machine_data[label]]
     if not machines:
-        print("Warning: No btree geomean data found across machines")
+        print("Warning: No geomean data found across machines")
         return
-
     impls_found = set()
     for d in machine_data.values():
-        impls_found.update(d.keys())
+        for s in structs:
+            impls_found.update(d[s].keys())
     impls = [i for i in machine_impls if i in impls_found]
 
-    fig, ax = plt.subplots(figsize=(12, 6))
+    fig, ax = plt.subplots(figsize=(7, 3))
     x = np.arange(len(machines))
+    
+    pairs = list(product(structs, impls))
+    n_groups = len(pairs)
     n_impls = len(impls)
-    width = 0.8 / max(n_impls, 1)
+    n_structs = len(structs)
+    width = 0.6 / max(n_groups, 1)
 
-    for i, impl in enumerate(impls):
-        values = [machine_data[m].get(impl, 0) for m in machines]
-        offset = (i - n_impls / 2 + 0.5) * width
-        color = IMPL_COLORS.get(impl, '#333333')
-        label = IMPL_LABELS.get(impl, impl)
-        ax.bar(x + offset, values, width, label=label, color=color,
-               edgecolor='white', linewidth=0.5)
+    inner_spacing = 1.5
+    group_spacing = 1.5
 
-    ax.set_xlabel('Machine', fontsize=12)
-    ax.set_ylabel('Geomean Throughput (MOps/s)', fontsize=12)
-    ax.set_title('B-tree Geomean Throughput Across Machines', fontsize=14)
-    ax.set_xticks(x)
-    ax.set_xticklabels(machines, rotation=45, ha='right')
-    ax.legend(loc='upper right', fontsize=10)
+    normalized_data = {}
+    for m in machines:
+        normalized_data[m] = {}
+        for s_idx, struct in enumerate(structs):
+            values = np.array([machine_data[m][struct].get(impl, 0) for impl in impls])
+            normalized = values / max(values)
+            normalized_data[m][struct] = {
+                impl: normalized[i]
+                for i, impl in enumerate(impls)
+            }
+
+    for s_idx, struct in enumerate(structs):
+        group_offset = (s_idx - (n_structs - 1)/2) * width * n_impls * group_spacing
+        for i_idx, impl in enumerate(impls):
+            inner_offset = (i_idx - (n_impls - 1)/2) * width * inner_spacing
+            offset = group_offset + inner_offset
+
+            values = [normalized_data[m][struct].get(impl, 0) for m in machines]
+            
+            color = IMPL_COLORS.get(impl, '#333333')
+            label = IMPL_LABELS.get(impl, impl)
+            hatch = STRUCT_HATCHES.get(struct, None)
+            ax.bar(x + offset, values, width,
+                   color=color,
+                   edgecolor='black', linewidth=1)
+
+    fontsize = 8
+    ax.set_ylim(0, 1.10)
+    ax.set_ylabel('Geomean Throughput (MOps/s)', fontsize=fontsize)
+    ax.tick_params(axis='y', labelsize=fontsize)
+    #ax.set_title('Geomean Throughput Across Machines', fontsize=14)
+    ax.legend(loc='upper right', fontsize=fontsize)
     ax.grid(axis='y', alpha=0.3)
 
+    ax.set_xticks(x)
+    ax.set_xticklabels(machines, ha='center', fontsize=fontsize)
+    ax.xaxis.set_ticks_position('top')
+    ax.xaxis.set_label_position('top')
+    ax.tick_params(axis='x', top=True, labeltop=True, pad=-14, length=0)
+    
+    #draw separators
+    ymin, ymax = ax.get_ylim()
+    separator_width = width * 0.5
+    for xi in x:
+        for s_idx in range(len(structs) - 1):
+            right_edge = (
+                xi
+                + (s_idx + 0.5 - (len(structs)-1)/2)
+                * width * 3.2 * n_impls * group_spacing)
+            rect = patches.Rectangle(
+                (right_edge - separator_width/2, ymin),
+                separator_width,
+                ymax - ymin,
+                color='black',
+                alpha=0.08,
+                linewidth=0
+            )
+            ax.add_patch(rect)
+
+    #data structure labels
+    ymax = ax.get_ylim()[1]
+    for xi in x:                         # for each machine
+        for s_idx, struct in enumerate(structs):
+            group_offset = (
+                (s_idx - (n_structs - 1)/2)
+                * width * n_impls * group_spacing)
+            struct_center = xi + group_offset
+            ax.text(struct_center,
+                    ymax * -.07,
+                    STRUCT_LABELS.get(struct, struct),
+                    ha='center',
+                    va='bottom',
+                    fontsize=fontsize-1)
+
+    #stm labels
+    impl_handles = [
+        Patch(facecolor=IMPL_COLORS.get(i, '#333333'), edgecolor="black", label=IMPL_LABELS.get(i, i))
+        for i in impls
+    ]
+    ax.legend(
+        handles=impl_handles,
+        bbox_to_anchor=(0.7, -0.06),  # x=center, y=below axes
+        frameon=True,
+        fontsize=6,
+        ncol=n_impls,
+        loc="upper right",
+        alignment="center"
+    )
+
     plt.tight_layout()
-    plt.savefig(output_dir / f'machines.{fmt}', dpi=300, bbox_inches='tight')
+    plt.savefig(output_dir / f'machines.{fmt}', dpi=300, bbox_inches='tight', pad_inches=0.015)
     print(f"Generated: machines.{fmt}")
     plt.close()
 
