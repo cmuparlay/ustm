@@ -1,0 +1,8 @@
+Date: 02-25-2026
+Experiment: nontrivial_types
+HYTM: no
+Model name:                              Intel(R) Xeon(R) Platinum 8488C
+Git: 31e6714
+---
+# btree inplace vs indirect (upserts)
+---

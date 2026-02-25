@@ -1,0 +1,15 @@
+Date: 02-25-2026
+Experiment: vary_zipfian
+HYTM: no
+Model name:                              Intel(R) Xeon(R) Platinum 8488C
+Git: 31e6714
+---
+Fixed: n=1000000, u=5, trans=4, p=192
+---
+./hash_list_multiverse,u=5,trans=4,n=1000000,p=192,z=0,pa=0,be=0,mops=1.42e+03
+./hash_list_multiverse,u=5,trans=4,n=1000000,p=192,z=0.5,pa=0,be=0,mops=1.34e+03
+./hash_list_multiverse,u=5,trans=4,n=1000000,p=192,z=0.75,pa=0,be=0,mops=340
+./hash_list_multiverse,u=5,trans=4,n=1000000,p=192,z=0.9,pa=0,be=0,mops=79.7
+./hash_list_multiverse,u=5,trans=4,n=1000000,p=192,z=0.99,pa=0,be=0,mops=36
+./hash_list_multiverse,GEOMETRIC MEAN OF THROUGHPUTS: 284.1
+./hash_list_multiverse,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
