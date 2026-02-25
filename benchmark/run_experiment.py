@@ -15,16 +15,15 @@ Experiments:
     all       - Run all experiments
 
 Options:
-    --hytm        Include HyTM (limits to 72 threads on 2 sockets)
     --output DIR  Output directory for results
     --small       Restrict to btree, hash_list, and list (geomean uses runall.sh parameters)
 
 Implementations tested:
-    mvustm, mvustm_hwstamp, mvustm_longjmp, 2plsf, fuse, hytm, onfile, tinystm, tl2
+    mvustm, mvustm_hwstamp, mvustm_longjmp, 2plsf, fuse, multiverse, onfile, tinystm, tl2
 
 Examples:
     ./run_experiment.py geomean
-    ./run_experiment.py all --hytm
+    ./run_experiment.py all
     ./run_experiment.py threads --output ./results
 """
 
@@ -62,32 +61,25 @@ class Config:
             #only run impl
             self.impls = self.tpcc_impls = [ args.impl ]
 
-        if args.hytm:
-            self.impls.append("hytm")
-            self.max_threads = 72
-            self.numa_cmd = "numactl --cpunodebind=0,1 --membind=0,1"
-        else:
-            self.max_threads = os.cpu_count()
-            self.numa_cmd = "numactl -i all"
+        self.max_threads = os.cpu_count()
+        self.numa_cmd = "numactl -i all"
         self.default_p = self.max_threads
         self.allocator = args.allocator
 
         if args.struct == None:
             self.structs = ["btree", "arttree", "avltree", "leaftree", "treap", "skiplist", "hash_list"]
-            self.structs_nohash = ["btree", "arttree", "avltree", "leaftree", "treap", "skiplist"]
             self.lstructs = ["list"]
             self.range_structs = ["btree", "arttree"]
             self.small_structs = ["btree", "hash_list"]
             self.tpcc_structs = ["hash_list", "btree", "mix"]
         else:
-            self.structs = self.structs_nohash = self.lstructs = \
-                self.range_structs = self.small_structs = self.tpcc_structs = [ args.struct ]
+            self.structs = self.range_structs = self.small_structs = self.tpcc_structs = [ args.struct ]
+            self.lstructs = ["list"] if args.struct == "list" else []
         print(self)
 
     """Experiment configuration."""
     # Data structures
     structs: List[str] = None
-    structs_nohash: List[str] = None
     lstructs: List[str] = None
     range_structs: List[str] = None
     small_structs: List[str] = None
@@ -204,17 +196,8 @@ def get_result_line(output: str) -> Optional[str]:
             return line.strip()
     return None
 
-def requires_transactional_allocation(impl: str) -> bool:
-    return impl in ["hytm", "multiverse", "tiny"]
-
 def get_structs_for_impl(config: Config, impl: str) -> List[str]:
     """Get structures compatible with implementation."""
-    if requires_transactional_allocation(impl):
-        # Only systems supporting non-transactional allocation work with hash structs
-        return config.structs_nohash
-    # if impl == "fuse":
-        # Exclude: avltree (uses atomic<int> for height), hash_list (uses atomic<V>)
-        # return [s for s in config.structs if s not in ["avltree", "hash_list"]]
     return config.structs
 
 
@@ -237,16 +220,14 @@ class ExperimentRunner:
         """Create new timings file"""
         today = datetime.now().strftime("%m-%d-%Y")
         machine = get_machine_info()
-        suffix = "_hytm" if "hytm" in self.config.impls else ""
-        
         if self.output_dir:
             os.makedirs(self.output_dir, exist_ok=True)
             filename = os.path.join(self.output_dir, experiment_name)
         else:
-            filename = f"../../timings/{experiment_name}_{self.nproc}-{machine}_{today}{suffix}"
+            filename = f"../../timings/{experiment_name}_{self.nproc}-{machine}_{today}"
         
         print(f"Output: {filename}")
-        print(f"HYTM: {'yes' if 'hytm' in self.config.impls else 'no'} (max_threads={self.config.max_threads})")
+        print(f"max_threads={self.config.max_threads}")
         
         self.results_file = open(filename, 'w')
         self._write_header(experiment_name, today)
@@ -256,7 +237,7 @@ class ExperimentRunner:
         """Write header to results file."""
         self.results_file.write(f"Date: {today}\n")
         self.results_file.write(f"Experiment: {experiment_name}\n")
-        self.results_file.write(f"HYTM: {'yes' if 'hytm' in self.config.impls else 'no'}\n")
+        self.results_file.write(f"Threads: {self.config.max_threads}\n")
         
         try:
             result = subprocess.run(["lscpu"], capture_output=True, text=True)
@@ -354,26 +335,7 @@ class ExperimentRunner:
                 print(f"  {struct}_{impl}")
                 prefix = f"./{struct}_{impl}"
                 
-                if impl == "hytm":
-                    # HyTM: separate invocations due to memory leak
-                    throughputs = []
-                    for n in sz_list:
-                        for u in updates:
-                            for trans in trans_vals:
-                                for z in zipfians:
-                                    result_line, _ = self._run_and_record(
-                                        struct, impl,
-                                        {'n': n, 'u': u, 'z': z, 'trans': trans,
-                                         'p': self.config.default_p})
-                                    mops = parse_mops(result_line) if result_line else None
-                                    if mops:
-                                        throughputs.append(mops)
-                    
-                    if throughputs:
-                        gmean = geomean(throughputs)
-                        self._write_result(prefix, f"GEOMETRIC MEAN OF THROUGHPUTS: {gmean:.4f}")
-                else:
-                    output, status = self._run_batch(struct, impl, batch_params(sz_list))
+                output, status = self._run_batch(struct, impl, batch_params(sz_list))
         
         self.results_file.close()
     
@@ -474,10 +436,8 @@ class ExperimentRunner:
         self._run_varying_experiment("vary_size", 'n', sizes, list_values=list_sizes)
     
     def run_threads(self):
-        if "hytm" in self.config.impls:
-            threads = [1, 4, 16, 32, 64]
-        else:
-            threads = [p for p in [1, 4, 16, 32, 64, 128, 144] if p <= os.cpu_count()]
+        threads = [p for p in [1, 4, 16, 32, 64, 128] if p <= os.cpu_count()]
+        threads.append(os.cpu_count())
         self._run_varying_experiment("vary_threads", 'p', threads)
     
     def run_zipfian(self):
@@ -654,15 +614,13 @@ Experiments:
 
 Examples:
   ./run_experiment.py geomean
-  ./run_experiment.py all --hytm
+  ./run_experiment.py all
   ./run_experiment.py threads --output ./results
 """)
     
     parser.add_argument("experiment", 
                        choices=["geomean", "size", "threads", "zipfian", "trans", "update", "range", "tpcc", "nontrivial", "ablation", "all"],
                        help="Experiment to run")
-    parser.add_argument("--hytm", action="store_true",
-                       help="Include HyTM (limits to 72 threads on 2 sockets)")
     parser.add_argument("--output", "-o", metavar="DIR",
                        help="Output directory for results")
     parser.add_argument("--small", action="store_true",

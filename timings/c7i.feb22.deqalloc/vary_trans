@@ -54,6 +54,14 @@ Fixed: n=1000000, u=5, z=0.75, p=192
 ./skiplist_multiverse,u=5,trans=32,n=1000000,p=192,z=0.75,pa=0,be=0,mops=33.2
 ./skiplist_multiverse,GEOMETRIC MEAN OF THROUGHPUTS: 103
 ./skiplist_multiverse,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
+./hash_list_multiverse,u=5,trans=1,n=1000000,p=192,z=0.75,pa=0,be=0,mops=395
+./hash_list_multiverse,u=5,trans=2,n=1000000,p=192,z=0.75,pa=0,be=0,mops=379
+./hash_list_multiverse,u=5,trans=4,n=1000000,p=192,z=0.75,pa=0,be=0,mops=315
+./hash_list_multiverse,u=5,trans=8,n=1000000,p=192,z=0.75,pa=0,be=0,mops=300
+./hash_list_multiverse,u=5,trans=16,n=1000000,p=192,z=0.75,pa=0,be=0,mops=217
+./hash_list_multiverse,u=5,trans=32,n=1000000,p=192,z=0.75,pa=0,be=0,mops=108
+./hash_list_multiverse,GEOMETRIC MEAN OF THROUGHPUTS: 263.1
+./hash_list_multiverse,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
 ./list_multiverse,u=5,trans=1,n=300,p=192,z=0.75,pa=0,be=0,mops=3.17
 ./list_multiverse,u=5,trans=2,n=300,p=192,z=0.75,pa=0,be=0,mops=1.63
 ./list_multiverse,u=5,trans=4,n=300,p=192,z=0.75,pa=0,be=0,mops=1.31

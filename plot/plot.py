@@ -534,7 +534,7 @@ def plot_varying(results, output_dir, param):
     Generates one plot per structure for both tree and other structure groups.
     """
     tree_structs = ['skiplist', 'treap', 'btree', 'arttree']
-    other_structs = ['list', 'avltree', 'leaftree', 'hash_block']
+    other_structs = ['list', 'avltree', 'leaftree', 'hash_block', 'hash_list']
     
     param_values = sorted(set(r.get(param) for r in results if r.get(param) is not None))
     if len(param_values) <= 1:
@@ -821,7 +821,7 @@ def plot_combined_grid(exp_results, geomean_data, output_dir, filename='results_
     }
 
     # Select structures to plot
-    structures = ['btree', 'arttree', 'skiplist', 'treap', 'avltree', 'leaftree', 'hash_block', 'list']
+    structures = ['btree', 'arttree', 'skiplist', 'treap', 'avltree', 'leaftree', 'hash_block', 'hash_list', 'list']
     all_results = []
     for key in param_to_file.values():
         if key in exp_results:

@@ -97,6 +97,13 @@ Fixed: n=1000000, u=5, trans=4, z=0.75
 ./skiplist_mvustm,u=5,trans=4,n=1000000,p=64,z=0.75,pa=0,be=0,mops=72.9
 ./skiplist_mvustm,u=5,trans=4,n=1000000,p=128,z=0.75,pa=0.138,be=0,mops=112
 ./skiplist_mvustm,u=5,trans=4,n=1000000,p=144,z=0.75,pa=0.15,be=0,mops=122
+./hash_list_multiverse,u=5,trans=4,n=1000000,p=1,z=0.75,pa=0,be=0,mops=16.7
+./hash_list_multiverse,u=5,trans=4,n=1000000,p=4,z=0.75,pa=0,be=0,mops=69.7
+./hash_list_multiverse,u=5,trans=4,n=1000000,p=16,z=0.75,pa=0,be=0,mops=198
+./hash_list_multiverse,u=5,trans=4,n=1000000,p=32,z=0.75,pa=0,be=0,mops=338
+./hash_list_multiverse,u=5,trans=4,n=1000000,p=64,z=0.75,pa=0,be=0,mops=405
+./hash_list_multiverse,u=5,trans=4,n=1000000,p=128,z=0.75,pa=0,be=0,mops=302
+./hash_list_multiverse,u=5,trans=4,n=1000000,p=144,z=0.75,pa=0,be=0,mops=345
 ./hash_list_mvustm,u=5,trans=4,n=1000000,p=1,z=0.75,pa=0,be=0,mops=16.8
 ./hash_list_mvustm,u=5,trans=4,n=1000000,p=4,z=0.75,pa=0,be=0,mops=65
 ./hash_list_mvustm,u=5,trans=4,n=1000000,p=16,z=0.75,pa=0,be=0,mops=138
