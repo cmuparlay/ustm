@@ -170,7 +170,7 @@ private:
   };
 
   struct Table {
-    std::vector<bucket> table;
+    bucket* table;
     size_t size;
     bucket* get_bucket(const K& k) {
       size_t idx = Hash{}(k)  & (size-1u);
@@ -179,7 +179,16 @@ private:
     Table(size_t n) {
       int bits = 1 + std::ceil(std::log2(n));
       size = 1ul << bits;
-      table = std::vector<bucket>(size);
+      //table = std::vector<bucket>(size);
+
+      table = (bucket*) malloc(size * sizeof(bucket));
+      std::atomic_thread_fence(std::memory_order_seq_cst);
+      parlay::parallel_for(0, size, [&](size_t i) {
+        //skip store because multiverse can't handle large hash tables
+        node** n = (node**) &table[i].ptr;
+        *n = nullptr;
+      });
+      std::atomic_thread_fence(std::memory_order_seq_cst);
     }
   };
 
@@ -238,7 +247,7 @@ public:
   unordered_map(size_t n) : hash_table(Table(n)) { }
   ~unordered_map() {
     auto& table = hash_table.table;
-    parlay::parallel_for (0, table.size(), [&] (size_t i) {
+    parlay::parallel_for (0, hash_table.size, [&] (size_t i) {
       retire_node(table[i].load());});
   }
   
@@ -292,7 +301,7 @@ public:
 
   long size() {
     auto& table = hash_table.table;
-    auto s = parlay::tabulate(table.size(), [&] (size_t i) {
+    auto s = parlay::tabulate(hash_table.size, [&] (size_t i) {
       node* x = table[i].load();
       if (x == nullptr) return 0;
       else return x->cnt;});
