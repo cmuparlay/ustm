@@ -165,6 +165,7 @@ KNOWN_IMPLS = [
     '2plsf', 'hytm', 'tiny', 'fuse', 'multiverse',
 ]
 
+fontsize = 8
 
 def parse_structure_impl(name):
     """Parse structure_impl string, matching known implementations from the end."""
@@ -400,33 +401,54 @@ def plot_geomean_bars(geomean_data, output_dir, filename='geomean.pdf'):
                     normalized[struct][impl] = geomean_data[(struct, impl)] / max_val
     
     # Create figure
-    fig, ax = plt.subplots(figsize=(14, 6))
+    fig, ax = plt.subplots(figsize=(6, 2.5))
     
     x = np.arange(len(structures))
     n_impls = len(impls)
-    width = 0.8 / n_impls
+    width = 0.95 / n_impls
     
+    bars = []
     for i, impl in enumerate(impls):
         values = [normalized[struct].get(impl, 0) for struct in structures]
+        values_notnormalized = [geomean_data.get((struct, impl)) for struct in structures]
         offset = (i - n_impls/2 + 0.5) * width
         color = IMPL_COLORS.get(impl, '#333333')
         label = IMPL_LABELS.get(impl, impl)
-        ax.bar(x + offset, values, width, label=label, color=color, edgecolor='white', linewidth=0.5)
+        bars.append((values, values_notnormalized,
+                     ax.bar(x + offset,
+                           values,
+                           width,
+                           #label=label,
+                           color=color,
+                           edgecolor='white',
+                           linewidth=0.5)))
+
+    for values, values_notnormalized, bar in bars:
+        for b,v,vnn in zip(bar, values, values_notnormalized):
+            ax.text(
+                b.get_x() + b.get_width() / 2,
+                b.get_height(),              # use normalized height for position
+                f'{vnn:.1f}',              # use RAW value for label
+                ha='center',
+                va='bottom',
+                fontsize=fontsize-1
+            )
     
     # Reference line at 1.0
     ax.axhline(y=1.0, color='black', linestyle='--', linewidth=1, alpha=0.5)
     
-    ax.set_xlabel('Data Structure', fontsize=12)
-    ax.set_ylabel('Normalized Throughput', fontsize=12)
-    ax.set_title('Normalized Geomean Throughput by Data Structure\n(higher is better, normalized to max per structure)', fontsize=14)
+    ax.set_xlabel('Data Structure', fontsize=fontsize)
+    ax.set_ylabel('Normalized Throughput', fontsize=fontsize)
+    #ax.set_title('Normalized Geomean Throughput by Data Structure\n(higher is better, normalized to max per structure)', fontsize=14)
     ax.set_xticks(x)
-    ax.set_xticklabels([STRUCT_LABELS.get(s, s) for s in structures], rotation=45, ha='right')
-    ax.legend(loc='upper right', fontsize=9, ncol=2)
+    ax.set_xticklabels([STRUCT_LABELS.get(s, s) for s in structures], rotation=0, ha='center', fontsize=fontsize)
+    ax.tick_params(axis='y', labelsize=fontsize-1)
+    #ax.legend(loc='upper right', fontsize=9, ncol=2)
     ax.grid(axis='y', alpha=0.3)
-    ax.set_ylim(0, 1.15)
+    ax.set_ylim(0, 1.08)
     
     plt.tight_layout()
-    plt.savefig(output_dir / filename, dpi=300, bbox_inches='tight')
+    plt.savefig(output_dir / filename, dpi=300, bbox_inches='tight', pad_inches=0.015)
     print(f"Generated: {filename}")
     plt.close()
 
@@ -1265,7 +1287,6 @@ def plot_machines(machine_dirs, output_dir, fmt='pdf'):
                    color=color,
                    edgecolor='black', linewidth=1)
 
-    fontsize = 8
     ax.set_ylim(0, 1.10)
     ax.set_ylabel('Geomean Throughput (MOps/s)', fontsize=fontsize)
     ax.tick_params(axis='y', labelsize=fontsize)
