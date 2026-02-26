@@ -24,6 +24,14 @@ import matplotlib.patches as patches
 import numpy as np
 from itertools import product
 
+
+pdfmerge = True
+try:
+    import fitz
+except ImportError:
+   print("ERROR: import fitz failed, not merging pdfs (pip install pymupdf)\n")
+   pdfmerge = False
+
 # Map impl -> color
 IMPL_COLORS = {
     'mvustm': '#1f77b4',
@@ -165,7 +173,9 @@ KNOWN_IMPLS = [
     '2plsf', 'hytm', 'tiny', 'fuse', 'multiverse',
 ]
 
-fontsize = 8
+#TODO: should be made into a config class
+fontsize = 10
+paper_plot_structures = ['arttree', 'btree', 'skiplist']
 
 def parse_structure_impl(name):
     """Parse structure_impl string, matching known implementations from the end."""
@@ -533,7 +543,8 @@ def plot_varying_parameter(results, param_name, param_label, output_dir,
         ax.set_xticks(x_vals)
         ax.set_xlabel(param_label, fontsize=fontsize)
         ax.tick_params(axis='x', labelsize=fontsize-1)
-        #ax.set_ylabel('Throughput (MOps/s)', fontsize=fontsize)
+        if struct == paper_plot_structures[0]:
+            ax.set_ylabel('Throughput (MOps/s)', fontsize=fontsize)
         ax.set_title(f'{STRUCT_LABELS.get(struct, struct)}', fontsize=fontsize+1, fontweight='bold')
         ax.tick_params(axis='y', labelsize=fontsize-1)
         ax.grid(True, alpha=0.3)
@@ -731,7 +742,7 @@ def plot_range_queries(results, output_dir):
         plt.close()
 
 
-def plot_paper_row(results, output_dir, param, structures, name='plot', fmt='pdf'):
+def plot_paper_row_(results, output_dir, param, structures, name='plot', fmt='pdf'):
     """
     Generate a compact 1x3 subplot figure suitable for a two-column paper.
     Matches the style of typical systems-conference plots.
@@ -808,6 +819,46 @@ def plot_paper_row(results, output_dir, param, structures, name='plot', fmt='pdf
     print(f"Generated: paper/{filename}")
     plt.close()
 
+def plot_paper_row(results, output_dir, input_dir, param, structures, name='plot', fmt='pdf'):
+    to_merge = []
+    for struct in structures:
+        pdf = f"{input_dir}/{name}_{struct}.{fmt}"
+        to_merge.append(pdf)
+    filename = f'{output_dir}/{name}.{fmt}'
+    merge_pdfs_horizontally(to_merge, filename)
+
+def merge_pdfs_horizontally(pdf_list, output_path):
+    # Open all documents
+    docs = [fitz.open(pdf) for pdf in pdf_list]
+    # Grab the first page of each document
+    # (Note: If your PDFs have multiple pages, see the note below)
+    pages = [doc[0] for doc in docs]
+    # Calculate the new page dimensions
+    # Total width is the sum of all page widths
+    total_width = sum(page.rect.width for page in pages)
+    # Total height is the maximum height among all pages
+    max_height = max(page.rect.height for page in pages)
+    # Create a new blank document and page
+    out_doc = fitz.open()
+    out_page = out_doc.new_page(width=total_width, height=max_height)
+    # Paste each page side-by-side
+    current_x = 0
+    for i, page in enumerate(pages):
+        # Define the rectangle where the current page will be placed
+        # Rect(x0, y0, x1, y1)
+        rect = fitz.Rect(current_x, 0, current_x + page.rect.width, page.rect.height)
+        # Paste the page from the original document
+        out_page.show_pdf_page(rect, docs[i], 0)
+        # Update the X-coordinate for the next page to start right where this one ends
+        current_x += page.rect.width
+    # Save the result
+    out_doc.save(output_path)
+    # Clean up and close all documents
+    for doc in docs:
+        doc.close()
+    out_doc.close()
+    print(f"merged {len(pdf_list)} pdfs to {output_path}")
+
 
 def plot_paper_figures(exp_results, output_dir, fmt='pdf'):
     """
@@ -816,18 +867,19 @@ def plot_paper_figures(exp_results, output_dir, fmt='pdf'):
     """
     paper_dir = output_dir / 'paper'
     paper_dir.mkdir(exist_ok=True)
-    structures = ['arttree', 'btree', 'skiplist']
     file_to_param = {
         'vary_threads': ('p', 'threads'),
         'vary_update': ('u', 'update'),
         'vary_zipfian': ('z', 'zipfian'),
-        'vary_trans': ('trans', 'ops_per_txn'),
+        'vary_trans': ('trans', 'trans'),
         'vary_size': ('n', 'size'),
     }
     for exp_file, (param, name) in file_to_param.items():
         if exp_file in exp_results and exp_results[exp_file]:
-            plot_paper_row(exp_results[exp_file], paper_dir, param,
-                           structures, name=name, fmt=fmt)
+            #plot_paper_row(exp_results[exp_file], paper_dir, param,
+            #               paper_plot_structures, name=name, fmt=fmt)
+            plot_paper_row(exp_results[exp_file], paper_dir, output_dir, param,
+                           paper_plot_structures, name=name, fmt=fmt)
 
 
 def plot_combined_grid(exp_results, geomean_data, output_dir, filename='results_combined.pdf'):
