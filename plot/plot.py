@@ -174,7 +174,7 @@ KNOWN_IMPLS = [
 ]
 
 #TODO: should be made into a config class
-fontsize = 10
+fontsize = 11.5
 paper_plot_structures = ['arttree', 'btree', 'skiplist']
 
 def parse_structure_impl(name):
@@ -428,7 +428,7 @@ def plot_geomean_bars(geomean_data, output_dir, filename='geomean.pdf'):
                      ax.bar(x + offset,
                            values,
                            width,
-                           #label=label,
+                           label=label,
                            color=color,
                            edgecolor='white',
                            linewidth=0.5)))
@@ -441,21 +441,21 @@ def plot_geomean_bars(geomean_data, output_dir, filename='geomean.pdf'):
                 f'{vnn:.1f}',              # use RAW value for label
                 ha='center',
                 va='bottom',
-                fontsize=fontsize-1
+                fontsize=fontsize-3,
             )
     
     # Reference line at 1.0
     ax.axhline(y=1.0, color='black', linestyle='--', linewidth=1, alpha=0.5)
     
-    ax.set_xlabel('Data Structure', fontsize=fontsize)
-    ax.set_ylabel('Normalized Throughput', fontsize=fontsize)
+    ax.set_xlabel('Data Structure', fontsize=fontsize-2)
+    ax.set_ylabel('Normalized Throughput', fontsize=fontsize-2)
     #ax.set_title('Normalized Geomean Throughput by Data Structure\n(higher is better, normalized to max per structure)', fontsize=14)
     ax.set_xticks(x)
-    ax.set_xticklabels([STRUCT_LABELS.get(s, s) for s in structures], rotation=0, ha='center', fontsize=fontsize)
-    ax.tick_params(axis='y', labelsize=fontsize-1)
-    #ax.legend(loc='upper right', fontsize=9, ncol=2)
+    ax.set_xticklabels([STRUCT_LABELS.get(s, s) for s in structures], rotation=0, ha='center', fontsize=fontsize-3)
+    ax.tick_params(axis='y', labelsize=fontsize-3)
+    ax.legend(loc='upper center', fontsize=fontsize-2.5, ncol=n_impls, bbox_to_anchor=(0.5, 1.25))
     ax.grid(axis='y', alpha=0.3)
-    ax.set_ylim(0, 1.08)
+    ax.set_ylim(0, 1.1)
     
     plt.tight_layout()
     plt.savefig(output_dir / filename, dpi=300, bbox_inches='tight', pad_inches=0.015)
