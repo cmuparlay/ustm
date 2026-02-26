@@ -515,7 +515,7 @@ def plot_varying_parameter(results, param_name, param_label, output_dir,
         if struct not in data:
             continue
         
-        fig, ax = plt.subplots(figsize=(8, 6))
+        fig, ax = plt.subplots(figsize=(8/2.3, 6/2.3))
         
         for impl in impls:
             if impl not in data[struct]:
@@ -529,12 +529,15 @@ def plot_varying_parameter(results, param_name, param_label, output_dir,
             ls = IMPL_LINESTYLES.get(impl, '-')
             ax.plot(x_vals, y_vals, marker=mkr, linewidth=2, markersize=7, 
                    color=color, label=label, linestyle=ls)
-        
-        ax.set_xlabel(param_label, fontsize=12)
-        ax.set_ylabel('Throughput (MOps/s)', fontsize=12)
-        ax.set_title(f'{STRUCT_LABELS.get(struct, struct)} - {param_label}', fontsize=14)
+
+        ax.set_xticks(x_vals)
+        ax.set_xlabel(param_label, fontsize=fontsize)
+        ax.tick_params(axis='x', labelsize=fontsize-1)
+        #ax.set_ylabel('Throughput (MOps/s)', fontsize=fontsize)
+        ax.set_title(f'{STRUCT_LABELS.get(struct, struct)}', fontsize=fontsize+1, fontweight='bold')
+        ax.tick_params(axis='y', labelsize=fontsize-1)
         ax.grid(True, alpha=0.3)
-        ax.legend(loc='best', fontsize=10)
+        #ax.legend(loc='best', fontsize=fontsize+2)
         
         # Use log scale for size parameter
         if param_name == 'n':
@@ -543,7 +546,7 @@ def plot_varying_parameter(results, param_name, param_label, output_dir,
         plt.tight_layout()
         
         filename = f'{filename_prefix}_{struct}.pdf'
-        plt.savefig(output_dir / filename, dpi=300, bbox_inches='tight')
+        plt.savefig(output_dir / filename, dpi=300, bbox_inches='tight', pad_inches=0.015)
         print(f"Generated: {filename}")
         plt.close()
     
