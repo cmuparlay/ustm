@@ -698,7 +698,7 @@ def plot_range_queries(results, output_dir):
     
     # Generate combined figure for btree with both metrics
     if 'btree' in structures:
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7, 2.5))
         
         # Left plot: Range query throughput
         for impl in impls:
@@ -714,13 +714,15 @@ def plot_range_queries(results, output_dir):
             ax1.plot(x_vals, y_vals, marker=mkr, linewidth=2, markersize=7,
                     color=color, label=label, linestyle=ls)
         
-        ax1.set_xlabel('Range Size', fontsize=12)
-        ax1.set_ylabel('Range Query Throughput (MOps/s)', fontsize=12)
-        ax1.set_title('B-tree - Range Query Throughput', fontsize=14)
+        ax1.set_xlabel('Range Size', fontsize=10)
+        ax1.set_ylabel('Range Query Throughput (MOps/s)', fontsize=10)
+        ax1.set_title('B-tree - Range Query Throughput', fontsize=11.5)
         ax1.set_xscale('log')
         ax1.set_yscale('log')
         ax1.grid(True, alpha=0.3)
-        ax1.legend(loc='best', fontsize=10)
+        #ax1.legend(loc='best', fontsize=10)
+
+        ax1.set_ylim(bottom=0)
         
         # Right plot: Normal throughput
         for impl in impls:
@@ -734,20 +736,24 @@ def plot_range_queries(results, output_dir):
             mkr = IMPL_MARKERS.get(impl, 'o')
             ls = IMPL_LINESTYLES.get(impl, '-')
             ax2.plot(x_vals, y_vals, marker=mkr, linewidth=2, markersize=7,
-                    color=color, label=label, linestyle=ls)
+                    color=color, linestyle=ls)
         
-        ax2.set_xlabel('Range Size', fontsize=12)
-        ax2.set_ylabel('Update Throughput (MOps/s)', fontsize=12)
-        ax2.set_title('B-tree - Update Throughput', fontsize=14)
+        ax2.set_xlabel('Range Size', fontsize=10)
+        ax2.set_ylabel('Update Throughput (MOps/s)', fontsize=10)
+        ax2.set_title('B-tree - Update Throughput', fontsize=11.5)
         ax2.set_xscale('log')
         ax2.set_yscale('log')
         ax2.grid(True, alpha=0.3)
-        ax2.legend(loc='best', fontsize=10)
+        #ax2.legend(loc='best', fontsize=10)
+
+        ax2.set_ylim(0, ax1.get_ylim()[1])
         
         plt.tight_layout()
+
+        fig.legend(loc='upper center', ncol=len(impls), fontsize=10, bbox_to_anchor=(0.5, 0.07))
         
         filename = 'btree_range_combined.pdf'
-        plt.savefig(output_dir / filename, dpi=300, bbox_inches='tight')
+        plt.savefig(output_dir / filename, dpi=300, bbox_inches='tight', pad_inches=0.005)
         print(f"Generated: {filename}")
         plt.close()
 
@@ -1229,7 +1235,7 @@ def plot_ablation(results, output_dir, fmt='pdf'):
         'ustm_simple_longjmp': 'Single-versioned, longjmp',
     }
 
-    fig, (ax_ts, ax_ab) = plt.subplots(1, 2, figsize=(14, 5))
+    fig, (ax_ts, ax_ab) = plt.subplots(1, 2, figsize=(7, 2.5))
 
     # Left: Timestamping variants
     for impl in timestamp_impls:
@@ -1240,13 +1246,23 @@ def plot_ablation(results, output_dir, fmt='pdf'):
         label = ts_labels.get(impl, IMPL_LABELS.get(impl, impl))
         mkr = IMPL_MARKERS.get(impl, 'o')
         ls = IMPL_LINESTYLES.get(impl, '-')
-        ax_ts.plot(x_vals, y_vals, marker=mkr, linewidth=2, markersize=7,
+        ax_ts.plot(x_vals, y_vals, marker=mkr, linewidth=2, markersize=5,
                    color=color, label=label, linestyle=ls)
-    ax_ts.set_xlabel('Update Rate (%)', fontsize=12)
-    ax_ts.set_ylabel('Throughput (MOps/s)', fontsize=12)
-    ax_ts.set_title('Timestamping Variants', fontsize=13)
+
+
+    ax_ts.set_xticks(x_vals)
+    ax_ts.set_xlabel('Update Rate (%)', fontsize=10)
+    ax_ts.set_ylabel('Throughput (MOps/s)', fontsize=11)
+    ax_ts.set_title('Timestamping Variants', fontsize=11)
     ax_ts.grid(True, alpha=0.3)
-    ax_ts.legend(loc='best', fontsize=9)
+    ax_ts.legend(loc='upper right', fontsize=7.5,
+        labelspacing=0.2,   # Reduces vertical space between the items
+        handlelength=1.0,   # Shortens the colored lines next to the text
+        handletextpad=0.4,  # Shrinks the gap between the line and the text
+        borderpad=0.3,      # Shrinks the empty space inside the legend box's edges
+        markerscale=0.7     # Makes the markers inside the legend 30% smaller than the ones on the plot
+    )
+    ax_ts.set_ylim(0, ax_ts.get_ylim()[1]*1.1)
 
     # Right: Abort mechanism variants
     for impl in abort_impls:
@@ -1259,14 +1275,22 @@ def plot_ablation(results, output_dir, fmt='pdf'):
         ls = IMPL_LINESTYLES.get(impl, '-')
         ax_ab.plot(x_vals, y_vals, marker=mkr, linewidth=2, markersize=7,
                    color=color, label=label, linestyle=ls)
-    ax_ab.set_xlabel('Update Rate (%)', fontsize=12)
-    ax_ab.set_ylabel('Throughput (MOps/s)', fontsize=12)
-    ax_ab.set_title('Abort Mechanism Variants', fontsize=13)
+
+    ax_ab.set_xticks(x_vals)
+    ax_ab.set_xlabel('Update Rate (%)', fontsize=10)
+    #ax_ab.set_ylabel('Throughput (MOps/s)', fontsize=12)
+    ax_ab.set_title('Abort Mechanism Variants', fontsize=11)
     ax_ab.grid(True, alpha=0.3)
-    ax_ab.legend(loc='best', fontsize=9)
+    ax_ab.legend(loc='best', fontsize=7.5)
+    ax_ab.set_ylim(0, ax_ts.get_ylim()[1])
+
+    ax_ab.grid(True, axis='y')
+    plt.tick_params(axis='y', which='both', labelleft=False)
 
     plt.tight_layout()
-    plt.savefig(output_dir / f'ablation.{fmt}', dpi=300, bbox_inches='tight')
+    plt.savefig(output_dir / f'ablation.{fmt}', dpi=300, bbox_inches='tight', pad_inches=0.015)
+    print(f"Generated: machines.{fmt}")
+    plt.close()
     print(f"Generated: ablation.{fmt}")
     plt.close()
 
