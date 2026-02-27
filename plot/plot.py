@@ -175,7 +175,7 @@ KNOWN_IMPLS = [
 
 #TODO: should be made into a config class
 fontsize = 11.5
-paper_plot_structures = ['arttree', 'btree', 'skiplist']
+paper_plot_structures = ['avltree', 'btree', 'hash_list']
 
 def parse_structure_impl(name):
     """Parse structure_impl string, matching known implementations from the end."""
@@ -1017,7 +1017,7 @@ def parse_tpcc_file(filepath):
             # Format: ./tpcc_<struct>_<impl>: mops/sec = <float>, num_warehouses = <int>, %aborts = <float>
             # Also handle: ./tpcc_<struct>_<impl>: mops/sec = <float>, num_ warehouses = <int>, %aborts = <float>
             match = re.match(
-                r'^\./tpcc_(\w+?)_([\w]+):\s*mops/sec\s*=\s*([\d.eE+-]+),\s*num_?\s*warehouses\s*=\s*(\d+),\s*%aborts\s*=\s*([\d.eE+-]+)',
+                r'^\./tpcc_(\w+)_([\w]+):\s*mops/sec\s*=\s*([\d.eE+-]+),\s*num_?\s*warehouses\s*=\s*(\d+),\s*%aborts\s*=\s*([\d.eE+-]+)',
                 line)
             if match:
                 struct = match.group(1)
@@ -1050,16 +1050,17 @@ def plot_tpcc_bars(tpcc_results, output_dir, filename='tpcc.pdf'):
         trial_data[(r['structure'], r['impl'])].append(r['mops'])
 
     tpcc_structs = ['hash_block', 'btree', 'mix']
-    structures = [s for s in tpcc_structs if any(k[0] == s for k in trial_data)]
+    #structures = [s for s in tpcc_structs if any(k[0] == s for k in trial_data)]
+    structures = list({item['structure'] for item in tpcc_results})
     
     impls_found = set(k[1] for k in trial_data)
     tpcc_impl_order = ['mvustm', 'fuse', '2plsf', 'multiverse', 'tiny']
     impls = [i for i in tpcc_impl_order if i in impls_found]
 
-    fig, ax = plt.subplots(figsize=(10, 6))
+    fig, ax = plt.subplots(figsize=(4, 2.6))
     x = np.arange(len(structures))
     n_impls = len(impls)
-    width = 0.8 / max(n_impls, 1)
+    width = 0.6 / max(n_impls, 1)
 
     for i, impl in enumerate(impls):
         values = []
@@ -1070,20 +1071,22 @@ def plot_tpcc_bars(tpcc_results, output_dir, filename='tpcc.pdf'):
         color = IMPL_COLORS.get(impl, '#333333')
         label = IMPL_LABELS.get(impl, impl)
         bars = ax.bar(x + offset, values, width, label=label, color=color,
-                      edgecolor='white', linewidth=0.5)
+                      edgecolor='black', linewidth=1)
         # Add value labels on bars
         for bar, val in zip(bars, values):
             if val > 0:
                 ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.05,
                         f'{val:.1f}', ha='center', va='bottom', fontsize=8)
 
-    ax.set_xlabel('Workload', fontsize=12)
+    ax.set_ylim(0, 1.3 * ax.get_ylim()[1])
+    ax.set_xlabel('Data Structure', fontsize=12)
     ax.set_ylabel('Throughput (MOps/s)', fontsize=12)
-    ax.set_title('TPC-C Throughput', fontsize=14)
+    #ax.set_title('TPC-C Throughput', fontsize=14)
     ax.set_xticks(x)
     ax.set_xticklabels([STRUCT_LABELS.get(s, s) for s in structures])
-    ax.legend(loc='upper right', fontsize=10)
+    ax.legend(loc='upper right', fontsize=10, ncols=n_impls)
     ax.grid(axis='y', alpha=0.3)
+
 
     plt.tight_layout()
     plt.savefig(output_dir / filename, dpi=300, bbox_inches='tight')
@@ -1365,7 +1368,7 @@ def plot_machines(machine_dirs, output_dir, fmt='pdf'):
                 fontsize=fontsize-3)
 
     ax.set_ylim(0, 1.23)
-    ax.set_ylabel('Geomean Throughput (MOps/s)', fontsize=fontsize-1)
+    ax.set_ylabel('Geomean Throughput (MOps/s)', fontsize=fontsize-2.5)
     ax.tick_params(axis='y', labelsize=fontsize-2)
     #ax.set_title('Geomean Throughput Across Machines', fontsize=14)
     #ax.legend(loc='upper right', fontsize=fontsize-2)
@@ -1427,7 +1430,7 @@ def plot_machines(machine_dirs, output_dir, fmt='pdf'):
     )
 
     plt.tight_layout()
-    plt.savefig(output_dir / f'machines.{fmt}', dpi=300, bbox_inches='tight', pad_inches=0.015)
+    plt.savefig(output_dir / f'machines.{fmt}', dpi=300, bbox_inches='tight', pad_inches=0.022)
     print(f"Generated: machines.{fmt}")
     plt.close()
 
