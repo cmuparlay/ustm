@@ -423,13 +423,15 @@ def plot_geomean_bars(geomean_data, output_dir, filename='geomean.pdf'):
     
     x = np.arange(len(structures))
     n_impls = len(impls)
-    width = 0.95 / n_impls
+    width = 0.6 / n_impls
+
+    inner_spacing = 1.5
     
     bars = []
     for i, impl in enumerate(impls):
         values = [normalized[struct].get(impl, 0) for struct in structures]
         values_notnormalized = [geomean_data.get((struct, impl)) for struct in structures]
-        offset = (i - n_impls/2 + 0.5) * width
+        offset = (i - n_impls/2 + 0.5) * width * inner_spacing
         color = IMPL_COLORS.get(impl, '#333333')
         label = IMPL_LABELS.get(impl, impl)
         bars.append((values, values_notnormalized,
@@ -438,8 +440,8 @@ def plot_geomean_bars(geomean_data, output_dir, filename='geomean.pdf'):
                            width,
                            label=label,
                            color=color,
-                           edgecolor='white',
-                           linewidth=0.5)))
+                           edgecolor='black',
+                           linewidth=1)))
 
     for values, values_notnormalized, bar in bars:
         for b,v,vnn in zip(bar, values, values_notnormalized):
@@ -1360,17 +1362,17 @@ def plot_machines(machine_dirs, output_dir, fmt='pdf'):
                 f'{vnn:.1f}' if vnn != -1 else "",
                 ha='center',
                 va='bottom',
-                fontsize=fontsize-4)
+                fontsize=fontsize-3)
 
-    ax.set_ylim(0, 1.18)
-    ax.set_ylabel('Geomean Throughput (MOps/s)', fontsize=fontsize-2)
+    ax.set_ylim(0, 1.23)
+    ax.set_ylabel('Geomean Throughput (MOps/s)', fontsize=fontsize-1)
     ax.tick_params(axis='y', labelsize=fontsize-2)
     #ax.set_title('Geomean Throughput Across Machines', fontsize=14)
     #ax.legend(loc='upper right', fontsize=fontsize-2)
     ax.grid(axis='y', alpha=0.3)
 
     ax.set_xticks(x)
-    ax.set_xticklabels(machines, ha='center', fontsize=fontsize-2)
+    ax.set_xticklabels(machines, ha='center', fontsize=fontsize-1)
     ax.xaxis.set_ticks_position('top')
     ax.xaxis.set_label_position('top')
     ax.tick_params(axis='x', top=True, labeltop=True, pad=-14, length=0)
@@ -1407,7 +1409,7 @@ def plot_machines(machine_dirs, output_dir, fmt='pdf'):
                     STRUCT_LABELS.get(struct, struct),
                     ha='center',
                     va='bottom',
-                    fontsize=fontsize-4)
+                    fontsize=fontsize-3)
 
     #stm labels
     impl_handles = [
@@ -1416,11 +1418,11 @@ def plot_machines(machine_dirs, output_dir, fmt='pdf'):
     ]
     ax.legend(
         handles=impl_handles,
-        bbox_to_anchor=(0.7, -0.06),  # x=center, y=below axes
+        bbox_to_anchor=(0.5, 1.25),
         frameon=True,
-        fontsize=6,
+        fontsize=fontsize-2.5,
         ncol=n_impls,
-        loc="upper right",
+        loc="upper center",
         alignment="center"
     )
 
