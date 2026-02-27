@@ -1062,12 +1062,14 @@ def plot_tpcc_bars(tpcc_results, output_dir, filename='tpcc.pdf'):
     n_impls = len(impls)
     width = 0.6 / max(n_impls, 1)
 
+    inner_spacing = 1.5
+
     for i, impl in enumerate(impls):
         values = []
         for struct in structures:
             trials = trial_data.get((struct, impl), [])
             values.append(sum(trials) / len(trials) if trials else 0)
-        offset = (i - n_impls / 2 + 0.5) * width
+        offset = (i - n_impls / 2 + 0.5) * width * inner_spacing
         color = IMPL_COLORS.get(impl, '#333333')
         label = IMPL_LABELS.get(impl, impl)
         bars = ax.bar(x + offset, values, width, label=label, color=color,
