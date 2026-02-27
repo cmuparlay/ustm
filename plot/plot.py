@@ -381,6 +381,14 @@ def parse_timing_file(filepath):
                             break
                 if struct and impl:
                     geomean_data[(struct, impl)] = gmean
+
+    #combos = sorted({(d['structure'], d['impl']) for d in results})
+    #for c in combos:
+    #    if c not in geomean_data:
+    #            struct, impl = c
+    #            matching = [d for d in results if d['structure'] == struct and d['impl'] == impl]
+    #            print("MATCHED")
+    #            for m in matching: print(m)
     
     return results, geomean_data
 
@@ -1270,7 +1278,7 @@ def plot_machines(machine_dirs, output_dir, fmt='pdf'):
 
     machine_impls = ['mvustm', 'fuse', '2plsf', 'multiverse', 'tiny']
     machine_data = {}  # label -> {impl: geomean_mops}
-    structs = ['arttree', 'btree', 'skiplist']
+    structs = ['avltree', 'btree', 'treap']
 
     for label, dirpath in machine_dirs:
         #find file
@@ -1304,7 +1312,7 @@ def plot_machines(machine_dirs, output_dir, fmt='pdf'):
             impls_found.update(d[s].keys())
     impls = [i for i in machine_impls if i in impls_found]
 
-    fig, ax = plt.subplots(figsize=(7, 3))
+    fig, ax = plt.subplots(figsize=(7, 2.6))
     x = np.arange(len(machines))
     
     pairs = list(product(structs, impls))
@@ -1327,6 +1335,7 @@ def plot_machines(machine_dirs, output_dir, fmt='pdf'):
                 for i, impl in enumerate(impls)
             }
 
+    bars = []
     for s_idx, struct in enumerate(structs):
         group_offset = (s_idx - (n_structs - 1)/2) * width * n_impls * group_spacing
         for i_idx, impl in enumerate(impls):
@@ -1334,23 +1343,34 @@ def plot_machines(machine_dirs, output_dir, fmt='pdf'):
             offset = group_offset + inner_offset
 
             values = [normalized_data[m][struct].get(impl, 0) for m in machines]
-            
+            values_notnormalized = [machine_data[m][struct].get(impl, -1) for m in machines]
+
             color = IMPL_COLORS.get(impl, '#333333')
             label = IMPL_LABELS.get(impl, impl)
             hatch = STRUCT_HATCHES.get(struct, None)
-            ax.bar(x + offset, values, width,
+            bars.append((values, values_notnormalized,
+                   ax.bar(x + offset, values, width,
                    color=color,
-                   edgecolor='black', linewidth=1)
+                   edgecolor='black', linewidth=1)))
 
-    ax.set_ylim(0, 1.10)
-    ax.set_ylabel('Geomean Throughput (MOps/s)', fontsize=fontsize)
-    ax.tick_params(axis='y', labelsize=fontsize)
+    for values, values_notnormalized, bar in bars:
+        for b,v,vnn in zip(bar, values, values_notnormalized):
+            ax.text(b.get_x() + b.get_width() / 2,
+                b.get_height(),
+                f'{vnn:.1f}' if vnn != -1 else "",
+                ha='center',
+                va='bottom',
+                fontsize=fontsize-4)
+
+    ax.set_ylim(0, 1.18)
+    ax.set_ylabel('Geomean Throughput (MOps/s)', fontsize=fontsize-2)
+    ax.tick_params(axis='y', labelsize=fontsize-2)
     #ax.set_title('Geomean Throughput Across Machines', fontsize=14)
-    ax.legend(loc='upper right', fontsize=fontsize)
+    #ax.legend(loc='upper right', fontsize=fontsize-2)
     ax.grid(axis='y', alpha=0.3)
 
     ax.set_xticks(x)
-    ax.set_xticklabels(machines, ha='center', fontsize=fontsize)
+    ax.set_xticklabels(machines, ha='center', fontsize=fontsize-2)
     ax.xaxis.set_ticks_position('top')
     ax.xaxis.set_label_position('top')
     ax.tick_params(axis='x', top=True, labeltop=True, pad=-14, length=0)
@@ -1387,7 +1407,7 @@ def plot_machines(machine_dirs, output_dir, fmt='pdf'):
                     STRUCT_LABELS.get(struct, struct),
                     ha='center',
                     va='bottom',
-                    fontsize=fontsize-1)
+                    fontsize=fontsize-4)
 
     #stm labels
     impl_handles = [
