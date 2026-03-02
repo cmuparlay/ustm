@@ -4,23 +4,27 @@
 // the interface consists of three functions
 //   template <typename F>
 //   uepoch::protect(const F& f) : takes a lambda or function f
-//      with no arguments and with or without a result, and runs it in
-//      protected mode
-//   uepoch::delay(std::function<void()> f) : takes a function f and
-//      delays running it until everyone who was in a protect at
-//      the time of this call has now exited
-//   uepoch::clear() : forces all delayed functions to run. Not safe to 
-//      run concurrently with the other two functions
-// protect can be safely nested (all but the outermost is ignored)
+//      with no arguments and with or without a result, and
+//      runs it in protected mode
+//   uepoch::delay(std::function<void()> f) : takes a function 
+//      f and delays running it until everyone who was in a
+//      protect at the time of this call has now exited
+//   uepoch::clear() : forces all delayed functions to run.
+//      Not safe to run concurrently with other two functions
+// protect can be safely nested 
 //
 // Example:
 //     uepoch::delay([&] {delete y;});
-//     auto r = uepoch::protect([&] { ... x = y->left; ... return z;});
-// If the delay is called while the the lambda passed to protect is
-// running, the deletion of y is delayed until the lambda returns.
+//     auto r = uepoch::protect([&] {
+//          ... x = y->left;
+//          ... return z;});
+// If the delay is called while the the lambda passed to protect
+// is running, the deletion of y is delayed until the lambda
+// returns.
 //
-// It also supports adding functions to run just before and after an
-// epoch is incremented using add_{before,after}_epoch_hook
+// It also supports adding functions to run just before and
+// after an epoch is incremented using
+// add_{before,after}_epoch_hook
 //***************************
 
 #ifndef UEPOCH_H_
@@ -53,9 +57,9 @@ namespace uepoch {
     return ti;
   }
 
-  // This is used as a thread local and keeps the thread's id.  Its
-  // constructor finds a free id from the registry marking it as used,
-  // and its destructor marks the id as unused.
+  // This is used as a thread local and keeps the thread's id.
+  // Its constructor finds a free id from the registry marking
+  // it as used, and its destructor marks the id as unused.
   struct registered_id {
     long id;
     registered_id() {
@@ -66,30 +70,24 @@ namespace uepoch {
             ti.flags[i].compare_exchange_strong(x, 1)) {
           id = i;
           auto max = ti.max_seen.load();
-          while (i > max && !ti.max_seen.compare_exchange_strong(max,i));
+          while (i+1 > max &&
+                 !ti.max_seen.compare_exchange_strong(max,i+1));
           return;
         }
       }
-      std::cout << "thread registry is full, max threads is " << max_threads << std::endl;
+      std::cout << "thread registry is full, max threads is "
+                << max_threads << std::endl;
       abort();
     }
     ~registered_id() { get_thread_id_registry().flags[id] = 0;}
   };
 
-  // long num_threads() {
-  //   return get_thread_id_registry().max_seen.load(); }
-
-  // extern inline int thread_id() {
-  //   static thread_local registered_id id_s;
-  //   return id_s.id; }
-
-  extern inline std::atomic<int>& num_threads() {
-      static std::atomic<int> num_threads{0};
-      return num_threads;  }
+  long num_threads() {
+    return get_thread_id_registry().max_seen.load(); }
 
   extern inline int thread_id() {
-    static thread_local int id{num_threads().fetch_add(1, std::memory_order_relaxed)};
-    return id; }
+    static thread_local registered_id id_s;
+    return id_s.id; }
 
   namespace internal {
     using thunk = std::function<void()>;
@@ -103,10 +101,13 @@ namespace uepoch {
 
       // the various delayed pools for each thread
       struct alignas(256) thread_state {
-        std::vector<thunk> current; // delayed functions from current epoch
-        std::vector<thunk> old;  // delayed functions from previous epoch
+        // delayed functions from current epoch
+        std::vector<thunk> current;
+        // delayed functions from previous epoch
+        std::vector<thunk> old;  
         long epoch = 0; // epoch on last delay
-        long count = 0; // number of calls to delay since last epoch update
+        // number of calls to delay since last epoch update
+        long count = 0; 
         thread_state() {}
       };
 
@@ -120,8 +121,8 @@ namespace uepoch {
       epoch_state() {}
       ~epoch_state() {clear();}
 
-      // adds current epoch to the announcement slot of this thread
-      // returns false if it was already announced
+      // adds current epoch to the announcement slot of this
+      // thread returns false if it was already announced
       bool announce() {
         size_t id = thread_id();
         if (announcements[id].last.load() == -1l) {
@@ -132,9 +133,12 @@ namespace uepoch {
 
       void unannounce() {
         size_t id = thread_id();
-        announcements[id].last.store(-1l, std::memory_order_relaxed); }
+        announcements[id].last.store(-1l,
+                                  std::memory_order_relaxed);
+      }
 
-      // run every once in a while to check if epoch can be incremented
+      // run every once in a while to check if epoch can be
+      // incremented
       void update_epoch() {
         long current_e = current_epoch.load();
         int threads;
@@ -143,14 +147,16 @@ namespace uepoch {
           if (threads > max_threads) {
             std::cerr << "epoch: too many threads" << std::endl;
             abort(); }
-          // check if all announced epochs are at least current epoch
+          // check if all announced epochs are at least current
+          // epoch
           for (int i=0; i < threads; i++)
             if ((announcements[i].last != -1l) &&
                 announcements[i].last < current_e) return;
           if (num_threads() == threads) break;
         }
         for (const auto& h : before_epoch_hooks) h();
-        if (current_epoch.compare_exchange_strong(current_e, current_e+1))
+        if (current_epoch.compare_exchange_strong(current_e,
+                                                  current_e+1))
           for (const auto& h : after_epoch_hooks) h();
       }
 
@@ -163,10 +169,12 @@ namespace uepoch {
       void advance_epoch(int i) {
         thread_state& pool = pools[i];
         if (pool.epoch + 1 < current_epoch.load()) {
-          // could call all the delayed functions in old at this point, but
-          // we delay and put them in safe so they can be applied over time
+          // could call all the delayed functions in old at this
+          // point, but we delay and put them in safe so they
+          // can be applied over time
           clear_pool(pool.old);
-          std::swap(pool.old, pool.current);  // current is now empty
+          std::swap(pool.old, pool.current);  
+          // current is now empty
           pool.epoch = current_epoch.load();
         }
         long heuristic_threshold = 10 * num_threads();
@@ -177,7 +185,8 @@ namespace uepoch {
       }
 
     public:
-      // clears all the pools and returns number of entries cleared
+      // clears all the pools and returns number of entries
+      // cleared
       long clear() {
         update_epoch();
         long cnt = 0;
@@ -190,8 +199,8 @@ namespace uepoch {
         return cnt;
       }
 
-      // Delays running the function f until there are no longer any
-      // announced threads active at the time of the call.
+      // Delays running the function f until there are no longer
+      // any announced threads active at the time of the call.
       void delay(thunk&& f) {
         auto i = thread_id();
         advance_epoch(i);
@@ -201,16 +210,17 @@ namespace uepoch {
   
   } // end namespace internal
 
-  // Creates an epoch state on first call by a thread and then uses it
-  // on future calls
+  // Creates an epoch state on first call by a thread and then
+  // uses it on future calls
   extern inline internal::epoch_state& get_epoch() {
     static internal::epoch_state epoch;
     return epoch;
   }
 
   // Ensures any delayed functions called by other threads while
-  // running the function f are not executed until after f finishes.
-  // The function f can either return a value or void.
+  // running the function f are not executed until after f
+  // finishes.
+  // The function f can either return a value or
   template <typename Thunk>
   auto protect(const Thunk& f) {
     auto& epoch = get_epoch();
