@@ -345,11 +345,11 @@ namespace ustm {
     }
 
     inline void abortTransaction(Descriptor* myd) {
-      // Release locks and apply deletes to allocated objects.
+      // Release locks 
       for (auto& e : myd->writeLog) 
         if (e.oldStamp != 0) getLock(e.loc).unlock(e.oldStamp);
-      for (auto& e : myd->allocLog)
-        uepoch::delay(std::move(e));
+      // Apply deletes to allocated objects.
+      for (auto& e : myd->allocLog) e();
       if (++myd->numRetries % 4000000 == 0) { 
         std::cout << "ustm: too many retries: "
                   << std::endl; abort();}
@@ -524,20 +524,20 @@ namespace ustm {
     if (myd->inTransaction) {
       myd->inConstructor++;
 #ifdef ParlayAlloc
-      T* ptr = parlay::type_allocator<T>::create(args...);
+      T* ptr = parlay::type_allocator<T>::create(std::forward<Args>(args)...);
       myd->allocLog.push_back([=] {
          parlay::type_allocator<T>::destroy(ptr);});
 #else
-      T* ptr = new T(args...);
+      T* ptr = new T(std::forward<Args>(args)...);
       myd->allocLog.push_back([=] {delete ptr;});
 #endif
       myd->inConstructor--;
       return ptr;
     } else
 #ifdef ParlayAlloc
-      return parlay::type_allocator<T>::create(args...);
+      return parlay::type_allocator<T>::create(std::forward<Args>(args)...);
 #else
-      return new T(args...);
+      return new T(std::forward<Args>(args)...);
 #endif
   }
 

@@ -9,20 +9,24 @@
 namespace stm {
 
   template <typename F>
-  auto atomic_region(F &&func) {return ustm::transaction(func); }
+  auto atomic_region(F &&func) {
+    return ustm::transaction(std::forward<F>(func)); }
   template <typename F>
 #ifdef MV
-  auto atomic_read_only(F &&func, bool large = false) { return ustm::transaction(func, true); }
+  auto atomic_read_only(F &&func, bool large = false) {
+    return ustm::transaction(std::forward<F>(func), true); }
 #else
-  auto atomic_read_only(F &&func, bool large = false) { return atomic_region(func); }
+  auto atomic_read_only(F &&func, bool large = false) {
+    return atomic_region(std::forward<F>(func)); }
 #endif
   template <typename F>
   auto atomic_read_only_singleton(F &&func) {
-    return uepoch::protect(func); }
+    return atomic_read_only(std::forward<F>(func)); }
   template <typename T>
   void Delete(T *ptr) { ustm::Delete(ptr); }
   template <typename T, typename... Args>
-  T *New(Args... args) { return ustm::New<T>(args...); }
+  T *New(Args&&... args) { return
+      ustm::New<T>(std::forward<Args>(args)...); }
   template <typename T>
   T load(T& val) { return ustm::load(val); }
   template <typename T>
