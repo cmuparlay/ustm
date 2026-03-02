@@ -22,7 +22,7 @@ struct unordered_map {
   using V = V_;
 private:
   enum State : char {Empty, Full};
-  struct entry {State s; K k; V v;};
+  struct entry {State s = Empty; K k; V v;};
   std::vector<stm::atomic<entry>> entries;
   unsigned long mask;
   unsigned long table_size;
