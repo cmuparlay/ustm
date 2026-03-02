@@ -76,13 +76,21 @@ namespace uepoch {
     ~registered_id() { get_thread_id_registry().flags[id] = 0;}
   };
 
-  long num_threads() {
-    return get_thread_id_registry().max_seen.load(); }
+  // long num_threads() {
+  //   return get_thread_id_registry().max_seen.load(); }
+
+  // extern inline int thread_id() {
+  //   static thread_local registered_id id_s;
+  //   return id_s.id; }
+
+  extern inline std::atomic<int>& num_threads() {
+      static std::atomic<int> num_threads{0};
+      return num_threads;  }
 
   extern inline int thread_id() {
-    static thread_local registered_id id_s;
-    return id_s.id; }
-  
+    static thread_local int id{num_threads().fetch_add(1, std::memory_order_relaxed)};
+    return id; }
+
   namespace internal {
     using thunk = std::function<void()>;
 
