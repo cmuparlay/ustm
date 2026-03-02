@@ -87,8 +87,7 @@ namespace ustm {
       return ts.fetch_add(1, uepoch::thread_id());
     }
   };
-#else
-#define SplitStamp
+#elif defined(SplitStamp) || defined(LazyStamp) || defined(Funnel)
   struct timeStamp {
 #ifdef Funnel
     AggFunnel<TS> ts{0, uepoch::max_threads};
@@ -112,8 +111,10 @@ namespace ustm {
 #endif // AggFunnel
     }
   };
+#else
+  UNDEFINED TIME STAMP
 #endif
-
+  
 #ifndef SimpleSTM
   // generic version link
   struct version {
