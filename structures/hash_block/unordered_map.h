@@ -1,6 +1,8 @@
 // MIT license (https://opensource.org/license/mit/)
 // Initial Author: Guy Blelloch
 
+// Define "UpsertInPlace" to do upserts inplace
+
 // Nodes come in varying sizes and on update the node is copied.
 #include <transactions.h>
 #include <cmath>
@@ -21,9 +23,6 @@ struct unordered_map {
   using K = K_;
   using V = V_;
 private:
-#ifdef USTM
-#define UpsertInPlace
-#endif
   
 #ifdef UpsertInPlace
   struct KV {K key; stm::atomic<V> value; V val() const {return value.load();}};
