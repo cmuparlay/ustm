@@ -1,13 +1,11 @@
 // Supports transactions with the following interface:
-//   r = ustm::transaction(func) // runs function (no args) in a transaction
-//   r = ustm::transaction(func, true) // same but in read only mode
+//   r = ustm::transaction(func) // runs a func in transaction
+//   r = ustm::transaction(func, true) // read only mode
 //   r = ustm::load(x) // loads value from x
-//   r = ustm::load(x, true) // does an unprotected load on x
 //   ustm::store(x, v) // stores v into x
-//   r = ustm::New<T>(args ...) // generate new object of type T
+//   r = ustm::New<T>(args ...) // new object of type T
 //   ustm::Delete(x) // deletes x
 // The types for load and store can be any relocatable type.
-// Memory should only be allocated with the mystm version in a transaction.
 
 #ifndef USTM_H_
 #define USTM_H_
@@ -24,21 +22,22 @@
 #include <tuple>
 #include <unordered_map>
 #include <vector>
+// Uses epoch-based SMR from uepoch.h.  Needed interface:
+//   r = uepoch::protect(func) : runs func under protection
+//   uepoch::delay(func) : delays until proteced are done
+//   uepoch::add_before_epoch_hook(func)
+//   uepoch::thread_id()
 #include "uepoch.h"
 #ifdef ParlayAlloc
 #include <parlay/alloc.h>
 #endif
-
 #if defined(Funnel) || defined(FunnelEager)
-
 #ifdef SimpleFunnel
-
 #ifdef USE_UEPOCH
 #include "aggregating_funnel.h"
 #else
 #include "aggregating-funnels/counter/aggregatingFunnelCounter.hpp"
 #endif
-
 template<typename T>
 using AggFunnel = SIMPLE_AGG_FUNNEL::AggFunnelCounter<T>;
 #elif defined(FullFunnel)
@@ -50,15 +49,13 @@ using AggFunnel = FULL_AGG_FUNNEL::FullAggFunnelCounter<T>;
 template<typename T>
 using AggFunnel = RECURSIVE_AGG_FUNNEL::RecursiveAggFunnelCounter<T>;
 #endif
-
 #endif // Funnel
-
 
 namespace ustm {
   // some constants
-  constexpr int MaxThreads = 4096; // arbitrary, can be increased
+  constexpr int MaxThreads = 4096; // can be increased
   constexpr int logLocks = 22; // log_2 of number of locks
-  static constexpr int filterBits = 10; // used for the writelog hash filter
+  static constexpr int filterBits = 10; // for hash filter
 
   using TS = size_t; // type for timestamps
 #ifdef HWStamp
@@ -137,22 +134,26 @@ namespace ustm {
   };
   
 #endif
-  // The lock structure.  Contains the status of the lock and if using
-  // versioning a version list.
+  // The lock structure.  Contains the status of the lock
+  // and if using versioning a version list.
   struct alignas(16) lock {
     using Status = size_t;
-    // If locked (high bit set) keeps tid of owner, otherwise keeps timestamp
+    // If locked (high bit set) keeps tid of owner,
+    // otherwise keeps timestamp
     std::atomic<Status> v = 1; // time starts at 1
     lock() {}
     static int getTID(Status s) { return ~(1ul << 63) & s;}
     static TS getStamp(Status s) { return s;}
     static bool isLocked(Status s) { return (s >> 63) & 1ul;}
-    static Status setLock(int tid) {return Status((1ul << 63) | tid);}
-    Status getStatus() const { return v.load(std::memory_order_acquire);}
-    void setStamp(TS stamp) { v.store(stamp, std::memory_order_release); }
+    static Status setLock(int tid) {
+      return Status((1ul << 63) | tid);}
+    Status getStatus() const {
+      return v.load(std::memory_order_acquire);}
+    void setStamp(TS stamp) {
+      v.store(stamp, std::memory_order_release); }
 #ifndef SimpleSTM
 
-    std::atomic<version*> verlist = nullptr; // the version list
+    std::atomic<version*> verlist = nullptr; // version list
     version* getVersionList() const { return verlist.load();}
     
     // add to version list
@@ -162,8 +163,9 @@ namespace ustm {
       verlist.store(l, std::memory_order_release); }
 #endif
 
-    // Returns whether succeeded or not, and if succeeded a 0 stamp
-    // if was self locked, and the swapped out timestamp otherwise
+    // Returns whether succeeded or not, and if succeeded a
+    // 0 stamp.  If was self locked, and the swapped out
+    // timestamp otherwise
     std::pair<bool,TS> tryLock(int tid, const TS startStamp) {
       Status s = getStatus();
       if (isLocked(s)) 
@@ -179,16 +181,19 @@ namespace ustm {
     void unlock(const TS ts) {
       v.store(ts, std::memory_order_release); }
 
-    // checks that either self locked or timestamp before startStamp
+    // checks that either self locked or timestamp before
+    // startStamp
     bool validateRead(const TS startStamp, int tid) const {
       Status s = getStatus();
-      return ((isLocked(s) && getTID(s) == tid) || s < startStamp); 
+      return ((isLocked(s) && getTID(s) == tid) ||
+              s < startStamp); 
     }
   };
 
   struct STMState;
   
-  // Transaction descriptor, includes the logs, stats, and other state
+  // Transaction descriptor, includes the logs, stats, and
+  // other state
   struct alignas(128) Descriptor {
 #ifdef LongJmp
     std::jmp_buf continuation;
@@ -209,13 +214,15 @@ namespace ustm {
 #endif
     
 #ifdef SimpleSTM
-    // Entry for the write log.  Contains the location, an oldStamp used
-    // when locked, the value, and the size in bytes of the value.
+    // Entry for the write log.  Contains the location, an
+    // oldStamp used when locked, the value, and the size in
+    // bytes of the value.
     struct logEntry { void* loc; TS oldStamp; size_t data; int size; };
 #else
-    // Entry for the write log.  Contains the location, an oldStamp used
-    // when locked, a pointer to the link containing the value, a pointer
-    // to the data within the link and the size in bytes of the value.
+    // Entry for the write log.  Contains the location, an
+    // oldStamp used when locked, a pointer to the link
+    // containing the value, a pointer to the data within
+    // the link and the size in bytes of the value.
     struct logEntry {
       void* loc;
       TS oldStamp;
@@ -230,10 +237,11 @@ namespace ustm {
     
     // The following four members are the logs.
     std::vector<logEntry> writeLog;
-    // Each entry of the read log contains a pointer to a location.
+    // The read log contains pointers to read locations.
     std::vector<const void*> readLog;
 
-    // Alloc and delete logs keep pointers to functions that do deletes
+    // Alloc and delete logs keep pointers to functions that
+    // do deletes
     std::vector<std::function<void()>> allocLog;
     std::vector<std::function<void()>> deleteLog;
 
@@ -253,7 +261,8 @@ namespace ustm {
 
   template <int bits>
   size_t hash(const void* addr) {
-    size_t x = (reinterpret_cast<size_t>(addr)>>6)*UINT64_C(0xbf58476d1ce4e5b9);
+    size_t x = ((reinterpret_cast<size_t>(addr)>>6) *
+                UINT64_C(0xbf58476d1ce4e5b9));
     return x >> (64 - bits);
   }
   
@@ -276,7 +285,8 @@ namespace ustm {
         if (myd->lateRead) return false;
         // Take locks (abort if any fail)
         for (auto& e : myd->writeLog) {
-          auto [r, s] = getLock(e.loc).tryLock(myd->tid, myd->startStamp);
+          auto [r,s] = getLock(e.loc).tryLock(myd->tid,
+                                              myd->startStamp);
           if (!r) return false;
           e.oldStamp = s;
         }
@@ -288,10 +298,12 @@ namespace ustm {
 #endif
         // Validate the reads (abort if any fail)
         for (auto& e : myd->readLog) 
-          if (!getLock(e).validateRead(myd->startStamp, myd->tid))
+          if (!getLock(e).validateRead(myd->startStamp,
+                                       myd->tid))
             return false;
-        // If here (i.e. locks and validates succeeded), transaction
-        // succeeded.  Apply the writes and then unlock them.
+        // If  here (i.e.  locks  and validates  succeeded),
+        // transaction succeeded.  Apply the writes and then
+        // unlock them.
         for (auto& e : myd->writeLog) {
 #ifdef SimpleSTM
           std::memcpy(e.loc, &e.data, e.size);
@@ -307,7 +319,8 @@ namespace ustm {
           std::memcpy(e.loc, e.data, e.size);
           std::memcpy(e.data, tmp, e.size);
           // add link to version list
-          TS writeStamp = (e.oldStamp == 0) ? endStamp : e.oldStamp;
+          TS writeStamp = ((e.oldStamp == 0)
+                           ? endStamp : e.oldStamp);
           getLock(e.loc).addLink(e.link, writeStamp);
 #endif
         }
@@ -337,7 +350,8 @@ namespace ustm {
       for (auto& e : myd->allocLog)
         uepoch::delay(std::move(e));
       if (++myd->numRetries % 4000000 == 0) { 
-        std::cout << "ustm: too many retries: " << std::endl; abort();}
+        std::cout << "ustm: too many retries: "
+                  << std::endl; abort();}
       myd->reset();
       ts.nextStamp(myd->startStamp);
 #ifdef STMStats
@@ -371,13 +385,14 @@ namespace ustm {
 
   template <typename T>
   inline T load(T& v, bool unprotected=false) {
-    __builtin_prefetch (&v);
+    //__builtin_prefetch (&v);
     Descriptor* myd = getDescriptor();
     lock& lck = myd->stmState->getLock(&v);
     auto status = lck.getStatus();
 
     // check if value is in the write buffer
-    if (myd->writeLog.size() > 0 && myd->writeFilter[hash<filterBits>(&v)]) {
+    if (myd->writeLog.size() > 0 &&
+        myd->writeFilter[hash<filterBits>(&v)]) {
       auto a = myd->writeMap.find((void*) &v);
       if (a != myd->writeMap.end()) {
 #ifdef SimpleSTM
@@ -396,7 +411,8 @@ namespace ustm {
     bool regular = (myd->inTransaction && !unprotected);
 #else
     version* nxt;
-    bool regular = (myd->inTransaction && !myd->readOnly && !unprotected);
+    bool regular = (myd->inTransaction &&
+                    !myd->readOnly && !unprotected);
 #endif
     if (regular) myd->readLog.push_back(&v);
     char tmp[sizeof(T)];
@@ -417,16 +433,20 @@ namespace ustm {
         }
       }
     }
+#if defined(LongJmp)
     if (regular) {
       myd->lateRead = true;
-#if defined(LongJmp)
       uepoch::get_epoch().unannounce();
       std::longjmp(myd->continuation, 1);
+    }
 #elif defined(TryThrow)
+    if (regular) {
       uepoch::get_epoch().unannounce();
       throw 0;
-#endif
     }
+#else
+    if (regular) myd->lateRead = true;
+#endif
 #ifdef SimpleSTM
     return *location;
 #else
@@ -457,10 +477,11 @@ namespace ustm {
   // runs func in an transaction
   // func takes no argument and must return a value
   template<typename F>
-  inline auto transaction(F&& func, bool readOnly = false, bool large = false) {
+  inline auto transaction(F&& func, bool readOnly = false) {
     Descriptor* myd = getDescriptor();
     STMState* stm = myd->stmState;
-    if (myd->inTransaction) return func(); // if nested then just run
+    // if nested then just run
+    if (myd->inTransaction) return func(); 
     myd->inTransaction = true;
     myd->numRetries = 0;
     decltype(func()) returnValue;
@@ -484,7 +505,8 @@ namespace ustm {
       } catch (int x) {}
       if (!myd->lateRead && stm->commitTransaction(myd))
 #elif defined(LazyStamp)
-        if ((!myd->lateRead || (myd->readOnly && myd->numRetries > 0))
+        if ((!myd->lateRead ||
+             (myd->readOnly && myd->numRetries > 0))
             && stm->commitTransaction(myd))
 #else
       if (stm->commitTransaction(myd))
@@ -502,7 +524,8 @@ namespace ustm {
       myd->inConstructor++;
 #ifdef ParlayAlloc
       T* ptr = parlay::type_allocator<T>::create(args...);
-      myd->allocLog.push_back([=] {parlay::type_allocator<T>::destroy(ptr);});
+      myd->allocLog.push_back([=] {
+         parlay::type_allocator<T>::destroy(ptr);});
 #else
       T* ptr = new T(args...);
       myd->allocLog.push_back([=] {delete ptr;});
@@ -523,8 +546,10 @@ namespace ustm {
     if (obj == nullptr) return;
     Descriptor* myd = getDescriptor();
 #ifdef ParlayAlloc
-    if (!myd->inTransaction) parlay::type_allocator<T>::destroy(obj);
-    else myd->deleteLog.push_back([=] { parlay::type_allocator<T>::destroy(obj);});
+    if (!myd->inTransaction)
+      parlay::type_allocator<T>::destroy(obj);
+    else myd->deleteLog.push_back([=] {
+      parlay::type_allocator<T>::destroy(obj);});
 #else
     if (!myd->inTransaction) delete obj;
     else myd->deleteLog.push_back([=] { delete obj;});
@@ -536,8 +561,7 @@ namespace ustm {
     Descriptor* myd = getDescriptor();
     if (myd->inConstructor > 0) loc = v;
     else if (!myd->inTransaction)
-      // guy : why is this commented out?
-      loc = v; //ustm::transaction([&] {ustm::store(loc, v); return true;});
+      transaction([&] {ustm::store(loc, v); return true;});
     else {
       // insert into hash filter and map so reads can find it
       myd->writeFilter[hash<filterBits>(&loc)] = 1;
@@ -567,7 +591,8 @@ namespace ustm {
 
   template <typename T>
   inline void fence(T& loc) {
-    ustm::transaction([=] {ustm::store(loc, ustm::load(loc));}); }
+    ustm::transaction([=] {
+       ustm::store(loc, ustm::load(loc));}); }
 #ifdef STMStats
 
   std::pair<long,long> statistics() {
