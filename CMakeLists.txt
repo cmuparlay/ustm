@@ -138,4 +138,4 @@ add_dependencies(tinystm tinystm_ext)
 #                       Benchmarks
 
 add_subdirectory(benchmark)
-#add_subdirectory(test)
+add_subdirectory(test)

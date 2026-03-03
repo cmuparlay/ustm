@@ -15,7 +15,7 @@
 #include <parlay/parallel.h>
 #include <parlay/utilities.h>
 
-#include "transactions.h"
+#include <transactions.h>
 
 std::string command_string = R"(
 [-n <size>]  : 
@@ -30,17 +30,20 @@ int main(int argc, char* argv[]) {
   long n = P.getOptionIntValue("-n", 1000);
   long trial_time = P.getOptionDoubleValue("-t", 1.0);
 
-  std::vector<stm::atomic<long>> a(n);
   std::vector<long> counts(p, 0);
-  for (long i = 0; i < a.size(); i++) a[i] = i;
+
+  std::vector<stm::atomic<long>> a(n);
+  for (long i = 0; i < a.size(); i++)
+    stm::atomic_region([&] {return a[i] = i;});
+
   long expected = (n * (n - 1))/2;
 
   auto start = std::chrono::system_clock::now();
   auto get_time = [] () {return std::chrono::system_clock::now();};
   auto time_diff = [] (auto start_time) {
-                     auto current = std::chrono::system_clock::now();
-                     return std::chrono::duration_cast<std::chrono::seconds>(current - start_time).count();
-                   };
+    auto current = std::chrono::system_clock::now();
+    return std::chrono::duration_cast<std::chrono::seconds>(current - start_time).count();
+  };
 
   std::atomic<bool> finished = false;
   
@@ -61,7 +64,8 @@ int main(int argc, char* argv[]) {
                          sum += a[j].load();
                        return sum;}, true);
         if (total != expected) {
-          std::cout << "bad sum, expected " << expected << " got " << total << std::endl;
+          std::cout << "bad sum, expected " << expected
+                    << " got " << total << std::endl;
           abort();
       }
       } else {
