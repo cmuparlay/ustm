@@ -11,6 +11,11 @@ function(add_test NAME SOURCE DEFS LIB)
     target_include_directories(${NAME} PRIVATE ${OTHER_DIR}/ptmbench/setbench/common)
     target_include_directories(${NAME} PRIVATE ${OTHER_DIR}/multiverse)
   endif()
+
+  if("${DEFS}" MATCHES "Fuse")
+    target_include_directories(${NAME} PRIVATE ${OTHER_DIR}/fuse/include)
+  endif()
+
 endfunction()
 
 set(TESTS "test")
@@ -23,5 +28,6 @@ foreach(test ${TESTS})
   add_test(${test}_mvustm_longjmp ${test}.cpp "USTM;MV;SplitStamp;LongJmp" "")
   add_test(${test}_mvustm_trythrow ${test}.cpp "USTM;MV;SplitStamp;TryThrow" "")
   add_test(${test}_2plsf ${test}.cpp "Other;TWOPLSF" "")
+  add_test(${test}_fuse ${test}.cpp "Other;Fuse;WriteStamp;MV_TLF" "")
   add_test(${test}_multiverse ${test}.cpp "MAX_THREADS_POW2=256;CPU_FREQ_GHZ=2.4;MULTIVERSE" "")
 endforeach()
