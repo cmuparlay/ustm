@@ -23,50 +23,31 @@
 #include <functional>
 #include <cstring>
 #include <thread>       // Needed by this_thread::yield()
-#include <sys/mman.h>   // Needed if we use mmap()
-#include <sys/types.h>  // Needed by open() and close()
-#include <sys/stat.h>
-#include <linux/mman.h> // Needed by MAP_SHARED_VALIDATE
-#include <fcntl.h>
-#include <unistd.h>     // Needed by close()
-#include <filesystem>   // Needed by std::filesystem::space()
-#include <type_traits>
-#include <sched.h>      // sched_setaffinity()
 #include <csetjmp>      // Needed by sigjmp_buf
 #include <cstdlib>      // Needed by exit()
 #include <chrono>
 #include <vector>
-#include <bit>
-
-#ifndef USTM_X86
-#undef USE_RDTSC //dont use x86-specific hardware timestamping
-#endif
-
-#ifdef USTM_PPC
-#warning in our experiments, multiverse reaches an infinite loop on power-pc
-#endif
 
 #include "tm_common/stats.h"
 #include "tm_common/tm_debug.h"
 #include "tm_common/tm_timelines.h"
 #include "bloom_filter.h"
 
-std::atomic<int> debugLock {0};
-// #define TRACK_MULTIVERSE_COUNTERS
-#ifdef TRACK_MULTIVERSE_COUNTERS
-struct alignas(128) PaddedCounter { uint64_t aborts = 0; uint64_t commits = 0; };
-PaddedCounter gMultiverseCounters[256];
+#ifndef CAT2
+#define CAT2(x, y) x##y
 #endif
+#ifndef CAT
+#define CAT(x, y) CAT2(x, y)
+#endif
+#ifndef PAD64
+#define PAD64 volatile char CAT(___padding, __COUNTER__)[64]
+#endif
+
+std::atomic<int> debugLock {0};
 
 // #define TRACK_OP_TYPE 1
 #ifdef TRACK_OP_TYPE
 thread_local int OP_TYPE;
-#endif
-
-// #define USE_TM_ALLOC 1
-
-#if defined(USE_TM_ALLOC)
-    #include "tm_common/tm_alloc2.h"
 #endif
 
 namespace ns_multiverse {
@@ -92,7 +73,8 @@ uint64_t rdtsc_get_abort_ts() {
     return ts+1;
 }
 #endif
-  
+
+
 #define FORCE_NO_INLINE __attribute__((noinline))
 #define FORCE_INLINE __attribute__((always_inline))
 #define FORCE_INLINE2 __attribute__((always_inline))
@@ -103,7 +85,7 @@ uint64_t rdtsc_get_abort_ts() {
  *******************************************
  * These macros enable / disable debug modes
  *******************************************
-*/ 
+*/
 
 // #define DISABLE_UNVERSIONING 1
 // #define DISABLE_TM_FREE 1
@@ -113,42 +95,32 @@ uint64_t rdtsc_get_abort_ts() {
 // #define TESTING_FORCE_SNAPSHOT_READS 1
 
 // #define FORCE_MODE2_FROM_START 1
-// #define PRINT_DEBUG_VTN_STATS 1
 
-// #define DEBUG_SPECIAL 1
 
 /*
  *******************************************
- * These macros enable / disable various stat tracking
+ * OPTIONAL POTENTIAL OPTIMIZATIONS
  *******************************************
-*/ 
-
-// #define TRACK_TOTAL_READ_TIME
-// #define TRACK_VTN_DEPTH 1
-// #define TRACK_VLIST_TRAVERAL_DEPTH 1
-
-#define TRACK_SNAPSHOT_METRICS      1
-#define TRACK_SNAPSHOT_METRICS_2    1
-#define TRACK_REGULAR_METRICS       1
-
-
+ *******************************************
+*/
 
 // This macro enables colocating bloom filters with the versioned locks
 // #define COLOCATE_BLOOM_FILTER 1
 
-
+// This macro enables unsafe stores when inside of a constructor - this includes any stores that are performed as a result of functions or classes used in constructors
+#define ALLOW_UNSAFE_STORES_IN_CONSTRUCTOR 1
 
 /*
  *******************************************
  * Tunable parameters
  *******************************************
  *******************************************
-*/ 
+*/
 
 
 
 // max aborts for update txns + an unused fail-safe for mode 1 versioned transactions
-static const uint64_t MAX_ABORTS = 1000000;
+static const uint64_t MAX_ABORTS = 10000;
 
 static const int MIN_RD_SET_SIZE_BEFORE_UPDATING_THRESHOLD = 256;
 
@@ -163,10 +135,6 @@ static const uint64_t MAX_SNAPSHOT_MODE2_RETRIES_BEFORE_LOCKING = 1024*1024ULL;
 
 static const int MIN_SMALL_TXNS_TO_UNSTICK_MODE2 = 10;
 
-#if defined(USE_TM_ALLOC) && !defined(VOLATILE_MEMORY_REGION_SIZE)
-    #define VOLATILE_MEMORY_REGION_SIZE 32*1024*1024*1024ULL //GB
-#endif
-
 // Maximum number of registered threads that can execute transactions
 static const int REGISTRY_MAX_THREADS = MAX_THREADS_POW2;
 
@@ -175,7 +143,7 @@ static const uint64_t NUM_LOCKS = 64*1024*1024;
 /*
  *******************************************
  *******************************************
-*/ 
+*/
 
 
 // TL2 constants
@@ -193,64 +161,13 @@ static const txn_type TX_IS_SNAPSHOT_MODE2           = 3;
 static const txn_type TX_IS_SNAPSHOT_ISOLATION       = 5;
 #endif
 
-inline int get_bit_width(uint64_t num) {
-    int bitWidth = 0;
-    while (num) {
-        bitWidth++;
-        num >>= 1;
-    }
-    return bitWidth;
-}
-
-static const uint64_t murmurSeed = 0xFFFFFFFFFFFFFFC5ULL;
-
-uint64_t MurmurHash64A (const void * key, int len, uint64_t seed) {
-    const uint64_t m = 0xc6a4a7935bd1e995LLU;
-    const int r = 47;
-
-    uint64_t h = seed ^ (len * m);
-
-    const uint64_t * data = (const uint64_t *)key;
-    const uint64_t * end = (len >> 3) + data;
-
-    while(data != end) {
-        uint64_t k = *data++;
-
-        k *= m;
-        k ^= k >> r;
-        k *= m;
-
-        h ^= k;
-        h *= m;
-    }
-
-    const unsigned char * data2 = (const unsigned char *)data;
-
-    switch(len & 7) {
-        case 7: h ^= (uint64_t)(data2[6]) << 48;
-        case 6: h ^= (uint64_t)(data2[5]) << 40;
-        case 5: h ^= (uint64_t)(data2[4]) << 32;
-        case 4: h ^= (uint64_t)(data2[3]) << 24;
-        case 3: h ^= (uint64_t)(data2[2]) << 16;
-        case 2: h ^= (uint64_t)(data2[1]) << 8;
-        case 1: h ^= (uint64_t)(data2[0]);
-                h *= m;
-    };
-
-    h ^= h >> r;
-    h *= m;
-    h ^= h >> r;
-
-    return h;
-}
-
 inline __attribute__((always_inline)) static uint64_t hidx(size_t addr) {
-    // return (((addr + 128) >> 2) & (NUM_LOCKS-1)); //mapping function from TL2
     return ((addr >> 6) & (NUM_LOCKS-1));  // Thanks to Pedro Ramalhete for suggesting this improved mapping function
 }
 
 static const int TID_SHIFT = 53;
 static const int LOCK_SHIFT = 63;
+static_assert((1<<(LOCK_SHIFT-TID_SHIFT)) >= MAX_THREADS_POW2);
 
 static const uint64_t LOCK_MASK = 0x8000000000000000ULL;
 static const uint64_t TID_MASK = 0x7fe0000000000000ULL;
@@ -331,17 +248,17 @@ inline FORCE_INLINE2 static uint64_t getUnmarkedTimestamp(uint64_t markedTs) {
 
 struct padded_atomic_long {
     std::atomic<long> data;
-    PAD;
+    PAD64;
 };
 
 struct padded_atomic_u64 {
     std::atomic<uint64_t> data;
-    PAD;
+    PAD64;
 };
 
 struct padded_u64 {
     uint64_t data;
-    PAD;
+    PAD64;
 };
 
 struct VersionedNode {
@@ -351,7 +268,7 @@ struct VersionedNode {
 };
 
 struct VListTableNode {
-    uint64_t* addr;         //constant after allocation/init
+    void* addr;         //constant after allocation/init
     VListTableNode* next;   //constant after allocation/init
     std::atomic<VersionedNode*> listHead;
     uint64_t unused;
@@ -368,102 +285,81 @@ struct Globals {
     PAD;
     std::atomic<uint64_t> gClock {1};
     PAD;
-    // std::atomic<long> ___gEpoch {0};
-    // PAD;
     std::atomic<long> gTmModeCounter {0};
     padded_atomic_long* gThreadModeAndTxType; //this is heap allocated by the bg thread to ensure that it is local to the bg threads numa node
     padded_atomic_long* gThreadMode2Sticky; //this is heap allocated by the bg thread to ensure that it is local to the bg threads numa node
     PAD;
     std::atomic<long> gFirstObservedMode2Timestamp {0};
     PAD;
-    LockTableNode gHashLock[NUM_LOCKS];
+    LockTableNode* gHashLock;
     PAD;
 #ifndef COLOCATE_BLOOM_FILTER
-    ns_multiverse::BloomFilter64Volatile blooms[NUM_LOCKS];
+    ns_multiverse::BloomFilter64Volatile* blooms;
     PAD;
 #endif
-    std::atomic<VListTableNode*> gVlistTable[NUM_LOCKS];
+    std::atomic<VListTableNode*>* gVlistTable;
     PAD;
-    // padded_atomic_long ___gThreadEpochs[MAX_THREADS_POW2];
-    // PAD;
     padded_atomic_u64 gThreadSnapTsUpdatesBeforeCommit[MAX_THREADS_POW2];
     PAD;
+
+    Globals() {
+        gHashLock = new LockTableNode[NUM_LOCKS];
+        blooms = new ns_multiverse::BloomFilter64Volatile[NUM_LOCKS];
+        gVlistTable = new std::atomic<VListTableNode*>[NUM_LOCKS];
+    }
 };
 
 extern Globals globals;
 
 
-template <int BUFF_SIZE>
-struct VoidPtrBuffer {
-    void* list[BUFF_SIZE];
-    uint64_t size;
-    VoidPtrBuffer* next;
-
-    void reset() {
-        if (next) {
-            next->reset();
-        }
-        size = 0;
-    }
-};
-
-static const int EBR_MAX_LIMBO_BAG_SIZE = 62;
-static const uint64_t MAX_ALLOC_BUFFER_LIST_SIZE = 62;
-
-static const uint64_t EBR_RETRY_THRESHOLD = 10 * MAX_THREADS_POW2;
+static const int ALLOC_BUFFER_INIT_CAPACITY = 512;
+static const uint64_t EBR_RETRY_THRESHOLD = 10 * REGISTRY_MAX_THREADS;
 static const double milliseconds_between_epoch_updates = 20.0;
 
-struct VoidPtrBufferNode {
-    void* ptr;
-    VoidPtrBufferNode* next;
-
-    VoidPtrBufferNode() {}
-    VoidPtrBufferNode(void* _ptr, VoidPtrBufferNode* _next) {
-        ptr = _ptr;
-        next = _next;
-    }
-};
-
-using LimboBagNode = VoidPtrBufferNode;
-using AllocBufferNode = VoidPtrBufferNode;
-
-struct EBR_State {
-    LimboBagNode* activeTxnLimboBag;
-    LimboBagNode* activeTxnLimboBagTail;
-    LimboBagNode* prevEpochLimboBag;
-    LimboBagNode* currEpochLimboBag;
+struct AllocInfo {
+    int tid;
     long currEpoch;
     uint64_t ClearBagRetries;
-    std::chrono::time_point<std::chrono::system_clock> sysTime;
-
-    void reset() {
-        while (activeTxnLimboBag) {
-            LimboBagNode* tmp = activeTxnLimboBag;
-            activeTxnLimboBag = activeTxnLimboBag->next;
-            delete tmp;
-        }
-    }
-};
-
-struct AllocInfo {
-    uint64_t tid;
-    EBR_State myEbrState;
-    AllocBufferNode* mallocList = nullptr;
-    uint64_t retireClears = 0;
     PAD;
-    #ifdef TRACK_EBR_ALLOCS
-    uint64_t numAllocs = 0;
-    #endif
+
+    std::vector<void*> mallocBuffer;
+    std::vector<void*> freeBuffer;
+
+    std::vector<void*> currReclaimBuffer;
+    std::vector<void*> prevReclaimBuffer;
+
+    AllocInfo() {
+        mallocBuffer.reserve(ALLOC_BUFFER_INIT_CAPACITY);
+        freeBuffer.reserve(ALLOC_BUFFER_INIT_CAPACITY);
+        currReclaimBuffer.reserve(ALLOC_BUFFER_INIT_CAPACITY);
+        prevReclaimBuffer.reserve(ALLOC_BUFFER_INIT_CAPACITY);
+    }
+
+    void commit_and_clear_free_buffer() {
+        currReclaimBuffer.insert(currReclaimBuffer.end(),
+                std::make_move_iterator(freeBuffer.begin()),
+                std::make_move_iterator(freeBuffer.end())
+        );
+        freeBuffer.clear();
+    }
+
+    void reclaim_and_clear_mallocBufferContents() {
+        for (void* &ptr : mallocBuffer) {
+            free(ptr);
+        }
+        mallocBuffer.clear();
+    }
+
+    void reclaim_and_clear_prevReclaimBufferContents() {
+        for (void* &ptr : prevReclaimBuffer) {
+            free(ptr);
+        }
+        prevReclaimBuffer.clear();
+    }
 
     void reset() {
-        myEbrState.reset();
-        AllocBufferNode* tmp;
-        while (mallocList) {
-            tmp = mallocList;
-            mallocList = mallocList->next;
-            delete tmp;
-        }
-        mallocList = nullptr;
+        mallocBuffer.clear();
+        freeBuffer.clear();
     }
 };
 
@@ -473,182 +369,92 @@ class MemoryManager;
 extern MemoryManager gMemManager;
 
 class MemoryManager {
-    #ifdef USE_TM_ALLOC
-    TMAlloc tmAlloc;
-    #endif
+private:
+    void tryAdvanceGlobalEpoch() {
+        long currentEpoch = gEpoch.load();
+        for (int i = 0; i < REGISTRY_MAX_THREADS; i++) {
+            long otherEpoch = gThreadEpochs[i].data.load();
+            if (otherEpoch != -1 && otherEpoch < currentEpoch) {
+                return;
+            }
+        }
+
+        //all threads are at or beyond current epoch
+        gEpoch.compare_exchange_strong(currentEpoch, currentEpoch+1);
+    }
 
 public:
+    alignas(128) std::atomic<long> gEpoch {0};
+    padded_atomic_long gThreadEpochs[REGISTRY_MAX_THREADS];
     AllocInfo perThreadAllocInfo[REGISTRY_MAX_THREADS];
     PAD;
-    std::atomic<long> gEpoch {0};
-    PAD;
-    padded_atomic_long gThreadEpochs[MAX_THREADS_POW2];
-    PAD;
+
+
 
     MemoryManager() {
         for (int i = 0; i < REGISTRY_MAX_THREADS; i++) {
             perThreadAllocInfo[i].tid = i;
-            perThreadAllocInfo[i].myEbrState.sysTime = std::chrono::system_clock::now();
-            perThreadAllocInfo[i].myEbrState.currEpoch = 0;
-            perThreadAllocInfo[i].myEbrState.ClearBagRetries = 0;
+            perThreadAllocInfo[i].currEpoch = 0;
+            perThreadAllocInfo[i].ClearBagRetries = 0;
             gThreadEpochs[i].data.store(-1, std::memory_order_relaxed);
         }
     }
 
-    #ifdef USE_TM_ALLOC
-    inline void init(void* baseAddr, size_t mapSize) {
-        tmAlloc.init(baseAddr, mapSize);
-    }
-    #endif
-
-    inline void freePrevEpochLimboBag(AllocInfo* myAllocInfo) {
-        EBR_State* ebr = &myAllocInfo->myEbrState;
-        freeBuffContents(ebr->prevEpochLimboBag);
-        ebr->prevEpochLimboBag = ebr->currEpochLimboBag;
-        ebr->currEpochLimboBag = nullptr;
-        ebr->currEpoch = gEpoch.load();
+    inline void announceEpoch(uint64_t tid) {
+        long currentEpoch = gEpoch.load();
+        gThreadEpochs[tid].data = currentEpoch;
     }
 
-    inline void commit(AllocInfo* allocInfo) {
-        #ifdef USE_TM_ALLOC
-        tmAlloc.commit(allocInfo->tid);
-        #endif
+    inline void unanounceEpoch(uint64_t tid) {
+        gThreadEpochs[tid].data.store(-1, std::memory_order_relaxed);
+    }
 
-        EBR_State* ebr = &allocInfo->myEbrState;
-
-        if (ebr->activeTxnLimboBag) {
-            ebr->activeTxnLimboBagTail->next = ebr->currEpochLimboBag;
-            ebr->currEpochLimboBag = ebr->activeTxnLimboBag;
-            ebr->activeTxnLimboBag = nullptr;
-            ebr->activeTxnLimboBagTail = nullptr;
+    inline void forceClearBags() {
+        while (!tl_allocInfo->prevReclaimBuffer.empty() || !tl_allocInfo->freeBuffer.empty()) {
+            announceEpoch(tl_allocInfo->tid);
+            commit();
         }
+    }
 
-        if (ebr->currEpoch + 1 < gEpoch.load()) {
-            freePrevEpochLimboBag(allocInfo);
-            allocInfo->retireClears++;
+    inline void commit() {
+        tl_allocInfo->commit_and_clear_free_buffer();
+
+        if (tl_allocInfo->currEpoch + 1 < gEpoch.load()) {
+            tl_allocInfo->reclaim_and_clear_prevReclaimBufferContents();
+            std::swap(tl_allocInfo->prevReclaimBuffer, tl_allocInfo->freeBuffer);
+            tl_allocInfo->currEpoch = gEpoch.load();
         }
-        std::chrono::time_point<std::chrono::system_clock> timeNow = std::chrono::system_clock::now();
-        ebr->ClearBagRetries++;
-        if (ebr->ClearBagRetries == EBR_RETRY_THRESHOLD  ||
-            std::chrono::duration_cast<std::chrono::milliseconds>(timeNow - ebr->sysTime).count() >
-            milliseconds_between_epoch_updates * (1 + ((float) allocInfo->tid)/REGISTRY_MAX_THREADS)) {
-            ebr->ClearBagRetries = 0;
-            ebr->sysTime = timeNow;
+        tl_allocInfo->ClearBagRetries++;
+        if (tl_allocInfo->ClearBagRetries == EBR_RETRY_THRESHOLD) {
+            tl_allocInfo->ClearBagRetries = 0;
             tryAdvanceGlobalEpoch();
         }
     }
 
-    inline void abort(uint64_t tid) {
-        #ifdef USE_TM_ALLOC
-        tmAlloc.abort(tid);
-        #else
-        freeBuffContents(tl_allocInfo->mallocList);
-        tl_allocInfo->mallocList = nullptr;
-        #endif
-        // tl_allocInfo->myEbrState.onAbort();
+    inline void abort() {
+        assert(tl_allocInfo);
+        tl_allocInfo->reclaim_and_clear_mallocBufferContents();
     }
 
-    inline void announceEpoch(uint64_t tid) {
-        long currentEpoch = gEpoch.load();
-        gThreadEpochs[tid].data.store(currentEpoch, std::memory_order_relaxed);
-    }
-
-    inline void unanounceEpoch(uint64_t tid) {
-        gThreadEpochs[tid].data.store(-1l, std::memory_order_relaxed);
-    }
-
-    inline void forceClearBags() {
-        while (tl_allocInfo->myEbrState.currEpochLimboBag || tl_allocInfo->myEbrState.prevEpochLimboBag) {
-            announceEpoch(tl_allocInfo->tid);
-            commit(tl_allocInfo);
-        }
-    }
-
-    inline void tryAdvanceGlobalEpoch() {
-        long currentEpoch = gEpoch.load();
-        bool allThreadsAtCurrentEpoch = true;
-        for (int i = 0; i < REGISTRY_MAX_THREADS; i++) {
-            long otherEpoch = gThreadEpochs[i].data.load();
-            if (otherEpoch != -1 && otherEpoch < currentEpoch) {
-                allThreadsAtCurrentEpoch = false;
-                break;
-            }
-        }
-        if (allThreadsAtCurrentEpoch) {
-            gEpoch.compare_exchange_strong(currentEpoch, currentEpoch+1);
-        }
-    }
-
-    inline void freeBuffContents(VoidPtrBufferNode* buff) {
-        while (buff) {
-            VoidPtrBufferNode* tmp = buff;
-            buff = buff->next;
-            deallocate(tmp->ptr);
-            delete tmp;
-        }
-    }
-
-    inline VoidPtrBufferNode* addItemToBuffer(VoidPtrBufferNode* buff, void* ptr) {
-        VoidPtrBufferNode* newNode = new VoidPtrBufferNode();
-        #ifdef TRACK_EBR_ALLOCS
-        tl_allocInfo->numAllocs++;
-        #endif
-        newNode->ptr = ptr;
-        newNode->next = buff;
-        return newNode;
-    }
-
-    inline void retireIrrevocable(void* ptr) {
-        tl_allocInfo->myEbrState.currEpochLimboBag = addItemToBuffer(tl_allocInfo->myEbrState.currEpochLimboBag, ptr);
-    }
-
-    inline void retireWithPossibleRollback(void* ptr) {
-        tl_allocInfo->myEbrState.activeTxnLimboBag = addItemToBuffer(tl_allocInfo->myEbrState.activeTxnLimboBag, ptr);
-        if (!tl_allocInfo->myEbrState.activeTxnLimboBag->next) {
-            tl_allocInfo->myEbrState.activeTxnLimboBagTail = tl_allocInfo->myEbrState.activeTxnLimboBag;
-        }
-    }
-
-    inline void* allocate(size_t size) {
-        void* ptr = nullptr;
-        #if defined(USE_TM_ALLOC)
-        ptr = tmAlloc.doMalloc(tl_allocInfo->tid, size);
-        #else
-        ptr = malloc(size);
-        #endif
-        assert(ptr != nullptr);
+    inline void* buffered_malloc(size_t size) {
+        assert(tl_allocInfo);
+        void* ptr = malloc(size);
+        tl_allocInfo->mallocBuffer.push_back(ptr);
         return ptr;
     }
 
-    inline void* bufferedAllocate(size_t size) {
-        void* ptr = nullptr;
-        #if defined(USE_TM_ALLOC)
-        ptr = tmAlloc.tmMalloc(tl_allocInfo->tid, size);
-        // ptr = tmAlloc.doMalloc(tl_allocInfo->tid, size);
-        // tl_allocInfo->mallocList = addItemToBuffer(tl_allocInfo->mallocList, ptr);
-        #else
-        ptr = malloc(size);
-        tl_allocInfo->mallocList = addItemToBuffer(tl_allocInfo->mallocList, ptr);
-        #endif
+    inline void deferredFree_with_possible_rollback(void* ptr) {
         assert(ptr != nullptr);
-        return ptr;
+        tl_allocInfo->freeBuffer.push_back(ptr);
     }
 
-    inline void deferFree(void* ptr) {
+    inline void deferredFree_irrevocable(void* ptr) {
         assert(ptr != nullptr);
-        retireWithPossibleRollback(ptr);
-    }
-
-    inline void deallocate(void* ptr) {
-        assert(ptr != nullptr);
-        #if defined(USE_TM_ALLOC)
-        uint64_t tid = tl_allocInfo->tid;
-        tmAlloc.doFree(tid, ptr);
-        #else
-        free(ptr);
-        #endif
+        tl_allocInfo->currReclaimBuffer.push_back(ptr);
     }
 };
+
+
 
 
 
@@ -762,14 +568,6 @@ public:
 
 
 
-// // Needed by our benchmarks and to prevent destructor from being called automatically on abort/retry
-// struct tmbase {
-//     ~tmbase() {
-//         printf("tm base destroyed\n");
-//     }
-// };
-
-
 struct ReadSet {
     struct ReadSetEntry {
         std::atomic<uint64_t>* mutex;
@@ -778,7 +576,7 @@ struct ReadSet {
     static const int64_t MAX_ENTRIES = 16*1024;
 
     uint64_t      size {0};
-    ReadSetEntry  entries[MAX_ENTRIES];    
+    ReadSetEntry  entries[MAX_ENTRIES];
     ReadSet*      next {nullptr};
 
     inline void reset() {
@@ -829,17 +627,18 @@ struct ReadSet {
     }
 };
 
-struct AppendLog {
+struct AppendLog_StandardWriteSet {
     static const int64_t MAX_ENTRIES = 7*1024;
 
     struct LogEntry {
-        uint64_t* addr;
-        uint64_t  oldValue;
+        void*       addr;        
+        uint64_t    oldValue;
+        size_t      numBytes;
     };
 
     int64_t       size {0};
     LogEntry      entries[MAX_ENTRIES];
-    AppendLog*    next {nullptr};
+    AppendLog_StandardWriteSet*    next {nullptr};
 
     inline void reset() {
         if (next != nullptr) {
@@ -850,16 +649,17 @@ struct AppendLog {
         size = 0;
     }
 
-    inline void add(uint64_t* addr, uint64_t oldValue) {
+    inline void add(void* addr, uint64_t oldValue, size_t numBytes) {
         if (size != MAX_ENTRIES) {
             entries[size].addr = addr;
             entries[size].oldValue = oldValue;
+            entries[size].numBytes = numBytes;
             size++;
         } else {
             if (next == nullptr) {
-                next = new AppendLog();
+                next = new AppendLog_StandardWriteSet();
             }
-            next->add(addr, oldValue);
+            next->add(addr, oldValue, numBytes);
         }
     }
 
@@ -869,15 +669,16 @@ struct AppendLog {
             next->rollback(tid);
         }
         for (int64_t i = size-1; i >= 0; i--) {
-            *(entries[i].addr) = entries[i].oldValue;
+            // *(entries[i].addr) = entries[i].oldValue;
+            std::memcpy(entries[i].addr, &entries[i].oldValue, entries[i].numBytes);
         }
     }
 
     inline void unlock(uint64_t nextClock, uint64_t tid) {
         for (uint64_t i = 0; i < size; i++) {
-            uint64_t* addr = entries[i].addr;
+            void* addr = entries[i].addr;
             std::atomic<uint64_t>* mutex = &globals.gHashLock[hidx((size_t)addr)].mutex;
-            uint64_t sl = mutex->load(std::memory_order_relaxed);
+            uint64_t sl = mutex->load();
             if (isLocked(sl) && getTid(sl) == tid) {
                 uint64_t newSL = (tid << TID_SHIFT) | (nextClock);
                 mutex->store(newSL, std::memory_order_release);
@@ -890,7 +691,7 @@ struct AppendLog {
 };
 
 
-struct AppendLog2 {
+struct AppendLog_StandardWriteSet_SnapshotWriteSet {
     // static const int64_t MAX_ENTRIES = 512;
     static const int64_t MAX_ENTRIES = 756;
 
@@ -901,7 +702,7 @@ struct AppendLog2 {
 
     int64_t             size {0};
     LogEntry            entries[MAX_ENTRIES];
-    AppendLog2*         next {nullptr};
+    AppendLog_StandardWriteSet_SnapshotWriteSet*         next {nullptr};
 
     inline void reset() {
         if (next != nullptr) {
@@ -918,7 +719,7 @@ struct AppendLog2 {
             size++;
         } else {
             if (next == nullptr) {
-                next = new AppendLog2();
+                next = new AppendLog_StandardWriteSet_SnapshotWriteSet();
             }
             next->add(_vtn);
         }
@@ -934,7 +735,7 @@ struct AppendLog2 {
             VersionedNode* vNode = vtn->listHead.load(std::memory_order_relaxed);
             vNode->ts.store(EMPTY_SNAPSHOT_TIMESTAMP, std::memory_order_relaxed);
             vtn->listHead.store(vNode->next, std::memory_order_relaxed);
-            gMemManager.retireIrrevocable(vNode);
+            gMemManager.deferredFree_irrevocable(vNode);
         }
     }
 
@@ -963,18 +764,20 @@ static tm_mode_type TM_MODE_INTERMEDIATE2    = 3;
 // This data is likely too large to stack allocate
 // Thanks to Pedro Ramalhete for suggesting some optimizations to the memory layout of OpData
 struct OpData {
-    alignas(64) uint64_t        rClock {0};
-    uint64_t        tid;    
-    txn_type        tx_type {TX_IS_NONE};        
-    ReadSet         readSet;
-    AppendLog       writeSet;
-    uint64_t        myrand;
-    std::jmp_buf    env;
-    uint64_t        attempt {0};
+    alignas(64) uint64_t            rClock {0};
+    uint64_t                        tid;
+    txn_type                        tx_type {TX_IS_NONE};
+    ReadSet                         readSet;
+    AppendLog_StandardWriteSet      writeSet;
+    uint64_t                        myrand;
+    std::jmp_buf                    env;
+    uint64_t                        attempt {0};
 
     long            myTmModeCounter {0};
-    tm_mode_type    myTmMode {TM_MODE_DEFAULT};    
-    int             readCount {0};    
+    int             readCount {0};
+    #ifdef ALLOW_UNSAFE_STORES_IN_CONSTRUCTOR
+    int             constructorCount {0};
+    #endif
 
     uint64_t        snapshotStartTs {0};
 
@@ -983,46 +786,12 @@ struct OpData {
     int             smallTxnReadCount {0};
     int             consecutiveSmallTxns {0};
 
-    
-    AppendLog2      snapshotWriteSet;
+
+    AppendLog_StandardWriteSet_SnapshotWriteSet      snapshotWriteSet;
 
     bool            thisTxnForcedMode2Swap {false};
     int             readCountAtFirstMode2Commit {0};
     int             numSnapReadsPastHead {0};
-
-
-    //debug and stat tracking related info
-    #if defined(TRACK_TIME_BEFORE_COMMIT) || defined(TRACK_TIME_BEFORE_ABORT)
-    std::chrono::time_point<std::chrono::system_clock> txnStartTime;
-    #endif
-
-    #ifdef TRACK_SNAPSHOT_METRICS_2
-    uint64_t        numTryVersionsDuringTxn {0};
-    uint64_t        numFailedTryVersionsDuringTxn {0};
-    #endif
-
-    #ifdef TRACK_VLIST_TRAVERAL_DEPTH
-    uint64_t        vlistCount[50];
-    #endif
-
-    #ifdef TRACK_VTN_DEPTH
-    uint64_t        vtnDepth[50];
-    #endif
-
-    #ifdef TRACK_TOTAL_READ_TIME
-    double          totalReadTime {0};
-    double          maxReadTime {0};
-    uint64_t        retriesAtMaxReadTime {0};
-    uint64_t        totalReads {0};
-    #endif
-
-    #ifdef DEBUG_SPECIAL
-    uint64_t modeCounterAtStartTxn {0};
-    uint64_t modeCounterMode2Transition {0};
-    uint64_t oldest_ts_at_last_abort {(uint64_t)(-1)};
-    #endif
-
-    // uint64_t snapshotAttempts {0};
 
     PAD;
 };
@@ -1031,26 +800,13 @@ inline FORCE_INLINE static void findAddrInVLT(OpData* myd, void* addr, uint64_t 
     assert(tableIndex >= 0 && tableIndex < NUM_LOCKS);
     VListTableNode* vtn = globals.gVlistTable[tableIndex].load(std::memory_order_relaxed);
     bool found = false;
-
-    #ifdef TRACK_VTN_DEPTH
-    uint64_t depth = 1;
-    #endif
-
     while (vtn) {
         if (vtn->addr == addr) {
             found = true;
             break;
         }
         vtn = vtn->next;
-        #ifdef TRACK_VTN_DEPTH
-        depth++;
-        #endif
     }
-    #ifdef TRACK_VTN_DEPTH
-    // uint64_t log2Index = std::bit_width(depth) - 1;
-    uint64_t log2Index = get_bit_width(depth) - 1;
-    myd->vtnDepth[log2Index] += 1;
-    #endif
     retVtn = vtn;
     retBool = found;
 }
@@ -1183,20 +939,14 @@ static inline uint64_t waitForMode2Snapshotters(uint64_t* myrand, long tmModeCou
 static void announceThreadTmMode(OpData* myd) {
     long gTmModeCounter = globals.gTmModeCounter.load();
     int currentTmMode = getCounterMode(gTmModeCounter);
-    myd->myTmMode = currentTmMode;
     myd->myTmModeCounter = gTmModeCounter;
 
     if (currentTmMode != TM_MODE_DEFAULT) {
         if (currentTmMode == TM_MODE_INTERMEDIATE2 && myd->tx_type == TX_IS_SNAPSHOT_MODE2) {
             myd->tx_type = TX_IS_SNAPSHOT;
-            STATS_COUNTER_ADD(myd->tid, num_mode2_forced_back_to_mode1, 1);
-            TM_TIMELINE_END((int)myd->tid, "mode2_snapshot_cutoff");
-            // printf("tid %ld had mode2 went to mode1\n", myd->tid);
-            // TM_TIMELINE_END_INMEM((int)myd->tid, mode2_snapshot_cutoff);
         }
-        if (currentTmMode == TM_MODE_MODE2 && myd->tx_type == TX_IS_SNAPSHOT) {
+        else if (currentTmMode == TM_MODE_MODE2 && myd->tx_type == TX_IS_SNAPSHOT) {
             myd->tx_type = TX_IS_SNAPSHOT_MODE2;
-            TM_TIMELINE_START((int)myd->tid);
         }
         //if we are in mode 2 or transitioning writers must version
         myd->forceVersioning = true;
@@ -1206,7 +956,7 @@ static void announceThreadTmMode(OpData* myd) {
     // globals.gThreadModeAndTxType[myd->tid].data.exchange(tmModeAndTxType);
     globals.gThreadModeAndTxType[myd->tid].data.store(tmModeAndTxType, std::memory_order_relaxed);
 
-    //TODO::IMPORTANT:: do we need to do this every begin? Probably better to just do it when myd->forceMode2Reads changes
+    //TODO:: do we need to do this every begin? Probably better to just do it when myd->forceMode2Reads changes
     globals.gThreadMode2Sticky[myd->tid].data.store(myd->forceMode2Reads, std::memory_order_relaxed);
 }
 
@@ -1216,7 +966,6 @@ static long transitionTmMode(const int tid, long lastSeenTmModeCounter, int desi
     }
     long newTmTmModeCounter = (((lastSeenTmModeCounter >> TM_MODE_BIT_SHIFT) + 1) << TM_MODE_BIT_SHIFT) | (desiredTmMode);
     if (globals.gTmModeCounter.compare_exchange_strong(lastSeenTmModeCounter, newTmTmModeCounter)) {
-        DEBUG_PRINT_TM_MODES("transitioned from %ld to %ld\n", lastSeenTmModeCounter, newTmTmModeCounter);
         return newTmTmModeCounter;
     }
     else {
@@ -1245,10 +994,10 @@ static void unversionVtn(const uint64_t tid, uint64_t tableIndex) {
 
     while (vtn) {
         VersionedNode* vNode = vtn->listHead.load(std::memory_order_relaxed);
-        gMemManager.retireIrrevocable(vNode);
+        gMemManager.deferredFree_irrevocable(vNode);
         vtn_tmp = vtn;
         vtn = vtn->next;
-        gMemManager.retireIrrevocable(vtn_tmp);
+        gMemManager.deferredFree_irrevocable(vtn_tmp);
     }
 
     uint64_t newSL = (tid << TID_SHIFT) | (sl);
@@ -1301,8 +1050,6 @@ static void bgThreadUnversioner() {
     int64_t durationInIntermediateMode2 = 0;
     uint64_t numMode2;
 
-    TM_TIMELINE_START(tid);
-    TM_TIMELINE_BLIP(tid, "mode_switch_to_mode1");
 
     #ifdef FORCE_MODE2_FROM_START
     tmModeCounter = globals.gTmModeCounter.load();
@@ -1310,16 +1057,14 @@ static void bgThreadUnversioner() {
     if (tmMode != TM_MODE_MODE2) {
         transitionTmMode(tid, tmModeCounter, TM_MODE_MODE2);
     }
-    #else 
+    #else
     while (!bgThreadShutdown) {
         tmModeCounter = globals.gTmModeCounter.load();
         tmMode = getCounterMode(tmModeCounter);
         gMemManager.announceEpoch(tid);
 
         if (tmMode != TM_MODE_DEFAULT) {
-            TM_TIMELINE_BLIP(tid, "mode_switch_to_intermediate1");
             DEBUG_PRINT_TM_MODES("TM mode = %d\n", getCounterMode(tmModeCounter));
-            time1 = std::chrono::system_clock::now();
             //wait for default mode writers to drain
             DEBUG_PRINT_TM_MODES("Intermediate1: waiting for default updaters\n");
             waitForDefaultModeWriters(tmModeCounter);
@@ -1328,29 +1073,13 @@ static void bgThreadUnversioner() {
             tmModeCounter = transitionTmMode(tid, tmModeCounter, TM_MODE_MODE2);
             uint64_t currGTimestamp = globals.gClock.load();
             globals.gFirstObservedMode2Timestamp.store(currGTimestamp, std::memory_order_relaxed);
-            time2 = std::chrono::system_clock::now();
-            durationInIntermediateMode1 += std::chrono::duration_cast<std::chrono::milliseconds>(time2 - time1).count();
-            TM_TIMELINE_BLIP(tid, "mode_switch_to_mode2");
             DEBUG_PRINT_TM("mode_switch_to_mode2\n");
-
-            DEBUG_PRINT_TM_MODES("TM mode = %d\n", getCounterMode(tmModeCounter));
-            time1 = std::chrono::system_clock::now();
 
             //wait until we observe no ongoing mode 2 snapshots
             waitForStickyMode2(&myrand);
 
-            // DEBUG_PRINT_TM_MODES("Mode2: waiting for MODE2 snaphotters\n");
-            // numMode2 = waitForMode2Snapshotters(&myrand, tmModeCounter);
-            // if (numMode2 > maxMode2Found) { maxMode2Found = numMode2; }
-            // if (numMode2 < minMode2Found) { minMode2Found = numMode2; }
-            // //check a second time for mode 2 snapshotters
-            // numMode2 = waitForMode2Snapshotters(&myrand, tmModeCounter);
-
             //transition to intermediate 2
             tmModeCounter = transitionTmMode(tid, tmModeCounter, TM_MODE_INTERMEDIATE2);
-            time2 = std::chrono::system_clock::now();
-            durationInMode2 += std::chrono::duration_cast<std::chrono::milliseconds>(time2 - time1).count();
-            TM_TIMELINE_BLIP(tid, "mode_switch_to_intermediate2");
             DEBUG_PRINT_TM("mode_switch_to_intermediate2\n");
 
             time1 = std::chrono::system_clock::now();
@@ -1365,9 +1094,6 @@ static void bgThreadUnversioner() {
 
             //transition back to default mode
             tmModeCounter = transitionTmMode(tid, tmModeCounter, TM_MODE_DEFAULT);
-            time2 = std::chrono::system_clock::now();
-            durationInIntermediateMode2 += std::chrono::duration_cast<std::chrono::milliseconds>(time2 - time1).count();
-            TM_TIMELINE_BLIP(tid, "mode_switch_to_mode1");
             DEBUG_PRINT_TM("mode_switch_to_mode1\n");
         }
 
@@ -1446,15 +1172,13 @@ static void bgThreadUnversioner() {
                 #ifndef DISABLE_UNVERSIONING
                 unversionVtn(tid, i);
                 #endif
-                gMemManager.commit(tl_allocInfo);
+                gMemManager.commit();
                 numUnversions++;
             }
         }
         numPasses++;
     }
     #endif
-
-    TM_TIMELINE_END(tid, "BG_THREAD_MODE_SWITCHES");
 
     printf("\nbgThread done\n");
     printf("num passes = %ld\n", numPasses);
@@ -1466,10 +1190,6 @@ static void bgThreadUnversioner() {
     }
     printf("minMode2 = %ld\n", minMode2Found);
     printf("maxMode2 = %ld\n", maxMode2Found);
-
-    printf("Milliseconds_in_intermidate1=%ld\n", durationInIntermediateMode1);
-    printf("Milliseconds_in_mode2=%ld\n", durationInMode2);
-    printf("Milliseconds_in_intermidate2=%ld\n", durationInIntermediateMode2);
     printf("\n");
 }
 
@@ -1482,14 +1202,12 @@ static inline bool transitionToMode2(OpData* myd) {
     myd->forceMode2Reads = true;
     myd->thisTxnForcedMode2Swap = true;
     myd->tx_type = TX_IS_SNAPSHOT_MODE2;
-    STATS_COUNTER_ADD(tid, mode2_snapshot_starts, 1);
-    if (myd->myTmMode == TM_MODE_DEFAULT) {
+    if (getCounterMode(myd->myTmModeCounter) == TM_MODE_DEFAULT) {
         if (-1 != transitionTmMode(myd->tid, myd->myTmModeCounter, TM_MODE_INTERMEDIATE1)) {
             DEBUG_PRINT_TM("transitioned_to_intermediate1\n");
             return true;
         }
     }
-    STATS_LIST_APPEND(tid, aborts_before_mode2, myd->attempt-1);
     return false;
 }
 
@@ -1498,534 +1216,53 @@ class Multiverse;
 extern Multiverse gMultiverse;
 
 class Multiverse {
-// private:
-public:
-    alignas(128) OpData* opDesc;
-    alignas(128) std::atomic<int> debugLock {0};
-    alignas(128) void* mapAddr;
-    alignas(128) std::thread* bgThread;
-
-public:
-    // struct tmbase : public ns_multiverse::tmbase { };
-
-    Multiverse() {
-        printf("sizeof(OpData)=%ld\n", sizeof(OpData));
-        opDesc = new OpData[REGISTRY_MAX_THREADS];
-        globals.gFirstObservedMode2Timestamp.store((uint64_t)(-1));
-        for (uint64_t it=0; it < REGISTRY_MAX_THREADS; it++) {
-            opDesc[it].tid = it;
-            opDesc[it].myrand = (it+1)*12345678901234567ULL;
-            // globals.gThreadEpochs[it].data.store(-1, std::memory_order_relaxed);
-            globals.gThreadSnapTsUpdatesBeforeCommit[it].data.store(0, std::memory_order_relaxed);
-
-            for (int x = 0; x < 50; x++) {
-                #ifdef TRACK_VLIST_TRAVERAL_DEPTH
-                opDesc[it].vlistCount[x] = 0;
-                #endif
-                #ifdef TRACK_VTN_DEPTH
-                opDesc[it].vtnDepth[x] = 0;
-                #endif
-            }
-        }
-
-        #ifdef FORCE_MODE2_FROM_START
-        long tmModeCounter = globals.gTmModeCounter.load();
-        int tmMode = getCounterMode(tmModeCounter);
-        tmModeCounter = transitionTmMode(tid, tmModeCounter, TM_MODE_INTERMEDIATE1);
-        transitionTmMode(tid, tmModeCounter, TM_MODE_MODE2);
-        #endif
-
-
-        bgThread = new std::thread(bgThreadUnversioner);
-        while (!bgThreadDoneInit) {
-            //spin
-        }
-
-        #ifdef USE_TM_ALLOC
-        mapTmMemoryRegion();
-        #endif
-    }
-
-    ~Multiverse() {
-        bgThreadShutdown = true;
-        __sync_synchronize();
-        bgThread->join();
-
-        // printf("\ngEpoch=%ld\n", globals.gEpoch.load());
-        printf("gClock=%ld\n\n", globals.gClock.load());
-
-        uint64_t totalEBRBagClears = 0;
-        uint64_t totalEBRRetries = 0;
-        for (int it=0; it < gThreadRegistry.getMaxThreads(); it++) {
-            totalEBRBagClears += gMemManager.perThreadAllocInfo[it].retireClears;
-            totalEBRRetries += gMemManager.perThreadAllocInfo[it].myEbrState.ClearBagRetries;
-        }
-        printf("tx_num_ebr_limbo_bag_clears=%ld\n", totalEBRBagClears);
-        printf("tx_num_ebr_retries=%ld\n", totalEBRRetries);
-        // printf("tx_ebr_gepoch=%ld\n\n", globals.gEpoch.load());
-
-        printf("num_unversions=%ld\n", numUnversions);
-        printf("last_avgTsDelta=%ld\n\n", last_avgTsDelta);
-
-        #ifdef PRINT_DEBUG_VTN_STATS
-        uint64_t total_unusedVtnSlots = 0;
-        uint64_t total_usedVtnSlots = 0;
-        uint64_t total_versionedAddrs = 0;
-        uint64_t max_versionedAddrInSingleSlot = 0;
-        uint64_t min_versionedAddrInSingleSlot = (uint64_t)(-1);
-
-        uint64_t log2Histogram_perSlotNumVersionedAddrs[50];
-        for (int i = 0; i < 50; i++) {
-            log2Histogram_perSlotNumVersionedAddrs[i] = 0;
-        }
-
-        for (uint64_t i = 0; i < NUM_LOCKS; i++) {
-            uint64_t versionedAddrsInThisSlot = 0;
-            VListTableNode* vtn = globals.gVlistTable[i].load(std::memory_order_relaxed);
-            while (vtn) {
-                versionedAddrsInThisSlot++;
-                vtn = vtn->next;
-            }
-            if (versionedAddrsInThisSlot != 0) {
-                total_usedVtnSlots++;
-
-                // uint64_t log2Index = std::bit_width(versionedAddrsInThisSlot) - 1;
-                uint64_t log2Index = get_bit_width(versionedAddrsInThisSlot) - 1;
-                log2Histogram_perSlotNumVersionedAddrs[log2Index] += 1;
-                total_versionedAddrs += versionedAddrsInThisSlot;
-                if (versionedAddrsInThisSlot > max_versionedAddrInSingleSlot) {
-                    max_versionedAddrInSingleSlot = versionedAddrsInThisSlot;
-                }
-                if (versionedAddrsInThisSlot < min_versionedAddrInSingleSlot) {
-                    min_versionedAddrInSingleSlot = versionedAddrsInThisSlot;
-                }
-            }
-            else {
-                total_unusedVtnSlots++;
-            }
-        }
-        printf("\n");
-        printf("Num vtn table slots with 0 versioned addrs: %ld\n", total_unusedVtnSlots);
-        printf("Num vtn table slots with at least 1 vrsioned addrs: %ld\n", total_usedVtnSlots);
-        printf("Total number of vrsioned addrs: %ld\n", total_versionedAddrs);
-        printf("max versioned addrs in single slot: %ld\n", max_versionedAddrInSingleSlot);
-        printf("min versioned addrs in single slot: %ld\n", min_versionedAddrInSingleSlot);
-        printf("\n\n");
-
-        printf("Num versioned addrs per slot:\n");
-        for (int x = 0; x < 50; x++) {
-            printf("(2^%d-2^%d] %ld\n", x-1, x, log2Histogram_perSlotNumVersionedAddrs[x]);
-        }
-        printf("\n\n");
-        #endif
-
-        printf("global_tm_mode=%d\n", getCounterMode(globals.gTmModeCounter.load()));
-        printf("global_tm_counter=%ld\n", getUnmarkedTmModeCounter(globals.gTmModeCounter.load()));
-        uint64_t numTransitions = getUnmarkedTmModeCounter(globals.gTmModeCounter.load()) / 4;
-        printf("num_mode_changes=%ld\n", numTransitions);
-        printf("\n\n");
-
-        #ifdef TRACK_VLIST_TRAVERAL_DEPTH
-        uint64_t vlistCounts[50];
-        for (int x = 0; x < 50; x++) {
-            vlistCounts[x] = 0;
-        }
-
-        for (int it=0; it < REGISTRY_MAX_THREADS; it++) {
-            for (int x = 0; x < 50; x++) {
-                vlistCounts[x] += opDesc[it].vlistCount[x];
-            }
-        }
-        printf("\n");
-
-        printf("Vlist traversal lengths:\n");
-        for (int x = 0; x < 50; x++) {
-            printf("(2^%d-2^%d] %ld\n", x-1, x, vlistCounts[x]);
-        }
-        printf("\n");
-        #endif
-
-        #ifdef TRACK_VTN_DEPTH
-        uint64_t vtnDepthCounts[50];
-        for (int x = 0; x < 50; x++) {
-            vtnDepthCounts[x] = 0;
-        }
-
-        for (int it=0; it < REGISTRY_MAX_THREADS; it++) {
-            for (int x = 0; x < 50; x++) {
-                vtnDepthCounts[x] += opDesc[it].vtnDepth[x];
-            }
-        }
-
-        printf("Vtn depth lengths:\n");
-        for (int x = 0; x < 50; x++) {
-            printf("(2^%d-2^%d] %ld\n", x-1, x, vtnDepthCounts[x]);
-        }
-        printf("\n");
-        #endif
-
-        #ifdef TRACK_TOTAL_READ_TIME
-        printf("Average duration of a single addr mode2 snapshot read per thread:\n");
-        for (int it=0; it < REGISTRY_MAX_THREADS; it++) {
-            if (opDesc[it].totalReads != 0) {
-                double avgReadTime = opDesc[it].totalReadTime / opDesc[it].totalReads;
-                if (avgReadTime != 0) {
-                    printf("%f, ", avgReadTime);
-                }
-            }
-        }
-        printf("\n");
-        printf("Max duration of a single addr mode2 snapshot read and num retries for that read per thread:\n");
-        for (int it=0; it < REGISTRY_MAX_THREADS; it++) {
-            if (opDesc[it].totalReads != 0) {
-                if (opDesc[it].retriesAtMaxReadTime != 0) {
-                    printf("%f-%ld, ", opDesc[it].maxReadTime, opDesc[it].retriesAtMaxReadTime);
-                }
-            }
-        }
-        printf("\n");
-        #endif
-
-        #ifdef TRACK_NUM_USED_LOCKS
-        int numUsedLocks = 0;
-        for (int i = 0; i < NUM_LOCKS; i++) {
-            if (globals.gHashLock[i].mutex.load()) {
-                numUsedLocks++;
-            }
-        }
-        printf("num_occupied_locks=%d\n", numUsedLocks);
-        printf("percentage_of_occupied_locks=%f\n", ((numUsedLocks * 1.0f) / NUM_LOCKS) * 100.0f);
-        #endif
-
-        #ifdef TRACK_VTN_DEPTH_HISTOGRAM
-        uint64_t vtn_depthHistogram[256];
-        uint64_t vlist_depthHistogram[256];
-        for (int i = 0; i < 256; i++) {
-            vtn_depthHistogram[i] = 0;
-            vlist_depthHistogram[256];
-        }
-        for (int i = 0; i < NUM_LOCKS; i++) {
-            VListTableNode* vtn = globals.gVlistTable[i].load(std::memory_order_relaxed);
-            uint64_t depth = 0;
-            while (vtn) {
-                depth++;
-                //we cannot track vlist depth here since some of the vnodes might be retired but still linked in the vlist
-                // this is acceptable for us since the ts will prevent threads from accessing those nodes
-                // (a thread will see a ts that is less-or-equal to than their own and stop traversing)
-                // VersionedNode* vnode = vtn->listHead.load(std::memory_order_relaxed);
-                // uint64_t vlist_depth = 0;
-                // while (vnode) {
-                //     vlist_depth++;
-                //     vnode = vnode->next;
-                // }
-                // int bitWidth = 0;
-                // while (vlist_depth) {
-                //     bitWidth++;
-                //     vlist_depth >>= 1;
-                // }
-                // vlist_depthHistogram[bitWidth] += 1;
-
-                vtn = vtn->next;
-            }
-            int bitWidth = 0;
-            while (depth) {
-                bitWidth++;
-                depth >>= 1;
-            }
-            vtn_depthHistogram[bitWidth] += 1;
-        }
-        printf("vtn_depth_histogram_data=");
-        for (int i = 0; i < 256; i++) {
-            printf("%lu,", vtn_depthHistogram[i]);
-        }
-        printf("\n\n");
-        // printf("vlist_depth_histogram_data=");
-        // for (int i = 0; i < 256; i++) {
-        //     printf("%lu,", vlist_depthHistogram[i]);
-        // }
-        // printf("\n\n");
-        #endif
-
-        #ifdef DEBUG_TM_MODES
-        printf("WARNING: DEBUG_TM_MODES is enabled\n");
-        printf("\n\n");
-        #endif
-
-        delete[] opDesc;
-
-        #ifdef USE_TM_ALLOC
-        munmap(mapAddr, VOLATILE_MEMORY_REGION_SIZE);
-        #endif
-
-        #ifdef TRACK_EBR_ALLOCS
-        uint64_t allocCount = 0;
-        for (int it=0; it < REGISTRY_MAX_THREADS; it++) {
-            allocCount += gMemManager.perThreadAllocInfo[it].numAllocs;
-        }
-        printf("mem_manager_num_allocs=%ld\n", allocCount);
-        #endif
-
-        #ifdef NO_OPTIMIZE_IS_ON
-        printf("\n");
-        printf("\n");
-        printf("WARNING: THIS BINARY WAS COMPILED WITH NO OPTMIZATIONS. This is not appropriate for experiment results.\n");
-        printf("NO_OPTMIZATIONS_IS_ON=1\n");
-        printf("\n");
-        printf("\n");
-        #endif
-    }
-
-    #ifdef USE_TM_ALLOC
-    void mapTmMemoryRegion() {
-        mapAddr = mmap(NULL, VOLATILE_MEMORY_REGION_SIZE, (PROT_READ | PROT_WRITE), MAP_SHARED | MAP_ANONYMOUS, -1, 0);
-
-        if (mapAddr == MAP_FAILED) {
-            perror("mmap error:\n ");
-            printf("-------------\n");
-            exit(-1);
-        }
-
-        gMemManager.init(mapAddr, VOLATILE_MEMORY_REGION_SIZE);
-    }
-    #endif
-
-    inline void beginTx(OpData* myd, const int tid) {
-        gMemManager.announceEpoch(myd->tid);
-        announceThreadTmMode(myd);
-
+private:
+    void snapshotRead_onCommit(OpData* myd, const int tid) {
         #ifndef USE_RDTSC
-        myd->rClock = globals.gClock.load();
+        uint64_t gTs = globals.gClock.load(std::memory_order_relaxed);
         #else
-        myd->rClock = rdtsc_get_read_ts();
+        uint64_t gTs = rdtsc_get_read_ts_relaxed();
         #endif
-        if (myd->tx_type & TX_IS_SNAPSHOT) {
-            TM_TIMELINE_START((int)myd->tid);
-            if (myd->snapshotStartTs == 0) {
-                myd->snapshotStartTs = myd->rClock;
+        globals.gThreadSnapTsUpdatesBeforeCommit[tid].data = gTs - myd->snapshotStartTs;
+        myd->snapshotStartTs = 0;
+
+        if (myd->tx_type == TX_IS_SNAPSHOT_MODE2) {
+            uint64_t maxRdSetSize = MAX_SNAPSHOT_DEFAULT_MODE_RD_SET_SIZE.load(std::memory_order_relaxed);
+            if (myd->readCount >= MIN_RD_SET_SIZE_BEFORE_UPDATING_THRESHOLD && (maxRdSetSize == 0 || myd->readCount < maxRdSetSize)) {
+                MAX_SNAPSHOT_DEFAULT_MODE_RD_SET_SIZE.exchange(myd->readCount, std::memory_order_relaxed);
+                // printf("MAX_SNAPSHOT_DEFAULT_MODE_RD_SET_SIZE=%d\n", myd->readCount);
             }
-        }
 
-        // Clear the logs of the previous transaction
-        myd->writeSet.reset();
-        myd->snapshotWriteSet.reset();
-        myd->readSet.reset();
-        tl_allocInfo->reset();
-        myd->readCount = 0;
-    }
+            // is mode2 sticky for our thread?
+            if (myd->forceMode2Reads) {
+                if(myd->thisTxnForcedMode2Swap) {
+                    myd->readCountAtFirstMode2Commit = myd->readCount;
 
-    inline bool endTx(OpData* myd, const int tid) {
-        std::atomic_thread_fence(std::memory_order_seq_cst);
-        if (myd->writeSet.size == 0 && myd->snapshotWriteSet.size == 0) {
-            #ifdef TRACK_MULTIVERSE_COUNTERS
-            gMultiverseCounters[tid % 256].commits++;
-            #endif
-            #ifdef TRACK_REGULAR_METRICS
-            STATS_COUNTER_ADD(myd->tid, commits, 1);
-            #endif
-
-            if (myd->tx_type & TX_IS_SNAPSHOT) {
-                #ifndef USE_RDTSC
-                uint64_t gTs = globals.gClock.load(std::memory_order_relaxed);
-                #else
-                uint64_t gTs = rdtsc_get_read_ts_relaxed();
-                #endif
-                globals.gThreadSnapTsUpdatesBeforeCommit[tid].data = gTs - myd->snapshotStartTs;
-                myd->snapshotStartTs = 0;
-
-                #ifdef TRACK_SNAPSHOT_METRICS
-                STATS_COUNTER_ADD(myd->tid, commits_snapshot, 1);
-                #endif
-                #ifdef TRACK_SNAPSHOT_METRICS_2
-                STATS_LIST_APPEND(myd->tid, snapshot_num_successful_tryVersions_per_txn, myd->numTryVersionsDuringTxn);
-                STATS_LIST_APPEND(myd->tid, snapshot_num_failed_tryVersions_per_txn, myd->numFailedTryVersionsDuringTxn);
-                #endif
-
-                if (myd->tx_type == TX_IS_SNAPSHOT_MODE2) {
-                    uint64_t maxRdSetSize = MAX_SNAPSHOT_DEFAULT_MODE_RD_SET_SIZE.load(std::memory_order_relaxed);
-                    if (myd->readCount >= MIN_RD_SET_SIZE_BEFORE_UPDATING_THRESHOLD && (maxRdSetSize == 0 || myd->readCount < maxRdSetSize)) {
-                        MAX_SNAPSHOT_DEFAULT_MODE_RD_SET_SIZE.exchange(myd->readCount, std::memory_order_relaxed);
-                        printf("MAX_SNAPSHOT_DEFAULT_MODE_RD_SET_SIZE=%d\n", myd->readCount);
-                    }
-
-                    #ifdef TRACK_SNAPSHOT_METRICS
-                    STATS_COUNTER_ADD(myd->tid, commits_mode2_snapshot, 1);
-                    #endif
-
-                    // is mode2 sticky for our thread?
-                    if (myd->forceMode2Reads) {
-                        if(myd->thisTxnForcedMode2Swap) {
-                            myd->readCountAtFirstMode2Commit = myd->readCount;
-
-                            //If we forced the transition to mode2 we make our required smallTxnReadCount to be our read count / threshold number of small txn to leave mode2
-                            myd->smallTxnReadCount = myd->readCount / MIN_SMALL_TXNS_TO_UNSTICK_MODE2;
-                            myd->consecutiveSmallTxns = 0;
-                            myd->thisTxnForcedMode2Swap = false;
-                        }
-                        else {
-                            if (myd->readCount <= myd->smallTxnReadCount) {
-                                myd->consecutiveSmallTxns++;
-                            }
-
-                            #ifndef TESTING_FORCE_MODE2_READS
-                            if (myd->numSnapReadsPastHead == 0 || myd->consecutiveSmallTxns >= MIN_SMALL_TXNS_TO_UNSTICK_MODE2) {
-                                myd->readCountAtFirstMode2Commit = 0;
-                                myd->consecutiveSmallTxns = 0;
-                                myd->forceMode2Reads = false;
-                            }
-                            #endif
-                        }
-                    }
-
-                    if (myd->readCount >= 10000) {
-                        TM_TIMELINE_END((int)myd->tid, "mode2_snapshot");
-                        // TM_TIMELINE_END_INMEM((int)myd->tid, mode2_snapshot);
-                    }
-                    else {
-                        TM_TIMELINE_END((int)myd->tid, "too_small_mode2");
-                    }
+                    //If we forced the transition to mode2 we make our required smallTxnReadCount to be our read count / threshold number of small txn to leave mode2
+                    myd->smallTxnReadCount = myd->readCount / MIN_SMALL_TXNS_TO_UNSTICK_MODE2;
+                    myd->consecutiveSmallTxns = 0;
+                    myd->thisTxnForcedMode2Swap = false;
                 }
                 else {
-                    TM_TIMELINE_END((int)myd->tid, "mode1_snapshot");
-                    // TM_TIMELINE_END_INMEM((int)myd->tid, mode1_snapshot);
+                    if (myd->readCount <= myd->smallTxnReadCount) {
+                        myd->consecutiveSmallTxns++;
+                    }
+
+                    #ifndef TESTING_FORCE_MODE2_READS
+                    if (myd->numSnapReadsPastHead == 0 || myd->consecutiveSmallTxns >= MIN_SMALL_TXNS_TO_UNSTICK_MODE2) {
+                        myd->readCountAtFirstMode2Commit = 0;
+                        myd->consecutiveSmallTxns = 0;
+                        myd->forceMode2Reads = false;
+                    }
+                    #endif
                 }
             }
-
-            #ifdef TRACK_TOTAL_READ_TIME
-            myd->totalReads += myd->readCount;
-            #endif
-
-            #ifdef TRACK_TIME_BEFORE_COMMIT
-            std::chrono::time_point<std::chrono::system_clock> now = std::chrono::system_clock::now();
-            int64_t dur = std::chrono::duration_cast<std::chrono::milliseconds>(now - myd->txnStartTime).count();
-            STATS_LIST_APPEND(myd->tid, millis_before_commit, dur);
-            #endif
-
-            gMemManager.commit(tl_allocInfo);
-            STATS_LIST_APPEND(myd->tid, rdset_size_at_commit, myd->readSet.size);
-            STATS_LIST_APPEND(myd->tid, read_count_at_commit, myd->readCount);
-            STATS_LIST_APPEND(myd->tid, aborts_before_commit, myd->attempt-1);
-            myd->attempt = 0;
-            // myd->snapshotAttempts = 0;
-            return true;
         }
-
-        if (!myd->readSet.validate(myd->rClock, tid)) {
-            STATS_COUNTER_ADD(myd->tid, aborts_writer_failed_rdset_validation, 1);
-            abortTx(myd);
-        }
-
-        STATS_LIST_APPEND(myd->tid, wrset_size_at_commit, myd->writeSet.size);
-        STATS_LIST_APPEND(myd->tid, snapshot_wrset_size_at_commit, myd->snapshotWriteSet.size);
-
-        gMemManager.commit(tl_allocInfo);
-
-        #ifndef USE_RDTSC
-        uint64_t commitTS = globals.gClock.load();
-        #else
-        uint64_t commitTS = rdtsc_get_read_ts();
-        #endif
-        myd->snapshotWriteSet.removeTBDs(myd->tid, commitTS);
-
-        myd->writeSet.unlock(commitTS, tid);
-        #ifdef TRACK_MULTIVERSE_COUNTERS
-        gMultiverseCounters[tid % 256].commits++;
-        #endif
-        #ifdef TRACK_REGULAR_METRICS
-        STATS_COUNTER_ADD(myd->tid, commits, 1);
-        STATS_LIST_APPEND(myd->tid, rdset_size_at_commit, myd->readSet.size);
-        STATS_LIST_APPEND(myd->tid, aborts_before_commit, myd->attempt-1);
-        #endif
-
-        // we will count updates as 'small' txns since it is preferable
-        //  to NOT be in mode2 for updaters
-        myd->consecutiveSmallTxns++;
-        #ifndef TESTING_FORCE_MODE2_READS
-        if (myd->consecutiveSmallTxns >= MIN_SMALL_TXNS_TO_UNSTICK_MODE2) {
-            myd->forceMode2Reads = false;
-        }
-        #endif
-
-        #ifdef TRACK_TOTAL_READ_TIME
-        myd->totalReads += myd->readCount;
-        #endif
-
-        myd->attempt = 0;
-        // myd->snapshotAttempts = 0;
-        return true;
     }
-
-    template<typename F> 
-    void transaction(F&& func, int txType=TX_IS_UPDATE) {
-        if (tl_opdata != nullptr) {
-            func();
-            return;
-        }
-        const int tid = ThreadRegistry::getTID();
-        OpData* myd = &opDesc[tid];
-        tl_opdata = myd;
-        tl_allocInfo = &gMemManager.perThreadAllocInfo[tid];
-
-        #ifdef TESTING_FORCE_MODE2_READS
-        if (txType == TX_IS_READ) {
-            transitionToMode2(myd);
-        }
-        #endif
-
-        #ifdef TESTING_FORCE_SNAPSHOT_READS
-        if (txType == TX_IS_READ) {
-            txType == TX_IS_SNAPSHOT;
-        }
-        #endif
-
-        // if (txType == TX_IS_READ && myd->forceMode2Reads) {
-        //     myd->tx_type = TX_IS_SNAPSHOT_MODE2;
-        //     // TM_TIMELINE_BLIP(tid, "mode2_start");
-        //     // TM_TIMELINE_START(tid);
-        // }
-        // else {
-        //     myd->tx_type = txType;
-        // }
-        myd->tx_type = txType;
-
-        myd->forceVersioning = false;
-
-        #ifdef DEBUG_SPECIAL
-        myd->modeCounterAtStartTxn = globals.gTmModeCounter.load();
-        #endif
-
-        #ifdef TRACK_SNAPSHOT_METRICS_2
-        myd->numTryVersionsDuringTxn = 0;
-        myd->numFailedTryVersionsDuringTxn = 0;
-        #endif
-
-        #if defined(TRACK_TIME_BEFORE_COMMIT) || defined(TRACK_TIME_BEFORE_ABORT)
-        myd->txnStartTime = std::chrono::system_clock::now();
-        #endif
-
-        setjmp(myd->env);
-        myd->attempt++;
-        // if (myd->tx_type == TX_IS_SNAPSHOT) {
-        //     myd->snapshotAttempts++;
-        // }
-        backoff(myd, myd->attempt);
-        beginTx(myd, tid);
-        func();
-        endTx(myd, tid);
-        tl_opdata = nullptr;
-    }
-
-    template<typename R, typename F> static R updateTx(F&& func) { return gMultiverse.transaction<R>(func, TX_IS_UPDATE); }
-    template<typename R, typename F> static R readTx(F&& func) { return gMultiverse.transaction<R>(func, TX_IS_READ); }
-    template<typename F> static void updateTx(F&& func) { gMultiverse.transaction(func, TX_IS_UPDATE); }
-    template<typename F> static void readTx(F&& func) { gMultiverse.transaction(func, TX_IS_READ); }
-
-    #ifdef ENABLE_SNAPSHOT_ISOLATION
-    template<typename F> static void snapshotIsolationTx(F&& func) { gMultiverse.transaction(func, TX_IS_SNAPSHOT_ISOLATION); }
-    #endif
 
     void printMaxAbortInfo(OpData* myd, uint64_t attempt) {
         printf("\n---------------------\n");
-        // printf("Tid: %ld, tx_type %d, myMode: %d, snapshotAttempts: %ld, OP was: %d\n", myd->tid, myd->tx_type, myd->myTmMode, myd->snapshotAttempts, OP_TYPE);
+        // printf("Tid: %ld, tx_type %d, myMode: %d, OP was: %d\n", myd->tid, myd->tx_type, getCounterMode(myd->myTmModeCounter), OP_TYPE);
         printf("---------------------\n");
         int expected = 0;
         if (debugLock.compare_exchange_strong(expected, 1)) {
@@ -2058,16 +1295,10 @@ public:
             printf("rclock clock = %ld\n", myd->rClock);
             printf("mySnapshotTs = %ld\n", myd->rClock);
 
-            printf("myd->myTmMode = %d\n", myd->myTmMode);
             printf("myd->myTmModeCounter = %ld\n", myd->myTmModeCounter);
+            printf("myd->tmMode = %d\n", getCounterMode(myd->myTmModeCounter));
 
             printf("myd->thisTxnForcedMode2Swap = %d\n", myd->thisTxnForcedMode2Swap);
-
-            #ifdef DEBUG_SPECIAL
-            printf("modeCounterAtStartTxn = %ld\n", myd->modeCounterAtStartTxn);
-            printf("modeAtStartTxn = %d\n", getCounterMode(myd->modeCounterAtStartTxn));
-            printf("oldest_ts_at_last_abort = %ld\n", myd->oldest_ts_at_last_abort);
-            #endif
 
             long counter = globals.gTmModeCounter.load();
             printf("global tm mode counter = %ld\n", counter);
@@ -2082,7 +1313,7 @@ public:
 
             printf("tmModes of all threads:\n");
             for (uint64_t it=0; it < REGISTRY_MAX_THREADS; it++) {
-                printf("%d, ", opDesc[it].myTmMode);
+                printf("%d, ", getCounterMode(opDesc[it].myTmModeCounter));
             }
             printf("\n");
 
@@ -2127,14 +1358,189 @@ public:
         if (stall > 1000) std::this_thread::yield();
     }
 
-    // template<typename R,class F> inline static R readTx(F&& func) {
-    //     gMultiverse.transaction([&]() {func();}, TX_IS_READ);
-    //     return R{};
-    // }
-    // template<typename R,class F> inline static R updateTx(F&& func) {
-    //     gMultiverse.transaction([&]() {func();}, TX_IS_UPDATE);
-    //     return R{};
-    // }
+public:
+    alignas(128) OpData* opDesc;
+    alignas(128) std::atomic<int> debugLock {0};
+    alignas(128) std::thread* bgThread;
+
+    Multiverse() {
+        printf("sizeof(OpData)=%ld\n", sizeof(OpData));
+        opDesc = new OpData[REGISTRY_MAX_THREADS];
+        globals.gFirstObservedMode2Timestamp.store((uint64_t)(-1));
+        for (uint64_t it=0; it < REGISTRY_MAX_THREADS; it++) {
+            opDesc[it].tid = it;
+            opDesc[it].myrand = (it+1)*12345678901234567ULL;
+            // globals.gThreadEpochs[it].data.store(-1, std::memory_order_relaxed);
+            globals.gThreadSnapTsUpdatesBeforeCommit[it].data.store(0, std::memory_order_relaxed);
+        }
+
+        #ifdef FORCE_MODE2_FROM_START
+        long tmModeCounter = globals.gTmModeCounter.load();
+        int tmMode = getCounterMode(tmModeCounter);
+        tmModeCounter = transitionTmMode(tid, tmModeCounter, TM_MODE_INTERMEDIATE1);
+        transitionTmMode(tid, tmModeCounter, TM_MODE_MODE2);
+        #endif
+
+
+        bgThread = new std::thread(bgThreadUnversioner);
+        while (!bgThreadDoneInit) {
+            //spin
+        }
+    }
+
+    ~Multiverse() {
+        bgThreadShutdown = true;
+        __sync_synchronize();
+        bgThread->join();
+
+        // printf("\ngEpoch=%ld\n", globals.gEpoch.load());
+        printf("gClock=%ld\n\n", globals.gClock.load());        
+
+        printf("num_unversions=%ld\n", numUnversions);
+        printf("last_avgTsDelta=%ld\n\n", last_avgTsDelta);
+
+        printf("global_tm_mode=%d\n", getCounterMode(globals.gTmModeCounter.load()));
+        printf("global_tm_counter=%ld\n", getUnmarkedTmModeCounter(globals.gTmModeCounter.load()));
+        uint64_t numTransitions = getUnmarkedTmModeCounter(globals.gTmModeCounter.load()) / 4;
+        printf("num_mode_changes=%ld\n", numTransitions);
+        printf("\n\n");
+
+
+        #ifdef DEBUG_TM_MODES
+        printf("WARNING: DEBUG_TM_MODES is enabled\n");
+        printf("\n\n");
+        #endif
+
+        delete[] opDesc;
+
+
+        #ifdef NO_OPTIMIZE_IS_ON
+        printf("\n");
+        printf("\n");
+        printf("WARNING: THIS BINARY WAS COMPILED WITH NO OPTMIZATIONS. This is not appropriate for experiment results.\n");
+        printf("NO_OPTMIZATIONS_IS_ON=1\n");
+        printf("\n");
+        printf("\n");
+        #endif
+    }
+
+    inline void beginTx(OpData* myd, const int tid) {
+        gMemManager.announceEpoch(myd->tid);
+        announceThreadTmMode(myd);
+
+        #ifndef USE_RDTSC
+        myd->rClock = globals.gClock.load();
+        #else
+        myd->rClock = rdtsc_get_read_ts();
+        #endif
+        if (myd->tx_type & TX_IS_SNAPSHOT) {
+            if (myd->snapshotStartTs == 0) {
+                myd->snapshotStartTs = myd->rClock;
+            }
+        }
+
+        // Clear the logs of the previous transaction
+        myd->writeSet.reset();
+        myd->snapshotWriteSet.reset();
+        myd->readSet.reset();
+        tl_allocInfo->reset();
+        myd->readCount = 0;
+        #ifdef ALLOW_UNSAFE_STORES_IN_CONSTRUCTOR
+        myd->constructorCount = 0;
+        #endif
+    }
+
+    inline bool endTx(OpData* myd, const int tid) {
+        std::atomic_thread_fence(std::memory_order_seq_cst);
+        if (myd->writeSet.size == 0 && myd->snapshotWriteSet.size == 0) {
+            if (myd->tx_type & TX_IS_SNAPSHOT) {
+                snapshotRead_onCommit(myd, tid);
+            }
+            // gMemManager.commit();
+            myd->attempt = 0;
+            return true;
+        }
+
+        if (!myd->readSet.validate(myd->rClock, tid)) {
+            abortTx(myd);
+        }
+
+        #ifndef USE_RDTSC
+        uint64_t commitTS = globals.gClock.load();
+        #else
+        uint64_t commitTS = rdtsc_get_read_ts();
+        #endif
+        myd->snapshotWriteSet.removeTBDs(tid, commitTS);
+
+        myd->writeSet.unlock(commitTS, tid);
+
+        // we will count updates as 'small' txns since it is preferable
+        //  to NOT be in mode2 for updaters
+        myd->consecutiveSmallTxns++;
+        #ifndef TESTING_FORCE_MODE2_READS
+        if (myd->consecutiveSmallTxns >= MIN_SMALL_TXNS_TO_UNSTICK_MODE2) {
+            myd->forceMode2Reads = false;
+        }
+        #endif
+
+        gMemManager.commit();
+
+        myd->attempt = 0;
+        return true;
+    }
+
+    template<typename F>
+    void transaction(F&& func, int txType=TX_IS_UPDATE) {
+        if (tl_opdata != nullptr) {
+            func();
+            return;
+        }
+        const int tid = ThreadRegistry::getTID();
+        OpData* myd = &opDesc[tid];
+        tl_opdata = myd;
+        tl_allocInfo = &gMemManager.perThreadAllocInfo[tid];
+
+        #ifdef TESTING_FORCE_MODE2_READS
+        if (txType == TX_IS_READ) {
+            transitionToMode2(myd);
+        }
+        #endif
+
+        #ifdef TESTING_FORCE_SNAPSHOT_READS
+        if (txType == TX_IS_READ) {
+            txType == TX_IS_SNAPSHOT;
+        }
+        #endif
+
+        myd->tx_type = txType;
+        myd->forceVersioning = false;
+
+        setjmp(myd->env);
+        myd->attempt++;
+        backoff(myd, myd->attempt);
+        beginTx(myd, tid);
+        func();
+        endTx(myd, tid);
+        tl_opdata = nullptr;
+    }
+
+    //template<typename R, typename F> static R updateTx(F&& func) { return gMultiverse.transaction<R>(func, TX_IS_UPDATE); }
+    //template<typename R, typename F> static R readTx(F&& func) { return gMultiverse.transaction<R>(func, TX_IS_READ); }
+    template<typename F> static void updateTx(F&& func) { gMultiverse.transaction(func, TX_IS_UPDATE); }
+    template<typename F> static void readTx(F&& func) { gMultiverse.transaction(func, TX_IS_READ); }
+
+    #ifdef ENABLE_SNAPSHOT_ISOLATION
+    template<typename F> static void snapshotIsolationTx(F&& func) { gMultiverse.transaction(func, TX_IS_SNAPSHOT_ISOLATION); }
+    #endif
+
+    template<typename R,class F> inline static R readTx(F&& func) {
+        gMultiverse.transaction([&]() {func();}, TX_IS_READ);
+        return R{};
+    }
+    template<typename R,class F> inline static R updateTx(F&& func) {
+        gMultiverse.transaction([&]() {func();}, TX_IS_UPDATE);
+        return R{};
+    }
 
 
 
@@ -2144,9 +1550,15 @@ public:
             printf("ERROR: Can not allocate outside a transaction\n");
             return nullptr;
         }
-        void* ptr = gMemManager.bufferedAllocate(sizeof(T));
+        void* ptr = gMemManager.buffered_malloc(sizeof(T));
         assert(ptr != nullptr);
+        #ifdef ALLOW_UNSAFE_STORES_IN_CONSTRUCTOR
+        tl_opdata->constructorCount++;
         new (ptr) T(std::forward<Args>(args)...);
+        tl_opdata->constructorCount--;
+        #else 
+        new (ptr) T(std::forward<Args>(args)...);
+        #endif
         return (T*)ptr;
     }
 
@@ -2162,7 +1574,7 @@ public:
             return;
         }
         obj->~T();
-        gMemManager.deferFree(obj);
+        gMemManager.deferredFree_with_possible_rollback(obj);
     }
 
     static void* tmMalloc(size_t size) {
@@ -2170,7 +1582,7 @@ public:
             printf("ERROR: Can not allocate outside a transaction\n");
             return nullptr;
         }
-        return gMemManager.bufferedAllocate(size);
+        return gMemManager.buffered_malloc(size);
     }
 
     static void tmFree(void* ptr) {
@@ -2183,7 +1595,7 @@ public:
             printf("ERROR: Can not de-allocate outside a transaction\n");
             return;
         }
-        gMemManager.deferFree(ptr);
+        gMemManager.deferredFree_with_possible_rollback(ptr);
     }
 };
 
@@ -2192,6 +1604,7 @@ public:
 template<typename T>
 struct tx_field {
     static_assert(sizeof(T) <= sizeof(uint64_t));
+    static_assert(std::is_trivially_copyable_v<T>);
 
     T data;
     // uint8_t pad[sizeof(uint64_t)-sizeof(T)];
@@ -2254,24 +1667,29 @@ struct tx_field {
         return (T*)this;
     }
 
+    bool bloomFilterContainsAddr(uint64_t tableIndex, LockTableNode* ltn, void* addr) const {
+        #ifdef COLOCATE_BLOOM_FILTER
+        return (ltn->bloom.contains((uint64_t*)addr));
+        #else
+        return globals.blooms[tableIndex].contains((uint64_t*)addr);
+        #endif
+    }
+
     // returns true and stores the data in _val if we versioned this address
     // returns false if we didnt version the address and need to retry
     // aborts the txn if we version the address but our initial read was not consistent
-    bool tryVersionAddr(T* _val, OpData* myd, uint64_t* addr, uint64_t tableIndex, std::atomic<uint64_t>* mutex, LockTableNode* ltn) const {
-        //acquire lock
+    bool tryVersionAddr(T* _val, OpData* myd, void* addr, uint64_t tableIndex, std::atomic<uint64_t>* mutex, LockTableNode* ltn) const {
+        //acquire lock with special versioning tid to flag as locked for versioning
         uint64_t sl = mutex->load(std::memory_order_acquire);
         while (!versioning_tryWriteLock(VERSIONING_TID, mutex, sl)) {
-        // while (!tryWriteLock(myd->tid, mutex, sl)) {
             sl = mutex->load(std::memory_order_acquire);
         }
+        assert(isLocked(sl) && getTid(sl) == VERSIONING_TID);
 
         bool wasReadConsistent = true;
         if (getTS(sl) >= myd->rClock) {
             wasReadConsistent = false;
         }
-
-        sl = mutex->load(std::memory_order_acquire);
-        assert(isLocked(sl));
 
         //look for this addr in the vlist table
         VListTableNode* vtn;
@@ -2280,15 +1698,8 @@ struct tx_field {
 
         if (found) {
             //unlock to the same clock that we acquired on
-            //  note that the lock MUST have been unlocked since snapshots are only
-            //  enabled for read-only txns in this version
             uint64_t newSL = (myd->tid << TID_SHIFT) | (getTS(sl));
-            assert(isUnlocked(newSL));
             mutex->store(newSL, std::memory_order_release);
-            #ifdef TRACK_SNAPSHOT_METRICS_2
-            STATS_COUNTER_ADD(myd->tid, snapshot_num_failed_tryVersions, 1);
-            myd->numFailedTryVersionsDuringTxn++;
-            #endif
             return false;
         }
 
@@ -2303,26 +1714,28 @@ struct tx_field {
 
         T val = data;
 
-        VersionedNode* vNode = (VersionedNode*)(gMemManager.allocate(sizeof(VersionedNode)));
+        VersionedNode* vNode = (VersionedNode*)(malloc(sizeof(VersionedNode)));
         // write current version (no need to mark TBD since we havent linked this vnode into the list yet)
         vNode->ts.store(lastTs, std::memory_order_relaxed);
         // write current value - the order of this write relative to the TS write is also not relevant since the vnode is not yet reachable
-        vNode->data = (uint64_t)val;
+        uint64_t data_bit_copied_to_u64 = 0;
+        std::memcpy(&data_bit_copied_to_u64, &val, sizeof(T));            
+        vNode->data = data_bit_copied_to_u64;
         vNode->next = nullptr;
 
-        vtn = (VListTableNode*)(gMemManager.allocate(sizeof(VListTableNode)));
+        vtn = (VListTableNode*)(malloc(sizeof(VListTableNode)));
         vtn->addr = addr;
         vtn->listHead.store(vNode, std::memory_order_relaxed);
         vtn->next = globals.gVlistTable[tableIndex].load(std::memory_order_relaxed);
         globals.gVlistTable[tableIndex].store(vtn, std::memory_order_relaxed);
 
         #ifdef COLOCATE_BLOOM_FILTER
-        if (!ltn->bloom.contains(addr)) {
-            ltn->bloom.insertFreshUnsafe(addr);
+        if (!ltn->bloom.contains((uint64_t*)addr)) {
+            ltn->bloom.insertFreshUnsafe((uint64_t*)addr);
         }
         #else
-        if (!globals.blooms[tableIndex].contains(addr)) {
-            globals.blooms[tableIndex].insertFreshUnsafe(addr);
+        if (!globals.blooms[tableIndex].contains((uint64_t*)addr)) {
+            globals.blooms[tableIndex].insertFreshUnsafe((uint64_t*)addr);
         }
         #endif
 
@@ -2333,27 +1746,22 @@ struct tx_field {
         assert(isUnlocked(newSL));
         mutex->store(newSL, std::memory_order_release);
 
-        #ifdef TRACK_SNAPSHOT_METRICS_2
-        STATS_COUNTER_ADD(myd->tid, snapshot_num_successful_tryVersions, 1);
-        myd->numTryVersionsDuringTxn++;
-        #endif
         if (wasReadConsistent) {
             *_val = val;
             return true;
         }
         else {
-            STATS_COUNTER_ADD(myd->tid, aborts_snapshot_tryVersion_read_inconsistent, 1);
             abortTx(myd);
         }
     }
 
     FORCE_NO_INLINE T snapshotLoad() const {
         OpData* const myd = tl_opdata;
-        uint64_t* addr = (uint64_t*)(&data);
+        void* addr = (void*)(&data);
         uint64_t tableIndex = hidx((size_t)addr);
         LockTableNode* ltn = &globals.gHashLock[tableIndex];
 
-        if (myd->myTmMode == TM_MODE_MODE2) {
+        if (getCounterMode(myd->myTmModeCounter) == TM_MODE_MODE2) {
             return mode2_snapshotLoad(myd, addr, tableIndex, ltn);
         }
         else {
@@ -2361,7 +1769,52 @@ struct tx_field {
         }
     }
 
-    T defaultMode_snapshotLoad(OpData* myd, uint64_t* addr, uint64_t tableIndex, LockTableNode* ltn) const {
+    VersionedNode* traverseVList(OpData* myd, VListTableNode* vtn) const {
+        VersionedNode* vNode = vtn->listHead.load(std::memory_order_relaxed);
+        uint64_t markedTs = vNode->ts.load(std::memory_order_acquire);
+
+        while (isTBD(markedTs) && (getUnmarkedTimestamp(markedTs) <= myd->rClock)) {
+            markedTs = vNode->ts.load(std::memory_order_acquire);
+        }
+
+        bool traversedPastHead = false;
+        while (vNode && (getUnmarkedTimestamp(markedTs) > myd->rClock) || markedTs == EMPTY_SNAPSHOT_TIMESTAMP) {
+            vNode = vNode->next;
+            if (!vNode) {
+                break;
+            }
+            markedTs = vNode->ts.load(std::memory_order_acquire);
+            traversedPastHead = true;
+        }
+
+        if (traversedPastHead) {
+            myd->numSnapReadsPastHead++;
+        }
+
+        return vNode;
+    }
+
+    void updateVlist(OpData* myd, VListTableNode* vtn, VersionedNode* head, uint64_t newVal) {
+        uint64_t ts = head->ts.load(std::memory_order_relaxed);
+        uint64_t data_bit_copied_to_u64 = 0;
+        std::memcpy(&data_bit_copied_to_u64, &newVal, sizeof(T));
+        if (isTBD(ts)) {
+            //this vnode is marked TBD but we hold the lock so we must have been the one to add the TBD
+            head->data = data_bit_copied_to_u64;
+        }
+        else {
+            //this is the first time we are writting to this address
+            VersionedNode* vNode = (VersionedNode*)malloc(sizeof(VersionedNode));
+            vNode->next = head;
+            vNode->ts.store(makeTBDSnapshotTimestamp(myd->rClock), std::memory_order_relaxed);
+            vNode->data = data_bit_copied_to_u64;
+            vtn->listHead.store(vNode, std::memory_order_relaxed);
+            myd->snapshotWriteSet.add(vtn);
+            gMemManager.deferredFree_with_possible_rollback(head);
+        }
+    }
+
+    T defaultMode_snapshotLoad(OpData* myd, void* addr, uint64_t tableIndex, LockTableNode* ltn) const {
         uint64_t retryCount = 0;
         while (retryCount < MAX_ABORTS) {
             retryCount++;
@@ -2369,11 +1822,7 @@ struct tx_field {
             bool found = false;
             T val;
 
-            #ifdef COLOCATE_BLOOM_FILTER
-            if (ltn->bloom.contains(addr)) {
-            #else
-            if (globals.blooms[tableIndex].contains(addr)) {
-            #endif
+            if (bloomFilterContainsAddr(tableIndex, ltn, addr)) {
                 findAddrInVLT(myd, addr, tableIndex, vtn, found);
             }
 
@@ -2388,33 +1837,14 @@ struct tx_field {
                 }
             }
 
-            VersionedNode* vNode = vtn->listHead.load(std::memory_order_relaxed);
-            uint64_t markedTs = vNode->ts.load(std::memory_order_acquire);
-
-            while (isTBD(markedTs) && (getUnmarkedTimestamp(markedTs) <= myd->rClock)) {
-                markedTs = vNode->ts.load(std::memory_order_acquire);
-            }
-
-            int vlistTraversalDepth = 0;
-            while (vNode && (getUnmarkedTimestamp(markedTs) > myd->rClock) || markedTs == EMPTY_SNAPSHOT_TIMESTAMP) {
-                vNode = vNode->next;
-                if (!vNode) {
-                    break;
-                }
-                markedTs = vNode->ts.load(std::memory_order_acquire);
-                vlistTraversalDepth++;
-            }
-
-            if (vlistTraversalDepth > 0) {
-                myd->numSnapReadsPastHead++;
-            }
+            VersionedNode* vNode = traverseVList(myd, vtn);
 
             if (!vNode) {
-                STATS_COUNTER_ADD(myd->tid, aborts_snapshot_vlist_failed_find_ts, 1);
                 abortTx(myd);
             }
 
-            val = (T)(vNode->data);
+            val = 0;
+            std::memcpy(&val, &vNode->data, sizeof(T)); // (T)(vNode->data);
 
             return val;
         }
@@ -2422,28 +1852,18 @@ struct tx_field {
         exit(-3);
     }
 
-    T mode2_snapshotLoad(OpData* myd, uint64_t* addr, uint64_t tableIndex, LockTableNode* ltn) const {
+    T mode2_snapshotLoad(OpData* myd, void* addr, uint64_t tableIndex, LockTableNode* ltn) const {
         uint64_t retryCount = 0;
         uint64_t lastSL = 0;
         T lastVal = (T)0;
         bool found = false;
-        #ifdef TRACK_TOTAL_READ_TIME
-        uint64_t readStartTime = get_server_clock();
-        #endif
         while (retryCount < MAX_SNAPSHOT_MODE2_RETRIES_BEFORE_LOCKING*10) {
             retryCount++;
             VListTableNode* vtn = globals.gVlistTable[tableIndex].load(std::memory_order_relaxed);
             T val;
 
-            #ifdef COLOCATE_BLOOM_FILTER
-            if (!found && ltn->bloom.contains(addr)) {
-            #else
-            if (!found && globals.blooms[tableIndex].contains(addr)) {
-            #endif
-                // STATS_RESET_TIMER(myd->tid, mode2_vltable_search_timer_duration);
+            if (!found && bloomFilterContainsAddr(tableIndex, ltn, addr)) {
                 findAddrInVLT(myd, addr, tableIndex, vtn, found);
-                // auto vtnTime_us = STATS_ELAPSED_TIMER(myd->tid, mode2_vltable_search_timer_duration)/1000.0;
-                // STATS_COUNTER_ADD(myd->tid, mode2_vltable_search_timer_duration_us, vtnTime_us);
             }
 
             if (!found) {
@@ -2460,20 +1880,8 @@ struct tx_field {
                 uint64_t sl = mutex->load(std::memory_order_acquire);
                 if (isLocked(sl)) {
                     if (retryCount > 1 && (sl != lastSL || (sl == lastSL && data == lastVal))) {
-                        #ifdef TRACK_TOTAL_READ_TIME
-                        uint64_t readEndTime = get_server_clock();
-                        double readTime = ((readEndTime - readStartTime) /1000.0);
-                        myd->totalReadTime += readTime;
-                        if (myd->maxReadTime < readTime) {
-                            myd->maxReadTime = readTime;
-                            myd->retriesAtMaxReadTime = retryCount;
-                        }
-                        #endif
                         return lastVal;
                     }
-
-                    STATS_COUNTER_ADD(myd->tid, mode2_found_locked_retry, 1);
-
                     lastSL = sl;
                     lastVal = data;
                     continue;
@@ -2481,88 +1889,26 @@ struct tx_field {
                 val = data;
                 uint64_t sl2 = mutex->load(std::memory_order_acquire);
                 if (sl2 != sl) {
-                    STATS_COUNTER_ADD(myd->tid, aborts_mode2_snapshot_addr_lock_changed_after_read, 1);
                     abortTx(myd);
                 }
-                #ifdef TRACK_TOTAL_READ_TIME
-                uint64_t readEndTime = get_server_clock();
-                double readTime = ((readEndTime - readStartTime) /1000.0);
-                myd->totalReadTime += readTime;
-                if (myd->maxReadTime < readTime) {
-                    myd->maxReadTime = readTime;
-                    myd->retriesAtMaxReadTime = retryCount;
-                }
-                #endif
                 return val;
             }
 
-            VersionedNode* vNode = vtn->listHead.load(std::memory_order_relaxed);
-            uint64_t markedTs = vNode->ts.load(std::memory_order_acquire);
-
-            // STATS_RESET_TIMER(myd->tid, spin_timer_duration);
-            while (isTBD(markedTs) && (getUnmarkedTimestamp(markedTs) <= myd->rClock)) {
-                markedTs = vNode->ts.load(std::memory_order_acquire);
-            }
-            // auto spinTime_us = STATS_ELAPSED_TIMER(myd->tid, spin_timer_duration)/1000.0;
-            // STATS_COUNTER_ADD(myd->tid, mode2_spin_timer_duration_us, spinTime_us);
-
-            #ifdef DEBUG_SPECIAL
-            uint64_t oldest_ts = (uint64_t)(-1);
-            #endif
-
-            uint64_t vlistTraversalDepth = 1;
-            uint64_t verDiff = 0;
-            while (vNode && (getUnmarkedTimestamp(markedTs) > myd->rClock) || (markedTs == EMPTY_SNAPSHOT_TIMESTAMP)) {
-                verDiff = getUnmarkedTimestamp(markedTs) - myd->rClock;
-                vNode = vNode->next;
-                if (!vNode) {
-                    break;
-                }
-                markedTs = vNode->ts.load(std::memory_order_acquire);
-                vlistTraversalDepth++;
-
-                #ifdef DEBUG_SPECIAL
-                oldest_ts = getUnmarkedTimestamp(markedTs);
-                #endif
-            }
-
-            #ifdef TRACK_VLIST_TRAVERAL_DEPTH
-            // uint64_t log2Index = std::bit_width(vlistTraversalDepth) - 1;
-            uint64_t log2Index = get_bit_width(vlistTraversalDepth) - 1;
-            myd->vlistCount[log2Index] += 1;
-            #endif
-
-            if (vlistTraversalDepth > 0) {
-                myd->numSnapReadsPastHead++;
-            }
+            VersionedNode* vNode = traverseVList(myd, vtn);
 
             if (!vNode) {
-                STATS_COUNTER_ADD(myd->tid, aborts_mode2_snapshot_vlist_failed_find_ts, 1);
-                #ifdef DEBUG_SPECIAL
-                myd->oldest_ts_at_last_abort = oldest_ts;
-                #endif
                 abortTx(myd);
             }
 
-            val = (T)(vNode->data);
-
-            #ifdef TRACK_TOTAL_READ_TIME
-            uint64_t readEndTime = get_server_clock();
-            double readTime = ((readEndTime - readStartTime) /1000.0);
-            myd->totalReadTime += readTime;
-            if (myd->maxReadTime < readTime) {
-                myd->maxReadTime = readTime;
-                myd->retriesAtMaxReadTime = retryCount;
-            }
-            #endif
+            val = 0;
+            std::memcpy(&val, &vNode->data, sizeof(T)); // (T)(vNode->data);
             return val;
         }
-
-        printf("Mode 2 snapshot load stuck\n");
-        exit(-3);
+        assert(false);
+        exit(-1);
     }
 
-    FORCE_INLINE bool tryVersionedStore(OpData* myd, uint64_t* addr, T newVal, uint64_t tableIndex, LockTableNode* ltn) {
+    FORCE_INLINE bool tryVersionedStore(OpData* myd, void* addr, T newVal, uint64_t tableIndex, LockTableNode* ltn) {
         //check if the addr has a vlist - if it does not then we hit a false positive in the bloom filter
         VListTableNode* vtn;
         bool found;
@@ -2576,30 +1922,18 @@ struct tx_field {
 
         assert(head != nullptr);
 
-        myd->writeSet.add(addr, *addr);
+        uint64_t oldValue = 0;
+        std::memcpy(&oldValue, addr, sizeof(T));
+        myd->writeSet.add(addr, oldValue, sizeof(T));
         data = newVal;
 
-        uint64_t ts = head->ts.load(std::memory_order_relaxed);
-        if (isTBD(ts)) {
-            //this vnode is marked TBD but we hold the lock so we must have been the one to add the TBD
-           head->data = (uint64_t)newVal;
-        }
-        else {
-            //this is the first time we are writting to this address
-            VersionedNode* vNode = (VersionedNode*)gMemManager.allocate(sizeof(VersionedNode));
-            vNode->next = head;
-            vNode->ts.store(makeTBDSnapshotTimestamp(myd->rClock), std::memory_order_relaxed);
-            vNode->data = (uint64_t)newVal;
-            vtn->listHead.store(vNode, std::memory_order_relaxed);
-            myd->snapshotWriteSet.add(vtn);
-            gMemManager.retireWithPossibleRollback(head);
-        }
+        updateVlist(myd, vtn, head, (uint64_t)newVal);
 
         return true;
     }
 
     #ifdef ENABLE_SNAPSHOT_ISOLATION
-    void snapshotIsolationStore(OpData* myd, uint64_t* addr, T newVal, uint64_t tableIndex, LockTableNode* ltn) {
+    void snapshotIsolationStore(OpData* myd, void* addr, T newVal, uint64_t tableIndex, LockTableNode* ltn) {
         std::atomic<uint64_t>* mutex = &ltn->mutex;
         uint64_t sl = mutex->load(std::memory_order_acquire);
         while (!tryWriteLock(myd->tid, mutex, sl)) {
@@ -2616,7 +1950,9 @@ struct tx_field {
         findAddrInVLT(myd, addr, tableIndex, vtn, found);
 
         if (!found) {
-            myd->writeSet.add(addr, *addr);
+            uint64_t oldValue = 0;
+            std::memcpy(&oldValue, addr, sizeof(T));
+            myd->writeSet.add(addr, oldValue, sizeof(T));
             data = newVal;
             return;
         }
@@ -2625,35 +1961,23 @@ struct tx_field {
 
         assert(head != nullptr);
 
-        myd->writeSet.add(addr, *addr);
+        uint64_t oldValue = 0;
+        std::memcpy(&oldValue, addr, sizeof(T));
+        myd->writeSet.add(addr, oldValue, sizeof(T));
         data = newVal;
 
-        uint64_t ts = head->ts.load(std::memory_order_relaxed);
-        if (isTBD(ts)) {
-            //this vnode is marked TBD but we hold the lock so we must have been the one to add the TBD
-           head->data = (uint64_t)newVal;
-        }
-        else {
-            //this is the first time we are writting to this address
-            VersionedNode* vNode = (VersionedNode*)gMemManager.allocate(sizeof(VersionedNode));
-            vNode->next = head;
-            vNode->ts.store(makeTBDSnapshotTimestamp(myd->rClock), std::memory_order_relaxed);
-            vNode->data = (uint64_t)newVal;
-            vtn->listHead.store(vNode, std::memory_order_relaxed);
-            myd->snapshotWriteSet.add(vtn);
-            gMemManager.retireWithPossibleRollback(head);
-        }
+        updateVlist(myd, vtn, head, (uint64_t)newVal);
     }
     #endif
 
-    void forceVersionedStore(OpData* myd, uint64_t* addr, T newVal, uint64_t tableIndex, LockTableNode* ltn, uint64_t lastLockTs) {
+    void forceVersionedStore(OpData* myd, void* addr, T newVal, uint64_t tableIndex, LockTableNode* ltn, uint64_t lastLockTs) {
         VListTableNode* vtn;
         bool found;
         findAddrInVLT(myd, addr, tableIndex, vtn, found);
 
         VersionedNode* head;
         if (!found) {
-            VersionedNode* vNode = (VersionedNode*)(gMemManager.allocate(sizeof(VersionedNode)));
+            VersionedNode* vNode = (VersionedNode*)(malloc(sizeof(VersionedNode)));
             // This new version is guaranteed to be added, it will not be removed on abort
             //  if we are in mode 2 we attempt to use the gFirstObservedMode2Timestamp
             //  otherwise we version it to be the last version assocaited with this lock table entry
@@ -2665,17 +1989,18 @@ struct tx_field {
             else {
                 vNode->ts.store(lastLockTs, std::memory_order_relaxed);
             }
-            vNode->data = (uint64_t)data;
+            uint64_t data_bit_copied_to_u64 = 0;
+            std::memcpy(&data_bit_copied_to_u64, addr, sizeof(T));            
+            vNode->data = data_bit_copied_to_u64;
             vNode->next = nullptr;
 
-            vtn = (VListTableNode*)(gMemManager.allocate(sizeof(VListTableNode)));
+            vtn = (VListTableNode*)(malloc(sizeof(VListTableNode)));
             vtn->addr = addr;
             vtn->listHead.store(vNode, std::memory_order_relaxed);
 
             vtn->next = globals.gVlistTable[tableIndex].load(std::memory_order_acquire);
             globals.gVlistTable[tableIndex].store(vtn, std::memory_order_release);
 
-            STATS_COUNTER_ADD(tid, snapshot_num_writer_successful_tryVersions, 1);
             head = vNode;
         }
         else {
@@ -2683,36 +2008,24 @@ struct tx_field {
         }
 
         #ifdef COLOCATE_BLOOM_FILTER
-        if (!ltn->bloom.contains(addr)) {
-            ltn->bloom.insertFreshUnsafe(addr);
+        if (!ltn->bloom.contains((uint64_t*)addr)) {
+            ltn->bloom.insertFreshUnsafe((uint64_t*)addr);
         }
         #else
-        if (!globals.blooms[tableIndex].contains(addr)) {
-            globals.blooms[tableIndex].insertFreshUnsafe(addr);
+        if (!globals.blooms[tableIndex].contains((uint64_t*)addr)) {
+            globals.blooms[tableIndex].insertFreshUnsafe((uint64_t*)addr);
         }
         #endif
 
         assert(vtn != nullptr);
         assert(head != nullptr);
 
-        myd->writeSet.add(addr, *addr);
+        uint64_t oldValue = 0;
+        std::memcpy(&oldValue, addr, sizeof(T));
+        myd->writeSet.add(addr, oldValue, sizeof(T));        
         data = newVal;
 
-        uint64_t ts = head->ts.load(std::memory_order_relaxed);
-        if (isTBD(ts)) {
-            //this vnode is marked TBD but we hold the lock so we must have been the one to add the TBD
-            head->data = (uint64_t)newVal;
-        }
-        else {
-            //this is the first time we are writting to this address
-            VersionedNode* vNode = (VersionedNode*)gMemManager.allocate(sizeof(VersionedNode));
-            vNode->next = head;
-            vNode->ts.store(makeTBDSnapshotTimestamp(myd->rClock), std::memory_order_relaxed);
-            vNode->data = (uint64_t)newVal;
-            vtn->listHead.store(vNode, std::memory_order_relaxed);
-            myd->snapshotWriteSet.add(vtn);
-            gMemManager.retireWithPossibleRollback(head);
-        }
+        updateVlist(myd, vtn, head, (uint64_t)newVal);
 
         return;
     }
@@ -2720,11 +2033,16 @@ struct tx_field {
     FORCE_INLINE void store(T newVal) {
         OpData* const myd = tl_opdata;
 
-        uint64_t* addr = (uint64_t*)&data;
+        #ifdef ALLOW_UNSAFE_STORES_IN_CONSTRUCTOR
+        if (myd->constructorCount != 0) {
+            data = newVal;
+            return;
+        }
+        #endif
 
+        void* addr = (void*)&data;
         uint64_t tableIndex = hidx((size_t)addr);
         LockTableNode* ltn = &globals.gHashLock[tableIndex];
-        assert(tableIndex < NUM_LOCKS);
         std::atomic<uint64_t>* mutex = &ltn->mutex;
 
         #ifdef ENABLE_SNAPSHOT_ISOLATION
@@ -2741,14 +2059,12 @@ struct tx_field {
                 continue;
             }
             if (!isWriteConsistent(myd->rClock, myd->tid, sl)) {
-                STATS_COUNTER_ADD(myd->tid, aborts_tl2_store_write_inconsistent, 1);
                 abortTx(myd);
             }
             break;
         }
 
         if (!tryWriteLock(myd->tid, mutex, sl)) {
-            STATS_COUNTER_ADD(myd->tid, aborts_tl2_store_failed_lock_acquire, 1);
             abortTx(myd);
         }
 
@@ -2757,39 +2073,33 @@ struct tx_field {
             return;
         }
 
-        #ifdef COLOCATE_BLOOM_FILTER
-        if (__glibc_unlikely(ltn->bloom.contains(addr))) {
-        #else
-        if (__glibc_unlikely(globals.blooms[tableIndex].contains(addr))) {
-        #endif
+        if (__glibc_unlikely(bloomFilterContainsAddr(tableIndex, ltn, addr))) {
             if (tryVersionedStore(myd, addr, newVal, tableIndex, ltn)) {
                 data = newVal;
                 return;
             }
         }
-        myd->writeSet.add(addr, *addr);
+
+        uint64_t oldValue = 0;
+        std::memcpy(&oldValue, addr, sizeof(T));
+        myd->writeSet.add(addr, oldValue, sizeof(T));
         data = newVal;
     }
 
     FORCE_INLINE T load_tl2() const {
         OpData* const myd = tl_opdata;
-        myd->readCount++;
-
-        uint64_t* addr = (uint64_t*)(&data);
+        void* addr = (void*)(&data);
         uint64_t tableIndex = hidx((size_t)addr);
-        assert(tableIndex < NUM_LOCKS);
         LockTableNode* ltn = &globals.gHashLock[tableIndex];
-
-        T val = data;
         std::atomic<uint64_t>* mutex = &ltn->mutex;
 
+        T val = data;
         while (true) {
             uint64_t sl = mutex->load(std::memory_order_acquire);
             if (!isReadConsistent(myd->rClock, myd->tid, sl)) {
                 if (isInprogressVersioning(sl)) {
                     continue;
                 }
-                STATS_COUNTER_ADD(myd->tid, aborts_tl2_load_read_inconsistent, 1);
                 abortTx(myd);
             }
             break;
@@ -2803,41 +2113,12 @@ struct tx_field {
 
     FORCE_INLINE T load() const {
         OpData* const myd = tl_opdata;
-        myd->readCount++;
+        // myd->readCount++;
 
         if (__glibc_unlikely(myd->tx_type & TX_IS_SNAPSHOT)) {
             return snapshotLoad();
         }
         return load_tl2();
-
-        // uint64_t* addr = (uint64_t*)(&data);
-        // uint64_t tableIndex = hidx((size_t)addr);
-        // assert(tableIndex < NUM_LOCKS);
-        // LockTableNode* ltn = &globals.gHashLock[tableIndex];
-
-
-        // T val = data;
-        // std::atomic<uint64_t>* mutex = &ltn->mutex;
-        // uint64_t sl = mutex->load(std::memory_order_acquire);
-
-        // // while (isInprogressVersioning(sl)) {
-        // //     sl = mutex->load(std::memory_order_acquire);
-        // // }
-
-        // while (true) {
-        //     if (!isReadConsistent(myd->rClock, myd->tid, sl)) {
-        //         if (isInprogressVersioning(sl)) {
-        //             continue;
-        //         }
-        //         STATS_COUNTER_ADD(myd->tid, aborts_tl2_load_read_inconsistent, 1);
-        //         abortTx(myd);
-        //     }
-        // }
-
-        // if (myd->tx_type == TX_IS_UPDATE) {
-        //     myd->readSet.add(mutex);
-        // }
-        // return val;
     }
 };
 
@@ -2845,8 +2126,8 @@ struct tx_field {
 //
 // Wrapper methods to the global TM instance. The user should use these:
 //
-// template<typename R, typename F> static R updateTx(F&& func) { return gMultiverse.transaction<R>(func, TX_IS_UPDATE); }
-// template<typename R, typename F> static R readTx(F&& func) { return gMultiverse.transaction<R>(func, TX_IS_READ); }
+template<typename R, typename F> static R updateTx(F&& func) { return gMultiverse.transaction<R>(func, TX_IS_UPDATE); }
+template<typename R, typename F> static R readTx(F&& func) { return gMultiverse.transaction<R>(func, TX_IS_READ); }
 template<typename F> static void updateTx(F&& func) { gMultiverse.transaction(func, TX_IS_UPDATE); }
 template<typename F> static void readTx(F&& func) { gMultiverse.transaction(func, TX_IS_READ); }
 template<typename T, typename... Args> T* tmNew(Args&&... args) { return Multiverse::tmNew<T>(args...); }
@@ -2885,18 +2166,10 @@ void thread_registry_deregister_thread() {
 }
 
 [[noreturn]] void abortTx(OpData* myd) {
-    #ifdef TRACK_TOTAL_READ_TIME
-    myd->totalReads += myd->readCount;
-    #endif
-
-    #ifdef TRACK_TIME_BEFORE_ABORT
-    std::chrono::time_point<std::chrono::system_clock> now = std::chrono::system_clock::now();
-    int64_t dur = std::chrono::duration_cast<std::chrono::milliseconds>(now - myd->txnStartTime).count();
-    STATS_LIST_APPEND(myd->tid, millis_before_abort, dur);
-    #endif
-
     myd->writeSet.rollback(myd->tid);
     myd->snapshotWriteSet.rollback(myd->tid);
+
+    std::atomic_thread_fence(std::memory_order_seq_cst);
 
     #ifndef USE_RDTSC
     // uint64_t nextClock = globals.gClock.fetch_add(1);
@@ -2908,49 +2181,16 @@ void thread_registry_deregister_thread() {
     } else if (globals.gClock.compare_exchange_strong(curr, curr + 1)) {
         nextClock = curr + 1;
     } else {
+        // curr side-effected to contain actual value of gClock
         nextClock = curr;
     }
-
     #else
     uint64_t nextClock = rdtsc_get_abort_ts();
     #endif
 
-    STATS_LIST_APPEND(myd->tid, rdset_size_at_abort, myd->readSet.size);
-    STATS_LIST_APPEND(myd->tid, wrset_size_at_abort, myd->writeSet.size);
-    STATS_LIST_APPEND(myd->tid, snapshot_wrset_size_at_abort, myd->snapshotWriteSet.size);
-
-    gMemManager.abort(myd->tid);
-
     // Unlock with the next sequence
     myd->writeSet.unlock(nextClock, myd->tid);
-    #ifdef TRACK_MULTIVERSE_COUNTERS
-    gMultiverseCounters[myd->tid % 256].aborts++;
-    #endif
-    #ifdef TRACK_REGULAR_METRICS
-    STATS_COUNTER_ADD(myd->tid, aborts, 1);
-    #endif
-
-    #ifdef TRACK_SNAPSHOT_METRICS
-    if (myd->tx_type == TX_IS_SNAPSHOT) {
-        STATS_COUNTER_ADD(myd->tid, aborts_snapshot, 1);
-        #ifdef TRACK_SNAPSHOT_METRICS_2
-        STATS_LIST_APPEND(myd->tid, snapshot_num_successful_tryVersions_per_txn, myd->numTryVersionsDuringTxn);
-        STATS_LIST_APPEND(myd->tid, snapshot_num_failed_tryVersions_per_txn, myd->numFailedTryVersionsDuringTxn);
-        #endif
-        STATS_LIST_APPEND(myd->tid, snapshot_read_count_at_abort, myd->readCount);
-    }
-    else if (myd->tx_type == TX_IS_READ) {
-        STATS_LIST_APPEND(myd->tid, read_count_at_abort, myd->readCount);
-    }
-    #endif
-
-    #ifndef DISABLE_MODE2_SNAPSHOTS
-    if (myd->tx_type == TX_IS_SNAPSHOT_MODE2 && myd->myTmMode > TM_MODE_INTERMEDIATE1) {
-        // TM_TIMELINE_BLIP(tid, "mode2_abort");
-        STATS_COUNTER_ADD(tid, aborts_mode2_snapshot, 1);
-        STATS_LIST_APPEND(myd->tid, snapshot_read_count_at_abort, myd->readCount);
-    }
-    #endif
+    gMemManager.abort();
 
     if (myd->tx_type == TX_IS_READ) {
         uint64_t maxRdSetSize = MAX_SNAPSHOT_DEFAULT_MODE_RD_SET_SIZE.load(std::memory_order_relaxed);
@@ -2961,15 +2201,12 @@ void thread_registry_deregister_thread() {
         }
         else if(myd->attempt > RETRIES_BEFORE_SNAPSHOT_DEFAULT_MODE && !myd->forceMode2Reads) {
             myd->tx_type = TX_IS_SNAPSHOT;
-            STATS_COUNTER_ADD(myd->tid, snapshot_starts, 1);
         }
         else if(myd->attempt > RETRIES_BEFORE_SNAPSHOT_DEFAULT_MODE && myd->forceMode2Reads) {
             #ifndef DISABLE_MODE2_SNAPSHOTS
             transitionToMode2(myd);
-            STATS_COUNTER_ADD(myd->tid, snapshot_starts, 1);
             #endif
         }
-        STATS_COUNTER_ADD(tid, aborts_read_only_txns, 1);
     }
     #ifndef DISABLE_MODE2_SNAPSHOTS
     else if (myd->tx_type == TX_IS_SNAPSHOT) {

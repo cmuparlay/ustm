@@ -84,7 +84,7 @@ foreach(bench ${STRUCTS})
   add_benchmark(${bench}_mvustm_vla ${MIXED} ${STRUCT_DIR}/${bench} "USTM;MV;SplitStamp;VLA" "")
   add_benchmark(${bench}_2plsf ${MIXED} ${STRUCT_DIR}/${bench} "Other;TWOPLSF" "")
 
-#  add_benchmark(${bench}_multiverse ${MIXED} ${STRUCT_DIR}/${bench} "MAX_THREADS_POW2=256;CPU_FREQ_GHZ=2.4;MULTIVERSE" "")
+  add_benchmark(${bench}_multiverse ${MIXED} ${STRUCT_DIR}/${bench} "MAX_THREADS_POW2=256;CPU_FREQ_GHZ=2.4;MULTIVERSE" "")
 
   if (NOT ${bench} MATCHES "hash_probe|hash_list|hash_block")
     add_benchmark(${bench}_dcotl ${MIXED} ${STRUCT_DIR}/${bench} "MAX_THREADS_POW2=256;CPU_FREQ_GHZ=2.4;MICROBENCH;dcotl" "")
