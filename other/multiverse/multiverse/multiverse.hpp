@@ -32,16 +32,7 @@
 #include "tm_common/tm_debug.h"
 #include "tm_common/tm_timelines.h"
 #include "bloom_filter.h"
-
-#ifndef CAT2
-#define CAT2(x, y) x##y
-#endif
-#ifndef CAT
-#define CAT(x, y) CAT2(x, y)
-#endif
-#ifndef PAD64
-#define PAD64 volatile char CAT(___padding, __COUNTER__)[64]
-#endif
+#include "plaf.h"
 
 std::atomic<int> debugLock {0};
 
