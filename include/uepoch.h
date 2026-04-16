@@ -169,9 +169,6 @@ namespace uepoch {
       void advance_epoch(int i) {
         thread_state& pool = pools[i];
         if (pool.epoch + 1 < current_epoch.load()) {
-          // could call all the delayed functions in old at this
-          // point, but we delay and put them in safe so they
-          // can be applied over time
           clear_pool(pool.old);
           std::swap(pool.old, pool.current);  
           // current is now empty

@@ -24,7 +24,7 @@
 #include <vector>
 // Uses epoch-based SMR from uepoch.h.  Needed interface:
 //   r = uepoch::protect(func) : runs func under protection
-//   uepoch::delay(func) : delays until proteced are done
+//   uepoch::delay(func) : delays until protected are done
 //   uepoch::add_before_epoch_hook(func)
 //   uepoch::thread_id()
 #include "uepoch.h"
