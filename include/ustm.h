@@ -208,11 +208,10 @@ namespace ustm {
           if (!getLock(e).validateRead(myd->startStamp,
                                        myd->tid))
             return false;
-        // If  here (i.e.  locks  and validates  succeeded),
+        // If here (i.e.,  locks and validates succeeded),
         // transaction succeeded.  Apply the writes and then
         // unlock them.
         for (auto& e : myd->writeLog) {
-
           auto *tmp = e.scratch;
           // swap destination and data (from the link)
           std::memcpy(tmp, e.loc, e.size);
@@ -233,7 +232,6 @@ namespace ustm {
         uepoch::delay(std::move(e));
       myd->reset();
       if (hasWrite) ts.nextStamp(endStamp);
-      myd->inTransaction = false;
       return true;
     }
 
@@ -329,15 +327,16 @@ namespace ustm {
     STMState* stm = myd->stmState;
     // if nested then just run
     if (myd->inTransaction) return func(); 
-    myd->inTransaction = true;
     myd->numRetries = 0;
     decltype(func()) returnValue;
     myd->readOnly = readOnly;
     while (true) {
+      myd->inTransaction = true;
       returnValue = uepoch::protect([&] {
         myd->startStamp = stm->ts.getStamp();
         return func();
       });
+      myd->inTransaction = false;
       if (stm->commitTransaction(myd))
         return returnValue;
       else stm->abortTransaction(myd);

@@ -302,14 +302,13 @@ namespace ustm {
           if (!getLock(e).validateRead(myd->startStamp,
                                        myd->tid))
             return false;
-        // If  here (i.e.  locks  and validates  succeeded),
+        // If here (i.e.,  locks and validates succeeded),
         // transaction succeeded.  Apply the writes and then
         // unlock them.
         for (auto& e : myd->writeLog) {
 #ifdef SimpleSTM
           std::memcpy(e.loc, &e.data, e.size);
 #else
-
   #ifdef VLA
           char tmp[e.size];
   #else
@@ -337,7 +336,6 @@ namespace ustm {
 #ifdef SplitStamp
       if (hasWrite) ts.nextStamp(endStamp);
 #endif
-      myd->inTransaction = false;
 #ifdef STMStats
       myd->numCommits++;
 #endif
@@ -442,6 +440,7 @@ namespace ustm {
     }
 #elif defined(TryThrow)
     if (regular) {
+      myd->lateRead = true;
       uepoch::get_epoch().unannounce();
       throw 0;
     }
@@ -483,7 +482,6 @@ namespace ustm {
     STMState* stm = myd->stmState;
     // if nested then just run
     if (myd->inTransaction) return func(); 
-    myd->inTransaction = true;
     myd->numRetries = 0;
     decltype(func()) returnValue;
 #ifndef SimpleSTM
@@ -495,21 +493,26 @@ namespace ustm {
 #elif defined(TryThrow)
       try {
 #endif
+      myd->inTransaction = true;
       returnValue = uepoch::protect([&] {
         myd->startStamp = stm->ts.getStamp();
         return func();
       });
 #ifdef LongJmp
       }
+      myd->inTransaction = false;
       if (!myd->lateRead && stm->commitTransaction(myd)) 
 #elif defined(TryThrow)
       } catch (int x) {}
+      myd->inTransaction = false;
       if (!myd->lateRead && stm->commitTransaction(myd))
 #elif defined(LazyStamp)
-        if ((!myd->lateRead ||
-             (myd->readOnly && myd->numRetries > 0))
-            && stm->commitTransaction(myd))
+      myd->inTransaction = false;
+      if ((!myd->lateRead ||
+           (myd->readOnly && myd->numRetries > 0))
+          && stm->commitTransaction(myd))
 #else
+      myd->inTransaction = false;
       if (stm->commitTransaction(myd))
 #endif
         return returnValue;
