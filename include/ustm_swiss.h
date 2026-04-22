@@ -164,9 +164,9 @@ namespace ustm {
       verlist.store(l, std::memory_order_release); }
 #endif
 
-    // Returns whether succeeded or not, and if succeeded a
-    // 0 stamp.  If was self locked, and the swapped out
-    // timestamp otherwise
+    // If self locked return: <true, 0>
+    // If succeedes in locking return: <true, prior timestamp>
+    // If failed return: <false, 0>
     std::pair<bool,TS> tryLock(int tid, const TS startStamp) {
       Status s = getStatus();
       if (isLocked(s)) 
