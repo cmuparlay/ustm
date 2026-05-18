@@ -407,6 +407,7 @@ def plot_geomean_bars(geomean_data, output_dir, filename='geomean.pdf'):
         impls_found.add(impl)
     
     structures = sorted(structures, key=lambda s: STRUCT_LABELS.get(s, s))
+    structures = sorted(["avltree", "btree", "hash_list"])
     impls = [i for i in IMPL_ORDER if i in impls_found]
     
     # Normalize per structure

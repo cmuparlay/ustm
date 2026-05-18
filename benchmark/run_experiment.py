@@ -50,9 +50,9 @@ class Config:
                 # "mvustm_longjmp",
                 "2plsf",
                 "fuse",
-                # "onefile",
-                # "tiny",
-                # "tl2",
+                "onefile",
+                "tiny",
+                "tl2",
                 # DCOTL is broken for most benchmarks
                 # "dcotl"
             ]
