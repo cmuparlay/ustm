@@ -66,8 +66,8 @@ namespace stm {
       return *this;
     }
     void store(T v) { val.store(v); }
-    T load() { return val.load(); }
-    T load_unprotected() { return val.load(); }
+    T load() const { return val.load(); }
+    T load_unprotected() const { return val.load(); }
     void validate() const { }
     void init(T x) { val = x; }
     T operator=(T b) { val = b; return b; }

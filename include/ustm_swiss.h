@@ -129,7 +129,7 @@ namespace ustm {
   struct link : version {
     T value;
   #ifndef VLA
-    T scratch;
+    char scratch[sizeof(T)];
   #endif // VLA
     link(T* addr, T value) : version{addr}, value(value) {}
   };
@@ -383,7 +383,7 @@ namespace ustm {
   }
 
   template <typename T>
-  inline T load(T& v, bool unprotected=false) {
+  inline T load(const T& v, bool unprotected=false) {
     //__builtin_prefetch (&v);
     Descriptor* myd = getDescriptor();
     lock& lck = myd->stmState->getLock(&v);

@@ -28,13 +28,19 @@ namespace stm {
   T *New(Args&&... args) { return
       ustm::New<T>(std::forward<Args>(args)...); }
   template <typename T>
-  T load(T& val) { return ustm::load(val); }
+  T load(const T& val) { return ustm::load(val); }
   template <typename T>
   void store(T& val, T v) { ustm::store(val, v); }
 
   template <typename T>
   struct direct_atomic {
     T val;
+    // delete copy/move assignment/constructors
+    direct_atomic(const direct_atomic&) = delete;
+    direct_atomic& operator=(const direct_atomic&) = delete;
+    direct_atomic(direct_atomic&& other) = delete;            
+    direct_atomic& operator=(direct_atomic&& other) = delete; 
+
     direct_atomic(const T& v) : val(v) { }
     direct_atomic()  {}
     void store(const T& v) { ustm::store(val, v); }

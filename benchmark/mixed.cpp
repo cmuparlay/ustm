@@ -72,14 +72,6 @@ std::string command_string = R"(
 example: -n 10000,10000000 -u 0,5,50 -z 0,.99 -trans 1,16 -rs 100,1000 -rqp 50 -r 3
 )";
 
-using K = unsigned long;
-using V = std::array<unsigned long, 1>;
-
-  struct IntHash {
-    std::size_t operator()(K const& k) const noexcept {
-      return k * UINT64_C(0xbf58476d1ce4e5b9);}
-  };
-
 struct statistics {
   long total;
   long added_count; 
@@ -113,17 +105,51 @@ statistics adds(statistics s1, statistics s2) {
   return r;
 }    
 
-template<typename SetType, typename K, typename F>
+template <typename K>
+struct RadixString {
+  static int length(K key) { return key.size()+1;}
+  static int get_byte(K key, int pos) {
+    return (pos >= key.size()) ? 0 : key[pos];}
+};
+
+template <typename K>
+struct IntString {
+  static int length(const K& key) { return sizeof(K);}
+  static int get_byte(const K& key, int pos) {
+    return (key >> (8*(sizeof(K)-1-pos))) & 255;
+  }
+};
+
+template <typename K>
+using XString = std::conditional_t<std::is_integral_v<K>, IntString<K>, RadixString<K>>;
+
+template<typename K, typename F>
 std::pair<double,double>
 run_mixed_operations(const parlay::sequence<K>& all,
-                            const parlay::sequence<K>& unique,
-                            float zipfian_param,
-                            int update_percent,
-                            int trans_size,
-                            long range_size,
-                            int warmup,
-                            const F& endKey,
-                            commandLine P) {
+                     const parlay::sequence<K>& unique,
+                     float zipfian_param,
+                     int update_percent,
+                     int trans_size,
+                     long range_size,
+                     int warmup,
+                     const F& endKey,
+                     commandLine P) {
+
+    bool bigval = P.getOption("-bigval");
+    using V = parlay::chars;
+    V default_val = parlay::to_chars(bigval ? ~0ul : 3);
+
+    //  using V = std::array<long,2>;
+    //V default_val{3,3};
+
+#ifdef HASH
+    using SetType = parlay::unordered_map<K,V,parlay::hash<K>>;
+#elif RADIX
+    using SetType = parlay::ordered_map<K,V,XString<K>>;
+#else
+    using SetType = parlay::ordered_map<K,V>;
+#endif
+  
   long m = all.size();
   // half the unique elements on average are in the table
   bool upsert = P.getOption("-up");
@@ -168,14 +194,11 @@ run_mixed_operations(const parlay::sequence<K>& all,
     auto &tr = *map_ptr;
     auto check = [&]() { return  map_ptr->check(); };
     if (verbose) std::cout << "round " << i << std::endl;
-    using V = typename SetType::V;
-    V default_value;
-    default_value[0] = 3;
     
     // insert n distinct elements
     parlay::parallel_for(0, n, [&] (size_t i) {
       stm::atomic_region([&] {
-	bool x = tr.insert(unique[i], default_value);
+	bool x = tr.insert(unique[i], default_val);
         if (!x) {
           std::cout << "Error: key found when inserting unique keys" << std::endl;
           std::abort();
@@ -262,18 +285,18 @@ run_mixed_operations(const parlay::sequence<K>& all,
 #else
             auto val = stm::atomic_read_only_singleton([&] {return tr.find(all[j]);});
 #endif
-            if (val.has_value()) local_stats.query_total_value += val.value()[0];
+            if (val.has_value()) local_stats.query_total_value++;
 #ifdef UPSERT
           } else if (upsert) {
             local_stats.update_count++;
-            if (stm::atomic_region([&] {return tr.upsert(all[j], default_value);})) {
+            if (stm::atomic_region([&] {return tr.upsert(all[j], default_val);})) {
               local_stats.added_count++;
               local_stats.update_success_count++;
             }
 #endif
           } else if (op_types[jj] == Insert) {
             local_stats.update_count++;
-            if (stm::atomic_region([&] {return tr.insert(all[j], default_value);})) {
+            if (stm::atomic_region([&] {return tr.insert(all[j], default_val);})) {
               local_stats.added_count++;
               local_stats.update_success_count++;
             }
@@ -296,13 +319,13 @@ run_mixed_operations(const parlay::sequence<K>& all,
               if (op_types[jj+k] == Find) {
                 loc_queries += 1;
                 auto val = tr.find(all[j+k]);
-                if (val.has_value()) loc_found += val.value()[0];
+                if (val.has_value()) loc_found++;
 #ifdef UPSERT
               } else if (upsert) {
-                if (tr.upsert(all[j+k], default_value)) {loc_added++; loc_update_success++;}
+                if (tr.upsert(all[j+k], default_val)) {loc_added++; loc_update_success++;}
 #endif
               } else if (op_types[jj+k] == Insert) {
-                if (tr.insert(all[j+k], default_value)) {loc_added++; loc_update_success++;}
+                if (tr.insert(all[j+k], default_val)) {loc_added++; loc_update_success++;}
               } else if (op_types[jj+k] == Remove) {
                 if (tr.remove(all[j+k])) {loc_added--; loc_update_success++;}
               }
@@ -361,7 +384,7 @@ run_mixed_operations(const parlay::sequence<K>& all,
       double update_successes = overall_stats.update_success_count;
       double update_success_ratio = update_successes / total_updates;
       long total_queries = overall_stats.query_count;
-      double total_found = overall_stats.query_total_value / default_value[0];
+      double total_found = overall_stats.query_total_value;
       double success_ratio = total_found / total_queries;
       int range_ratio = overall_stats.range_sum / (overall_stats.range_count + 1);
       if (verbose) {
@@ -437,7 +460,7 @@ parlay::sequence<parlay::chars> comma_separated_arg(commandLine P, std::string o
     else return parlay::sequence<parlay::chars>{parlay::to_sequence(default_str)};
 }
 
-template<typename SetType, typename K, typename F>
+template<typename K, typename F>
 void run_loops(const parlay::sequence<K>& all_keys,
                const parlay::sequence<K>& unique_keys,
                const parlay::sequence<int>& percents,
@@ -449,9 +472,9 @@ void run_loops(const parlay::sequence<K>& all_keys,
   for (auto range_size : range_sizes) {
     for (auto update_percent : percents) {
       for (auto trans_size : transaction_sizes) {
-        auto [tr,be] = run_mixed_operations<SetType, K>(all_keys, unique_keys,
-                                                        zipfian_param, update_percent,
-                                                        trans_size, range_size, warm, endKey, P);
+        auto [tr,be] = run_mixed_operations<K>(all_keys, unique_keys,
+                                               zipfian_param, update_percent,
+                                               trans_size, range_size, warm, endKey, P);
         throughputs.push_back(tr);
         if (be > 0)
           bytes.push_back(be);
@@ -461,17 +484,12 @@ void run_loops(const parlay::sequence<K>& all_keys,
   }
 }
 
-template <typename K>
-struct RadixString {
-  static int length(K key) { return key.size()+1;}
-  static int get_byte(K key, int pos) {
-    return (pos >= key.size()) ? 0 : key[pos];}
-};
-
 int main(int argc, char* argv[]) {
   commandLine P(argc,argv,command_string);
 
   bool do_warmup = !P.getOption("-nowarmup");
+  bool use_strings = P.getOption("-strings");
+  bool dense = P.getOption("-dense");
   int warmup = P.getOptionIntValue("-warmup", do_warmup ? 2 : 0);
   std::string filename = P.getOptionValue("-file", "");
   
@@ -502,27 +520,13 @@ int main(int argc, char* argv[]) {
     auto a = parlay::random_shuffle(parlay::tokens(str, [] (char c) {return !isalnum(c);}));
     auto unique = parlay::random_shuffle(parlay::remove_duplicates(a));
     using K = parlay::chars;
-#ifdef RADIX
-    using SetType = parlay::ordered_map<K,V,RadixString<K>>;
-#elif HASH
-    using SetType = parlay::unordered_map<K,V,parlay::hash<K>>;
-#else
-    using SetType = parlay::ordered_map<K,V>;
-#endif
     auto endKey = [] (const K& begin, long range_size) {return begin;};
-    run_loops<SetType, K>(a, unique,
-                          percents, transaction_sizes, range_sizes, throughputs, bytes,
-                          0.0, warmup, endKey, P);
+    run_loops<K>(a, unique,
+                 percents, transaction_sizes, range_sizes, throughputs, bytes,
+                 0.0, warmup, endKey, P);
 
   } else {
-
     using K = unsigned long;
-#ifdef HASH
-    using SetType = parlay::unordered_map<K,V,IntHash>;
-#else
-    using SetType = parlay::ordered_map<K,V>;
-#endif
-
     parlay::sequence<K> unique_keys;
     parlay::sequence<K> all_keys;
 
@@ -538,10 +542,16 @@ int main(int argc, char* argv[]) {
         long unique_size = 2 * n;
 
         // first generate the shuffled unique keys
-        auto candidates = parlay::delayed_tabulate(1.2 * unique_size, [&] (size_t i) {
+        parlay::sequence<K> unique_keys;
+        if (dense) {
+          auto keys = parlay::tabulate(unique_size, [] (K i) { return i;});
+          unique_keys = parlay::random_shuffle(keys);
+        } else {
+          auto candidates = parlay::delayed_tabulate(1.2 * unique_size, [&] (size_t i) {
                             return (K) parlay::hash64(i);}); // generate 64-bit keys
-        auto shuffled = parlay::random_shuffle(parlay::remove_duplicates(candidates));
-        unique_keys = parlay::tabulate(unique_size, [&] (size_t i) {return shuffled[i];});
+          auto shuffled = parlay::random_shuffle(parlay::remove_duplicates(candidates));
+          unique_keys = parlay::tabulate(unique_size, [&] (size_t i) {return shuffled[i];});
+        }
 
         // then put them into a sequence of length m
         long m = P.getOptionIntValue("-m", 5 * unique_size + 1000 * p);
@@ -551,9 +561,18 @@ int main(int argc, char* argv[]) {
                      else return unique_keys[parlay::hash64(i) % unique_size];});
         if (zipfian_param != 0.0)
           unique_keys = parlay::random_shuffle(unique_keys);
-        run_loops<SetType, K>(all_keys, unique_keys,
-                              percents, transaction_sizes, range_sizes, throughputs, bytes,
-                              zipfian_param, warmup, endKey, P);
+        if (use_strings) {
+          auto a_keys = parlay::map(all_keys, [] (K k) {return parlay::to_chars(k);});
+          auto u_keys = parlay::map(unique_keys, [] (K k) {return parlay::to_chars(k);});
+          auto endKey = [] (const parlay::chars& begin, long range_size) {return begin;};
+          run_loops(a_keys, u_keys,
+                    percents, transaction_sizes, range_sizes, throughputs, bytes,
+                    zipfian_param, warmup, endKey, P);
+        } else {
+          run_loops(all_keys, unique_keys,
+                    percents, transaction_sizes, range_sizes, throughputs, bytes,
+                    zipfian_param, warmup, endKey, P);
+        }
       }
     }
   }

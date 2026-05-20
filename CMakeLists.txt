@@ -58,7 +58,7 @@ set(USTM_INCLUDE_DIR "${USTM_SOURCE_DIR}/include")
 
 add_library(ustm INTERFACE)
 target_include_directories(ustm INTERFACE ${USTM_INCLUDE_DIR})
-target_compile_features(ustm INTERFACE cxx_std_17)
+target_compile_features(ustm INTERFACE cxx_std_20)
 
 set(USTM_COMMON_FLAGS -g)
 if(TARGET_ARCH MATCHES "x86")
