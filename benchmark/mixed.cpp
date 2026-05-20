@@ -135,13 +135,15 @@ run_mixed_operations(const parlay::sequence<K>& all,
                      const F& endKey,
                      commandLine P) {
 
+#ifdef StringValues
     bool bigval = P.getOption("-bigval");
     using V = parlay::chars;
     V default_val = parlay::to_chars(bigval ? ~0ul : 3);
-
-    //  using V = std::array<long,2>;
-    //V default_val{3,3};
-
+#else
+    using V = long;
+    V default_val = 3;
+#endif
+    
 #ifdef HASH
     using SetType = parlay::unordered_map<K,V,parlay::hash<K>>;
 #elif RADIX

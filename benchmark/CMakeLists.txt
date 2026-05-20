@@ -50,13 +50,18 @@ function(add_benchmark NAME SOURCE STRUCT_NAME DEFS LIB)
   endif()
 endfunction()
 
-add_benchmark(btree_inplace_indirect_mvustm ${MIXED} ${STRUCT_DIR}/btree "USTM;MV;SplitStamp;UpsertInPlace;ForceIndirect" "")
-add_benchmark(btree_inplace_mvustm ${MIXED} ${STRUCT_DIR}/btree "USTM;MV;SplitStamp;UpsertInPlace" "")
-add_benchmark(btree_indirect_mvustm ${MIXED} ${STRUCT_DIR}/btree "USTM;MV;SplitStamp;ForceIndirect" "")
+add_benchmark(btree_string_mvustm ${MIXED} ${STRUCT_DIR}/btree "USTM;MV;SplitStamp;StringValues" "")
+add_benchmark(btree_string_inplace_indirect_mvustm ${MIXED} ${STRUCT_DIR}/btree "USTM;MV;SplitStamp;UpsertInPlace;ForceIndirect" "")
+add_benchmark(btree_string_inplace_mvustm ${MIXED} ${STRUCT_DIR}/btree "USTM;MV;SplitStamp;UpsertInPlace;StringValues" "")
+add_benchmark(btree_string_indirect_mvustm ${MIXED} ${STRUCT_DIR}/btree "USTM;MV;SplitStamp;ForceIndirect;StringValues" "")
 
-add_benchmark(btree_inplace_indirect_2plsf ${MIXED} ${STRUCT_DIR}/btree "Other;TWOPLSF;UpsertInPlace;ForceIndirect" "")
-#add_benchmark(btree_inplace_indirect_fuse ${MIXED} ${STRUCT_DIR}/btree "Other;Fuse;WriteStamp;MV_TLF;UpsertInPlace;ForceIndirect" "")
-add_benchmark(btree_inplace_indirect_multiverse ${MIXED} ${STRUCT_DIR}/btree "MAX_THREADS_POW2=256;CPU_FREQ_GHZ=2.4;MULTIVERSE;UpsertInPlace;ForceIndirect" "")
+add_benchmark(btree_string_2plsf ${MIXED} ${STRUCT_DIR}/btree "Other;TWOPLSF;StringValues" "")
+add_benchmark(btree_string_inplace_indirect_2plsf ${MIXED} ${STRUCT_DIR}/btree "Other;TWOPLSF;UpsertInPlace;ForceIndirect;StringValues" "")
+
+add_benchmark(btree_string_fuse ${MIXED} ${STRUCT_DIR}/btree "Other;Fuse;WriteStamp;MV_TLF;StringValues" "")
+
+add_benchmark(btree_string_multiverse ${MIXED} ${STRUCT_DIR}/btree "MAX_THREADS_POW2=256;CPU_FREQ_GHZ=2.4;MULTIVERSE;StringValues" "")
+add_benchmark(btree_string_inplace_indirect_multiverse ${MIXED} ${STRUCT_DIR}/btree "MAX_THREADS_POW2=256;CPU_FREQ_GHZ=2.4;MULTIVERSE;UpsertInPlace;ForceIndirect;StringValues" "")
 
 foreach(bench ${SUB_STRUCTS})
 #  add_benchmark(${bench}_ustm ${MIXED} ${STRUCT_DIR}/${bench} "USTM;SplitStamp;SimpleSTM" "")
