@@ -53,13 +53,18 @@ class Config:
                 "onefile",
                 "tiny",
                 "tl2",
+                # Blocking optimistic-locking baseline (other/fuse/include/structures,
+                # no Versioned/LazyStamp/FlockHelp): the "fine-grained concurrent"
+                # counterpart to the STM impls. Point-update only — its binary
+                # silently skips trans>1 runs.
+                "ol",
                 # DCOTL is broken for most benchmarks
                 # "dcotl"
             ]
             self.tpcc_impls = ["mvustm", "fuse", "2plsf", "multiverse"]
         else:
-            #only run impl
-            self.impls = self.tpcc_impls = [ args.impl ]
+            #only run specified impls
+            self.impls = self.tpcc_impls = list(args.impl)
 
         self.max_threads = os.cpu_count()
         self.numa_cmd = "numactl -i all"
@@ -563,13 +568,80 @@ class ExperimentRunner:
 
         self.results_file.close()
 
+    def _run_experiment_list(self, title: str, experiments: List[Tuple[str, callable]]):
+        print("=" * 50)
+        print(title)
+        print("=" * 50)
+
+        for name, func in experiments:
+            print(f"\n=== {name} ===")
+            start_time = time.time()
+            func()
+            elapsed = time.time() - start_time
+            print(f"Completed in {elapsed:.1f}s ({elapsed/60:.1f}m)")
+
+        print("\n" + "=" * 50)
+        print(f"{title} complete!")
+        print("=" * 50)
+
+    def run_stm_vs_ol(self):
+        """STM vs fine-grained-concurrent (blocking OL) geomean comparison.
+
+        Mirrors run_geomean's methodology — same size/update/zipfian sweep at
+        the default thread count — but pinned to trans=1 because OL is
+        point-update only. The C++ binary emits one geomean per impl/struct
+        pair across the parameter sweep.
+        """
+        self.setup_output("stm_vs_ol")
+        self.results_file.write(f"Threads: {self.config.default_p}\n")
+        self.results_file.write("---\n")
+
+        if self.config.small:
+            sizes, list_sizes = [100000, 10000000], [100, 1000]
+            updates, zipfians = [0, 5, 50], [0, 0.99]
+        else:
+            sizes, list_sizes = [10 ** i for i in [5, 6, 7]], [10 ** i for i in [2, 3]]
+            updates, zipfians = [0, 5, 50], [0, 0.75, 0.99]
+
+        def batch_params(sz_list):
+            return {
+                'n': ','.join(map(str, sz_list)),
+                'u': ','.join(map(str, updates)),
+                'z': ','.join(map(str, zipfians)),
+                'trans': 1,
+                'p': self.config.default_p,
+            }
+
+        # Default to STM impls + ol; if the user passed --impl, honour it.
+        if "ol" in self.config.impls:
+            impls = self.config.impls
+        else:
+            impls = list(self.config.impls) + ["ol"]
+
+        for impl in impls:
+            for struct in self._all_structs_for_impl(impl):
+                if not self._binary_exists(f"{struct}_{impl}"):
+                    continue
+
+                sz_list = list_sizes if struct in self.config.lstructs else sizes
+                print(f"  {struct}_{impl}")
+                self._run_batch(struct, impl, batch_params(sz_list))
+
+        self.results_file.close()
+
+    def run_sweep(self):
+        """Run parameter sweep experiments (2-6)."""
+        self._run_experiment_list("Running parameter sweep experiments", [
+            ("Experiment 2: Varying Size", self.run_size),
+            ("Experiment 3: Varying Threads", self.run_threads),
+            ("Experiment 4: Varying Zipfian", self.run_zipfian),
+            ("Experiment 5: Varying Transaction Size", self.run_trans),
+            ("Experiment 6: Varying Update Rate", self.run_update),
+        ])
+
     def run_all(self):
         """Run all experiments."""
-        print("=" * 50)
-        print("Running all MVUSTM experiments")
-        print("=" * 50)
-        
-        experiments = [
+        self._run_experiment_list("Running all MVUSTM experiments", [
             # ("Experiment 8: TPCC", self.run_tpcc),
             ("Experiment 1: Geometric Mean", self.run_geomean),
             ("Experiment 2: Varying Size", self.run_size),
@@ -580,18 +652,7 @@ class ExperimentRunner:
             ("Experiment 7: Range Queries", self.run_range),
             ("Experiment 9: Non-trivial Types", self.run_nontrivial_types),
             ("Experiment 10: Ablation Study", self.run_ablation),
-        ]
-        
-        for name, func in experiments:
-            print(f"\n=== {name} ===")
-            start_time = time.time()
-            func()
-            elapsed = time.time() - start_time
-            print(f"Completed in {elapsed:.1f}s ({elapsed/60:.1f}m)")
-        
-        print("\n" + "=" * 50)
-        print("All experiments complete!")
-        print("=" * 50)
+        ])
 
 
 def main():
@@ -603,13 +664,15 @@ Experiments:
   geomean    Geometric mean performance
   size       Varying data structure size
   threads    Varying thread count
-  zipfian    Varying zipfian skew 
+  zipfian    Varying zipfian skew
   trans      Varying transaction size
   update     Varying update rate
   range      Range queries
   tpcc       TPCC benchmark
   nontrivial Non-trivial types (btree upsert variants, hash_list/hash_probe)
   ablation   Ablation studies (timestamping, abort mechanism)
+  stm_vs_ol  STM vs fine-grained-concurrent (blocking OL) at trans=1
+  sweep      Run parameter sweep experiments (size, threads, zipfian, trans, update)
   all        Run all experiments
 
 Examples:
@@ -618,18 +681,18 @@ Examples:
   ./run_experiment.py threads --output ./results
 """)
     
-    parser.add_argument("experiment", 
-                       choices=["geomean", "size", "threads", "zipfian", "trans", "update", "range", "tpcc", "nontrivial", "ablation", "all"],
-                       help="Experiment to run")
+    parser.add_argument("experiment", nargs="+",
+                       choices=["geomean", "size", "threads", "zipfian", "trans", "update", "range", "tpcc", "nontrivial", "ablation", "stm_vs_ol", "sweep", "all"],
+                       help="Experiment(s) to run (one or more)")
     parser.add_argument("--output", "-o", metavar="DIR",
                        help="Output directory for results")
     parser.add_argument("--small", action="store_true",
                        help="Restrict to btree, hash_list, and list (geomean uses runall.sh parameters)")
     parser.add_argument("--allocator", default="deqalloc",
                        help="Choose which allocator to use (default: deqalloc)")
-    parser.add_argument("--impl", default=None,
-                       choices=["mvustm", "fuse", "2plsf", "multiverse"],
-                       help="Run a specific stm system only")
+    parser.add_argument("--impl", default=None, nargs="+",
+                       choices=["mvustm", "fuse", "2plsf", "multiverse", "onefile", "tiny", "tl2", "ol"],
+                       help="Run only the specified stm system(s)")
     parser.add_argument("--struct", default=None,
                        choices=["btree", "arttree", "avltree", "leaftree", "treap", "skiplist", "hash_list"],
                        help="Run a specific struct only")
@@ -656,15 +719,23 @@ Examples:
         "tpcc": runner.run_tpcc,
         "nontrivial": runner.run_nontrivial_types,
         "ablation": runner.run_ablation,
+        "stm_vs_ol": runner.run_stm_vs_ol,
+        "sweep": runner.run_sweep,
         "all": runner.run_all,
     }
     
-    start_time = time.time()
-    experiments[args.experiment]()
-    elapsed = time.time() - start_time
-    
-    if args.experiment != "all":  # run_all() prints its own timing
-        print(f"\nCompleted in {elapsed:.1f}s ({elapsed/60:.1f}m)")
+    if len(args.experiment) == 1:
+        exp = args.experiment[0]
+        start_time = time.time()
+        experiments[exp]()
+        elapsed = time.time() - start_time
+        if exp not in ("all", "sweep"):  # these print their own timing
+            print(f"\nCompleted in {elapsed:.1f}s ({elapsed/60:.1f}m)")
+    else:
+        runner._run_experiment_list(
+            f"Running {len(args.experiment)} experiments: {', '.join(args.experiment)}",
+            [(name, experiments[name]) for name in args.experiment],
+        )
 
     os.chdir(curr_dir) #popd
 

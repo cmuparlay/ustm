@@ -1,12 +1,16 @@
 set(MIXED mixed.cpp)
+set(MIXED_OL mixed_ol.cpp)
 set(TPCC tpcc.cpp)
 
 set(STRUCT_DIR ${PROJECT_SOURCE_DIR}/structures)
+set(OL_STRUCT_DIR ${PROJECT_SOURCE_DIR}/other/fuse/include/structures)
 set(OTHER_DIR ${PROJECT_SOURCE_DIR}/other)
 set(FUSE_DIR ${OTHER_DIR}/fuse)
 
 set(STRUCTS "avltree" "treap" "leaftree" "btree" "arttree" "hash_block" "hash_list" "list" "skiplist" "hash_probe")
 set(SUB_STRUCTS "btree")
+# Structures available as native blocking optimistic-locking implementations in fuse/include/structures.
+set(OL_STRUCTS "avltree" "treap" "leaftree" "btree" "arttree" "hash_block" "list" "skiplist")
 
 list(APPEND COMMON_DEFS "STMStats")
 
@@ -22,7 +26,7 @@ function(add_benchmark NAME SOURCE STRUCT_NAME DEFS LIB)
   endif()
 
   # Fuse include path must come first to use fuse's parlay
-  if("${DEFS}" MATCHES "Fuse")
+  if("${DEFS}" MATCHES "Fuse|Ol")
     target_include_directories(${NAME} PRIVATE ${FUSE_DIR}/include)
   endif()
   
@@ -91,7 +95,7 @@ foreach(bench ${STRUCTS})
   endif()
 
 #  add_benchmark(${bench}_tl2 ${MIXED} ${STRUCT_DIR}/${bench} "Other;TL2O" "${PROJECT_SOURCE_DIR}/other/tl2-x86/libtl2.a")
-#  add_benchmark(${bench}_onefile ${MIXED} ${STRUCT_DIR}/${bench} "Other;OneFile" "")
+  add_benchmark(${bench}_onefile ${MIXED} ${STRUCT_DIR}/${bench} "Other;OneFile" "")
   add_benchmark(${bench}_fuse ${MIXED} ${STRUCT_DIR}/${bench} "Other;Fuse;WriteStamp;MV_TLF" "")
 endforeach()
 
@@ -168,6 +172,25 @@ if (TARGET_ARCH MATCHES "x86")
 #    add_benchmark(${bench}_mvustm_hwstamp_unprotected ${MIXED} ${STRUCT_DIR}/${bench} "USTM;MV;UnprotectedLoad;HWStamp" "")
   endforeach()
 endif()
+
+# Blocking optimistic-locking benchmarks. Point-update YCSB-style
+# experiments using the plain OL data structures in
+# other/fuse/include/structures, with no verlib features (no Versioned,
+# no FlockHelp, no LazyStamp): just the bare blocking OL structure with
+# flock locks.
+foreach(bench ${OL_STRUCTS})
+  add_benchmark(${bench}_ol ${MIXED_OL} ${OL_STRUCT_DIR}/${bench} "Ol" "")
+endforeach()
+
+# Cross-validation against the upstream flock benchmark
+# (other/fuse/benchmark/test_sets.cpp). Same plain blocking OL structures
+# as ${bench}_ol, but driven by flock's own test harness — used to
+# confirm that mixed_ol.cpp's numbers agree with the published benchmark.
+# Empty defines reproduce the _lck_noversion configuration.
+set(FLOCK_BENCH_SRC ${FUSE_DIR}/benchmark/test_sets.cpp)
+foreach(bench ${OL_STRUCTS})
+  add_benchmark(${bench}_flock ${FLOCK_BENCH_SRC} ${OL_STRUCT_DIR}/${bench} "Ol" "")
+endforeach()
 
 #benchmarks incompatible with arm
 if (NOT TARGET_ARCH MATCHES "arm")
