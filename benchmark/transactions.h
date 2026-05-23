@@ -30,6 +30,8 @@
 #include "glue/dcotl_glue.h"
 #elif defined(Other)
 #include "glue/other_glue.h"
+#elif defined(OL)
+#include "glue/ol_glue.h"
 #endif
 
 namespace stm {

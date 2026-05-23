@@ -26,10 +26,26 @@
 // OK if later two are implemented with the first
 
 #include "set.h"
+// The OL structures (other/fuse/include/structures/*) declare
+// ordered_map/unordered_map at global scope, not parlay::. Forward them
+// into parlay:: so the rest of the file can use a single uniform name.
+// Variadic to preserve each structure's own template defaults — e.g.
+// arttree's third template param is String, not Compare.
+#ifdef OL
+namespace parlay {
+#ifdef HASH
+  template <typename... Args>
+  using unordered_map = ::unordered_map<Args...>;
+#else
+  template <typename... Args>
+  using ordered_map = ::ordered_map<Args...>;
+#endif
+}
+#endif
 // Requires
 //   ordered_map<K,V>
 // or if HASH is defined
-//   unordered_map<K,V,Hash> 
+//   unordered_map<K,V,Hash>
 // each must support:
 //   bool insert(K k, V v);
 //   bool remove(K k, V v);
@@ -236,7 +252,7 @@ run_mixed_operations(const parlay::sequence<K>& all,
         // on wraparound set offsets are different
         if (j + trans_size > end) j = start;
         if (jj + trans_size > end) jj = start + trans_size;
-#ifdef Range_Search
+#if defined(Range_Search) && !defined(OL)
         if (proc_id < range_query_threads) {
           local_stats.range_count++;
           K begin = all[j];

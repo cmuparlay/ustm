@@ -1,5 +1,4 @@
 set(MIXED mixed.cpp)
-set(MIXED_OL mixed_ol.cpp)
 set(TPCC tpcc.cpp)
 
 set(STRUCT_DIR ${PROJECT_SOURCE_DIR}/structures)
@@ -26,7 +25,7 @@ function(add_benchmark NAME SOURCE STRUCT_NAME DEFS LIB)
   endif()
 
   # Fuse include path must come first to use fuse's parlay
-  if("${DEFS}" MATCHES "Fuse|Ol")
+  if("${DEFS}" MATCHES "Fuse|OL")
     target_include_directories(${NAME} PRIVATE ${FUSE_DIR}/include)
   endif()
   
@@ -177,9 +176,11 @@ endif()
 # experiments using the plain OL data structures in
 # other/fuse/include/structures, with no verlib features (no Versioned,
 # no FlockHelp, no LazyStamp): just the bare blocking OL structure with
-# flock locks.
+# flock locks. Uses mixed.cpp directly via the OL glue, so the benchmark
+# loop, key generation, and output are identical to the STM impls — only
+# the stm::atomic_region wrappers change.
 foreach(bench ${OL_STRUCTS})
-  add_benchmark(${bench}_ol ${MIXED_OL} ${OL_STRUCT_DIR}/${bench} "Ol" "")
+  add_benchmark(${bench}_ol ${MIXED} ${OL_STRUCT_DIR}/${bench} "OL" "")
 endforeach()
 
 # Cross-validation against the upstream flock benchmark
@@ -189,7 +190,7 @@ endforeach()
 # Empty defines reproduce the _lck_noversion configuration.
 set(FLOCK_BENCH_SRC ${FUSE_DIR}/benchmark/test_sets.cpp)
 foreach(bench ${OL_STRUCTS})
-  add_benchmark(${bench}_flock ${FLOCK_BENCH_SRC} ${OL_STRUCT_DIR}/${bench} "Ol" "")
+  add_benchmark(${bench}_flock ${FLOCK_BENCH_SRC} ${OL_STRUCT_DIR}/${bench} "OL" "")
 endforeach()
 
 #benchmarks incompatible with arm
