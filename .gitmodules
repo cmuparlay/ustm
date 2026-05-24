@@ -1,0 +1,4 @@
+[submodule "other/fuse"]
+	path = other/fuse
+	url = git@github.com:zachary-kent/fuse.git
+	branch = zk/ustm-patches
