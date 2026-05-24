@@ -199,25 +199,21 @@ foreach(bench ${OL_STRUCTS})
   add_benchmark(${bench}_flock ${FLOCK_BENCH_SRC} ${OL_STRUCT_DIR}/${bench} "OL" "")
 endforeach()
 
-# Transactional-wrapping variant of the OL benchmarks. Same plain
-# blocking OL structures as ${bench}_ol, but stm::atomic_region maps to
-# fuse::atomic_region (fuse_glue.h is selected because Fuse precedes OL
-# in transactions.h's elif chain). Intended for measuring transactional
-# bookkeeping overhead: paired against ${bench}_ol at trans=4, the only
-# difference is whether the 4-op batch is wrapped in a fuse transaction.
+# Transactional-wrapping variant of the OL benchmarks using uSTM with
+# the TLF (Transactional Lock Fusion) counter protocol. Same plain
+# blocking OL structures as ${bench}_ol but:
+#   - stm::atomic_region    = ustm::transaction (mvustm_glue.h via USTM)
+#   - stm::atomic / lock    = uSTM's transactional atomic + tlf_lock
+#                             (routed in via OL_USE_STM in verlib.h)
+#   - flck::lock try_lock   = bump inProtected counter, no real acquire
+#   - load() inside txn but outside an OL protected region skips readLog
+#
+# This is the counter-variant TLF described in SPAA'25 §6.2 — OL locks
+# serve only as protected-region markers, the STM's commit-time write
+# locks provide mutual exclusion. Lock-log variant is not implemented
+# (would require bypassing uSTM's per-location seq-lock on reads).
 foreach(bench ${OL_STRUCTS})
-  add_benchmark(${bench}_ol_txn ${MIXED} ${OL_STRUCT_DIR}/${bench} "Fuse;OL;OL_USE_STM" "")
-endforeach()
-
-# Same as ${bench}_ol_txn but with UnprotectedLoad enabled: any atomic
-# whose load_unprotected/validate paths honor this define (e.g.
-# fuse::tlf_atomic when WeakLoad is set, stm::atomic_bool in the
-# structures) takes the fast bypass-read path inside transactions.
-# With OL_USE_STM the OL structures route their reads/writes through
-# stm::atomic = fuse::tlf_atomic, so UnprotectedLoad now actually
-# reaches the structures' hot path and cuts the read-set tracking cost.
-foreach(bench ${OL_STRUCTS})
-  add_benchmark(${bench}_ol_txn_unprotected ${MIXED} ${OL_STRUCT_DIR}/${bench} "Fuse;OL;OL_USE_STM;UnprotectedLoad" "")
+  add_benchmark(${bench}_ol_ustm_counter ${MIXED} ${OL_STRUCT_DIR}/${bench} "USTM;MV;SplitStamp;OL;OL_USE_STM;USTM_TLF" "")
 endforeach()
 
 #benchmarks incompatible with arm

@@ -620,12 +620,16 @@ class ExperimentRunner:
 
         for impl in impls:
             structs_for_impl = self._all_structs_for_impl(impl)
-            # The OL family has hash_block where the STM family has
-            # hash_list — substitute so we still get a hash-table number
-            # to compare across families.
+            # The OL family doesn't have hash_list, substitute hash_block.
+            # For STM impls, include BOTH hash_list (linked-list buckets)
+            # and hash_block (block buckets) so the OL hash_block has a
+            # same-algorithm STM counterpart, not just a cross-algorithm
+            # comparison.
             if impl == "ol":
                 structs_for_impl = ["hash_block" if s == "hash_list" else s
                                     for s in structs_for_impl]
+            elif "hash_list" in structs_for_impl and "hash_block" not in structs_for_impl:
+                structs_for_impl = structs_for_impl + ["hash_block"]
             for struct in structs_for_impl:
                 if not self._binary_exists(f"{struct}_{impl}"):
                     continue
@@ -639,16 +643,16 @@ class ExperimentRunner:
     def run_txn_overhead(self):
         """Transactional-wrapping overhead on OL data structures.
 
-        Same plain blocking OL structures in all three arms — only the
+        Same plain blocking OL structures in both arms — only the
         stm::atomic_region wrapper differs:
-          - ol               : pass-through (identity). 4 ops run in a
-                               loop unwrapped.
-          - ol_txn           : fuse::atomic_region. The 4-op loop is
-                               wrapped in a fuse TLF transaction.
-          - ol_txn_unprotected: same as ol_txn but with UnprotectedLoad
-                               defined — atomics whose load_unprotected
-                               paths honor this flag take the fast
-                               bypass-read inside transactions.
+          - ol             : pass-through (identity). 4 ops run in
+                             a loop unwrapped.
+          - ol_ustm_counter: ustm::transaction with the TLF counter
+                             protocol — OL locks bump inProtected
+                             instead of acquiring, reads in unprotected
+                             regions skip readLog. Provides real
+                             atomicity through uSTM's commit-time
+                             write locks.
 
         Trans is pinned at 4 (the experiment's whole point); size,
         update rate, and zipfian sweep exactly like run_geomean /
@@ -682,7 +686,7 @@ class ExperimentRunner:
         ol_structs = ["btree", "arttree", "avltree", "leaftree",
                       "treap", "skiplist", "hash_block"]
 
-        for impl in ("ol", "ol_txn", "ol_txn_unprotected"):
+        for impl in ("ol", "ol_ustm_counter"):
             for struct in ol_structs + self.config.lstructs:
                 if not self._binary_exists(f"{struct}_{impl}"):
                     continue
@@ -755,7 +759,7 @@ Examples:
     parser.add_argument("--allocator", default="deqalloc",
                        help="Choose which allocator to use (default: deqalloc)")
     parser.add_argument("--impl", default=None, nargs="+",
-                       choices=["mvustm", "fuse", "2plsf", "multiverse", "onefile", "tiny", "tl2", "ol", "ol_txn", "ol_txn_unprotected"],
+                       choices=["mvustm", "fuse", "2plsf", "multiverse", "onefile", "tiny", "tl2", "ol", "ol_ustm_counter"],
                        help="Run only the specified stm system(s)")
     parser.add_argument("--struct", default=None,
                        choices=["btree", "arttree", "avltree", "leaftree", "treap", "skiplist", "hash_list"],

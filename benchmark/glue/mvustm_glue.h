@@ -6,6 +6,11 @@
 #else
 #include <ustm_swiss.h>
 #endif
+#ifdef USTM_TLF
+// Used to wrap the OL structures' flck::lock with the TLF counter-variant
+// behavior. Only needed when OL_USE_STM routes verlib::lock through stm::.
+#include <flock/flock.h>
+#endif
 namespace stm {
 
   template <typename F>
@@ -37,6 +42,9 @@ namespace stm {
     T val;
     direct_atomic(const T& v) : val(v) { }
     direct_atomic()  {}
+    // Non-transactional initialization (e.g. during object construction
+    // before any threads can see it). Matches flck::atomic::init.
+    void init(const T& v) { val = v; }
     void store(const T& v) { ustm::store(val, v); }
     T load() const { return ustm::load(val); }
 #ifdef UnprotectedLoad
@@ -93,5 +101,31 @@ namespace stm {
 #else
     return std::pair(0ul,0ul);
 #endif
+  }
+
+#ifdef USTM_TLF
+  // verlib::lock under OL_USE_STM aliases to this. Wraps flck::lock with
+  // the counter-variant TLF protocol — never acquires the underlying
+  // lock inside a uSTM transaction; only bumps inProtected so load()
+  // can decide whether to track reads.
+  using lock = ustm::tlf_lock_counter<flck::lock>;
+#else
+  // OL_USE_STM may be on without USTM_TLF; provide a plain flck::lock
+  // alias so the verlib::lock alias still resolves. This case takes the
+  // lock as normal — useful only for compilation; semantically unsound
+  // inside a uSTM transaction.
+  using lock = flck::lock;
+#endif
+
+  // Structures call stm::New / stm::Delete directly. mvustm_glue already
+  // provides stm::New (delegates to ustm::New, which adds to allocLog for
+  // abort-undo) and stm::Delete (delegates to ustm::Delete, which posts
+  // to deleteLog → uepoch::delay on commit). So nothing else needed here.
+
+  // verlib::with_epoch routes through uSTM's uepoch so all in-transaction
+  // operations are coordinated with the STM's timestamping protocol.
+  template <typename F>
+  auto with_epoch(F&& f) {
+    return uepoch::protect(std::forward<F>(f));
   }
 }

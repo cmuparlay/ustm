@@ -205,6 +205,15 @@ namespace ustm {
 #endif
     bool lateRead {false};
     int inConstructor {0};
+    // TLF: counter of nested OL protected regions inside this txn. Bumped
+    // by tlf_lock::try_lock/read_lock entry, decremented on exit. When 0
+    // inside a transaction, reads are in an unprotected region and (per
+    // the TLF protocol) need not be added to the readLog — the OL data
+    // structure tolerates inconsistent values in its unprotected phase
+    // and re-validates with the locks taken at commit. Always present
+    // (one int per descriptor); only consulted in load() when USTM_TLF
+    // is defined.
+    int inProtected {0};
     size_t tid; // thread identifier
     size_t numRetries {0};    
     TS startStamp;
@@ -406,6 +415,14 @@ namespace ustm {
       }
     }
 
+#ifdef USTM_TLF
+    // TLF counter variant: when inside a uSTM transaction but outside
+    // any OL protected region, treat this read as unprotected — the OL
+    // data structure's invariant is that unprotected reads can see
+    // inconsistent values, with consistency re-checked under locks in
+    // the next protected region. So we skip readLog tracking.
+    if (myd->inTransaction && myd->inProtected == 0) unprotected = true;
+#endif
 #ifdef SimpleSTM
     bool regular = (myd->inTransaction && !unprotected);
 #else
@@ -520,27 +537,112 @@ namespace ustm {
     }
   } 
 
-  // adds to log so can delete if aborted
+  // ---- TLF (Transactional Lock Fusion) hooks ---------------------------
+  // Used by the tlf_lock_counter type below (and by any other lock that
+  // wants to participate in TLF) to tell uSTM when execution is inside an
+  // OL "protected region". When the counter is > 0, reads must be tracked
+  // in the readLog as usual; when it's 0, reads are unprotected (per the
+  // TLF protocol — the OL data structure's invariant tolerates inconsistent
+  // unprotected reads, and consistency is re-checked under the OL locks
+  // in the next protected region). load() consults this counter via the
+  // USTM_TLF guard above.
+  inline bool in_transaction() {
+    return getDescriptor()->inTransaction;
+  }
+  inline void enter_protected() {
+    getDescriptor()->inProtected++;
+  }
+  inline void leave_protected() {
+    getDescriptor()->inProtected--;
+  }
+  inline bool in_protected() {
+    return getDescriptor()->inProtected > 0;
+  }
+
+  // A lock that participates in the TLF "counter" protocol:
+  //   - Outside a uSTM transaction: behaves exactly like the wrapped
+  //     flck::lock (real lock acquisition).
+  //   - Inside a uSTM transaction: NEVER actually acquires the lock. Just
+  //     bumps the protected-region counter, runs the lambda, decrements
+  //     the counter. The OL locks are used only as a signal to delimit
+  //     protected vs unprotected regions; the STM's commit-time write
+  //     locks provide the real mutual exclusion.
+  // Per the TLF paper (SPAA'25, §6.2 "Optimistic Multiversioning",
+  // counter variant), this is sound as long as the OL data structure
+  // satisfies strong stability and all writes flow through stm::atomic.
+  template <typename UnderlyingLock>
+  struct tlf_lock_counter {
+    UnderlyingLock lck;
+
+    template <typename Thunk>
+    auto try_lock(Thunk f, bool do_help = true) {
+      if (in_transaction()) {
+        enter_protected();
+        auto r = f();
+        leave_protected();
+        return r;
+      }
+      return lck.try_lock(std::forward<Thunk>(f), do_help);
+    }
+
+    template <typename Thunk>
+    auto read_lock(Thunk f) {
+      if (in_transaction()) {
+        enter_protected();
+        auto r = f();
+        leave_protected();
+        return r;
+      }
+      return lck.read_lock(std::forward<Thunk>(f));
+    }
+
+    // Some structures (e.g. btree's join/split path) also call wait_lock
+    // before try_lock. Forward unchanged outside a txn; no-op inside.
+    void wait_lock() {
+      if (in_transaction()) return;
+      lck.wait_lock();
+    }
+
+    // with_lock — same idea, used by flck variants that need the
+    // result of f to flow through.
+    template <typename Thunk>
+    auto with_lock(Thunk f) {
+      if (in_transaction()) {
+        enter_protected();
+        auto r = f();
+        leave_protected();
+        return r;
+      }
+      return lck.with_lock(std::forward<Thunk>(f));
+    }
+  };
+
+  // adds to log so can delete if aborted.
+  // Args... taken by value (not perfect-forwarded) to match the
+  // calling convention used by flck::memory_pool::New, which discards
+  // const-qualification. Some OL structures (notably arttree) pass
+  // values where the constructor takes a non-const reference; perfect
+  // forwarding would refuse to bind to const, so we copy here.
   template <typename T, typename... Args>
-  inline T* New(Args&&... args) {
+  inline T* New(Args... args) {
     Descriptor* myd = getDescriptor();
     if (myd->inTransaction) {
       myd->inConstructor++;
 #ifdef ParlayAlloc
-      T* ptr = parlay::type_allocator<T>::create(std::forward<Args>(args)...);
+      T* ptr = parlay::type_allocator<T>::create(args...);
       myd->allocLog.push_back([=] {
          parlay::type_allocator<T>::destroy(ptr);});
 #else
-      T* ptr = new T(std::forward<Args>(args)...);
+      T* ptr = new T(args...);
       myd->allocLog.push_back([=] {delete ptr;});
 #endif
       myd->inConstructor--;
       return ptr;
     } else
 #ifdef ParlayAlloc
-      return parlay::type_allocator<T>::create(std::forward<Args>(args)...);
+      return parlay::type_allocator<T>::create(args...);
 #else
-      return new T(std::forward<Args>(args)...);
+      return new T(args...);
 #endif
   }
 

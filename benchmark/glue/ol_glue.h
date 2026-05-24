@@ -24,7 +24,24 @@ namespace stm {
 
   template <typename T>
   using atomic = flck::atomic<T>;
+  using lock = flck::lock;
   struct versioned {};
+
+  // For OL-only builds (no STM), with_epoch routes to flck's epoch since
+  // the structures' allocations are flck-based. Under uSTM/TLF builds the
+  // glue overrides this to uepoch.
+  template <typename F>
+  auto with_epoch(F&& f) { return flck::with_epoch(std::forward<F>(f)); }
+
+  // Structures call stm::New / stm::Delete directly (no memory_pool). For
+  // the OL-only build these delegate to flck's per-type epoch-protected
+  // pool (immediate malloc on New, epoch-deferred reclamation on Delete).
+  template <typename T, typename... Args>
+  T* New(Args&&... args) {
+    return epoch::memory_pool_<T>::New(std::forward<Args>(args)...);
+  }
+  template <typename T>
+  void Delete(T* p) { epoch::memory_pool_<T>::Retire(p); }
 
   template <typename F>
   auto atomic_region(F&& f, bool large = false) { return f(); }
