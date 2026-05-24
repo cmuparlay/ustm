@@ -619,10 +619,73 @@ class ExperimentRunner:
             impls = list(self.config.impls) + ["ol"]
 
         for impl in impls:
-            for struct in self._all_structs_for_impl(impl):
+            structs_for_impl = self._all_structs_for_impl(impl)
+            # The OL family has hash_block where the STM family has
+            # hash_list — substitute so we still get a hash-table number
+            # to compare across families.
+            if impl == "ol":
+                structs_for_impl = ["hash_block" if s == "hash_list" else s
+                                    for s in structs_for_impl]
+            for struct in structs_for_impl:
                 if not self._binary_exists(f"{struct}_{impl}"):
                     continue
 
+                sz_list = list_sizes if struct in self.config.lstructs else sizes
+                print(f"  {struct}_{impl}")
+                self._run_batch(struct, impl, batch_params(sz_list))
+
+        self.results_file.close()
+
+    def run_txn_overhead(self):
+        """Transactional-wrapping overhead on OL data structures.
+
+        Same plain blocking OL structures in all three arms — only the
+        stm::atomic_region wrapper differs:
+          - ol               : pass-through (identity). 4 ops run in a
+                               loop unwrapped.
+          - ol_txn           : fuse::atomic_region. The 4-op loop is
+                               wrapped in a fuse TLF transaction.
+          - ol_txn_unprotected: same as ol_txn but with UnprotectedLoad
+                               defined — atomics whose load_unprotected
+                               paths honor this flag take the fast
+                               bypass-read inside transactions.
+
+        Trans is pinned at 4 (the experiment's whole point); size,
+        update rate, and zipfian sweep exactly like run_geomean /
+        run_stm_vs_ol. Per impl/struct: 27 configs → one geomean.
+
+        Only meaningful with OL structures — wrapping the corresponding
+        sequential containers in a retryable transaction would crash.
+        """
+        self.setup_output("txn_overhead")
+        self.results_file.write(f"Threads: {self.config.default_p}\n")
+        self.results_file.write("---\n")
+
+        if self.config.small:
+            sizes, list_sizes = [100000, 10000000], [100, 1000]
+            updates, zipfians = [0, 5, 50], [0, 0.99]
+        else:
+            sizes, list_sizes = [10 ** i for i in [5, 6, 7]], [10 ** i for i in [2, 3]]
+            updates, zipfians = [0, 5, 50], [0, 0.75, 0.99]
+
+        def batch_params(sz_list):
+            return {
+                'n': ','.join(map(str, sz_list)),
+                'u': ','.join(map(str, updates)),
+                'z': ','.join(map(str, zipfians)),
+                'trans': 4,  # PINNED — the point of the experiment
+                'p': self.config.default_p,
+            }
+
+        # OL has hash_block where STM has hash_list; rename so the
+        # _all_structs_for_impl helper still gives us the right list.
+        ol_structs = ["btree", "arttree", "avltree", "leaftree",
+                      "treap", "skiplist", "hash_block"]
+
+        for impl in ("ol", "ol_txn", "ol_txn_unprotected"):
+            for struct in ol_structs + self.config.lstructs:
+                if not self._binary_exists(f"{struct}_{impl}"):
+                    continue
                 sz_list = list_sizes if struct in self.config.lstructs else sizes
                 print(f"  {struct}_{impl}")
                 self._run_batch(struct, impl, batch_params(sz_list))
@@ -672,6 +735,7 @@ Experiments:
   nontrivial Non-trivial types (btree upsert variants, hash_list/hash_probe)
   ablation   Ablation studies (timestamping, abort mechanism)
   stm_vs_ol  STM vs fine-grained-concurrent (blocking OL) at trans=1
+  txn_overhead   OL vs OL+fuse-txn-wrap on same OL structures at trans=4
   sweep      Run parameter sweep experiments (size, threads, zipfian, trans, update)
   all        Run all experiments
 
@@ -682,7 +746,7 @@ Examples:
 """)
     
     parser.add_argument("experiment", nargs="+",
-                       choices=["geomean", "size", "threads", "zipfian", "trans", "update", "range", "tpcc", "nontrivial", "ablation", "stm_vs_ol", "sweep", "all"],
+                       choices=["geomean", "size", "threads", "zipfian", "trans", "update", "range", "tpcc", "nontrivial", "ablation", "stm_vs_ol", "txn_overhead", "sweep", "all"],
                        help="Experiment(s) to run (one or more)")
     parser.add_argument("--output", "-o", metavar="DIR",
                        help="Output directory for results")
@@ -691,7 +755,7 @@ Examples:
     parser.add_argument("--allocator", default="deqalloc",
                        help="Choose which allocator to use (default: deqalloc)")
     parser.add_argument("--impl", default=None, nargs="+",
-                       choices=["mvustm", "fuse", "2plsf", "multiverse", "onefile", "tiny", "tl2", "ol"],
+                       choices=["mvustm", "fuse", "2plsf", "multiverse", "onefile", "tiny", "tl2", "ol", "ol_txn", "ol_txn_unprotected"],
                        help="Run only the specified stm system(s)")
     parser.add_argument("--struct", default=None,
                        choices=["btree", "arttree", "avltree", "leaftree", "treap", "skiplist", "hash_list"],
@@ -720,6 +784,7 @@ Examples:
         "nontrivial": runner.run_nontrivial_types,
         "ablation": runner.run_ablation,
         "stm_vs_ol": runner.run_stm_vs_ol,
+        "txn_overhead": runner.run_txn_overhead,
         "sweep": runner.run_sweep,
         "all": runner.run_all,
     }

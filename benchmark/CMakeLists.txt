@@ -179,8 +179,14 @@ endif()
 # flock locks. Uses mixed.cpp directly via the OL glue, so the benchmark
 # loop, key generation, and output are identical to the STM impls — only
 # the stm::atomic_region wrappers change.
+#
+# OL_USE_STM routes the structures' versioned_ptr/atomic_bool through
+# stm::atomic; for the OL-only build that's just a typedef alias to
+# flck::atomic (zero overhead), but it lets the fuse-wrapped _ol_txn
+# variants below substitute fuse::tlf_atomic so the structures'
+# loads/stores participate in fuse transactions.
 foreach(bench ${OL_STRUCTS})
-  add_benchmark(${bench}_ol ${MIXED} ${OL_STRUCT_DIR}/${bench} "OL" "")
+  add_benchmark(${bench}_ol ${MIXED} ${OL_STRUCT_DIR}/${bench} "OL;OL_USE_STM" "")
 endforeach()
 
 # Cross-validation against the upstream flock benchmark
@@ -191,6 +197,27 @@ endforeach()
 set(FLOCK_BENCH_SRC ${FUSE_DIR}/benchmark/test_sets.cpp)
 foreach(bench ${OL_STRUCTS})
   add_benchmark(${bench}_flock ${FLOCK_BENCH_SRC} ${OL_STRUCT_DIR}/${bench} "OL" "")
+endforeach()
+
+# Transactional-wrapping variant of the OL benchmarks. Same plain
+# blocking OL structures as ${bench}_ol, but stm::atomic_region maps to
+# fuse::atomic_region (fuse_glue.h is selected because Fuse precedes OL
+# in transactions.h's elif chain). Intended for measuring transactional
+# bookkeeping overhead: paired against ${bench}_ol at trans=4, the only
+# difference is whether the 4-op batch is wrapped in a fuse transaction.
+foreach(bench ${OL_STRUCTS})
+  add_benchmark(${bench}_ol_txn ${MIXED} ${OL_STRUCT_DIR}/${bench} "Fuse;OL;OL_USE_STM" "")
+endforeach()
+
+# Same as ${bench}_ol_txn but with UnprotectedLoad enabled: any atomic
+# whose load_unprotected/validate paths honor this define (e.g.
+# fuse::tlf_atomic when WeakLoad is set, stm::atomic_bool in the
+# structures) takes the fast bypass-read path inside transactions.
+# With OL_USE_STM the OL structures route their reads/writes through
+# stm::atomic = fuse::tlf_atomic, so UnprotectedLoad now actually
+# reaches the structures' hot path and cuts the read-set tracking cost.
+foreach(bench ${OL_STRUCTS})
+  add_benchmark(${bench}_ol_txn_unprotected ${MIXED} ${OL_STRUCT_DIR}/${bench} "Fuse;OL;OL_USE_STM;UnprotectedLoad" "")
 endforeach()
 
 #benchmarks incompatible with arm

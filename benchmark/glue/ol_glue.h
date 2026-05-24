@@ -6,11 +6,25 @@
 // are no transactional semantics for trans>1: each op inside the batch
 // is individually linearizable, but the batch as a whole is not atomic.
 // Range queries are not supported for OL — gated off in mixed.cpp.
+//
+// Also provides stm::atomic / stm::versioned as cheap aliases over
+// flck primitives so the OL structures (compiled with OL_USE_STM)
+// route their internal versioned_ptr/atomic_bool through stm::atomic.
+// In this build that's just a typedef to flck::atomic, so semantics
+// and overhead match the historical flck-direct code path. The point
+// of routing through stm::atomic is to give the fuse glue
+// (stm::atomic = fuse::tlf_atomic) a hook to participate in fuse
+// transactions when the same structures are built into _ol_txn.
 #pragma once
 
 #include <utility>
+#include <flock/flock.h>
 
 namespace stm {
+
+  template <typename T>
+  using atomic = flck::atomic<T>;
+  struct versioned {};
 
   template <typename F>
   auto atomic_region(F&& f, bool large = false) { return f(); }
