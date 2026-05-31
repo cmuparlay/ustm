@@ -50,10 +50,14 @@ function(add_benchmark NAME SOURCE STRUCT_NAME DEFS LIB)
   endif()
 endfunction()
 
+add_benchmark(hash_probe_string_mvustm ${MIXED} ${STRUCT_DIR}/hash_probe "USTM;MV;SplitStamp;StringValues" "")
+
 add_benchmark(btree_string_mvustm ${MIXED} ${STRUCT_DIR}/btree "USTM;MV;SplitStamp;StringValues" "")
-add_benchmark(btree_string_inplace_indirect_mvustm ${MIXED} ${STRUCT_DIR}/btree "USTM;MV;SplitStamp;UpsertInPlace;ForceIndirect" "")
+add_benchmark(btree_string_inplace_indirect_mvustm ${MIXED} ${STRUCT_DIR}/btree "USTM;MV;SplitStamp;UpsertInPlace;ForceIndirect;StringValues" "")
 add_benchmark(btree_string_inplace_mvustm ${MIXED} ${STRUCT_DIR}/btree "USTM;MV;SplitStamp;UpsertInPlace;StringValues" "")
 add_benchmark(btree_string_indirect_mvustm ${MIXED} ${STRUCT_DIR}/btree "USTM;MV;SplitStamp;ForceIndirect;StringValues" "")
+
+
 
 add_benchmark(btree_string_2plsf ${MIXED} ${STRUCT_DIR}/btree "Other;TWOPLSF;StringValues" "")
 add_benchmark(btree_string_inplace_indirect_2plsf ${MIXED} ${STRUCT_DIR}/btree "Other;TWOPLSF;UpsertInPlace;ForceIndirect;StringValues" "")

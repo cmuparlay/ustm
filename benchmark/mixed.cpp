@@ -494,7 +494,12 @@ int main(int argc, char* argv[]) {
   bool dense = P.getOption("-dense");
   int warmup = P.getOptionIntValue("-warmup", do_warmup ? 2 : 0);
   std::string filename = P.getOptionValue("-file", "");
-  
+  bool bigval = P.getOption("-bigval");
+
+#ifdef StringValues
+  dense = !bigval;
+#endif
+    
   auto sizes = parlay::map(comma_separated_arg(P, "-n", "1000"),
                            parlay::chars_to_long);
   auto zipfians = parlay::map(comma_separated_arg(P, "-z", "0.0"),
@@ -563,18 +568,18 @@ int main(int argc, char* argv[]) {
                      else return unique_keys[parlay::hash64(i) % unique_size];});
         if (zipfian_param != 0.0)
           unique_keys = parlay::random_shuffle(unique_keys);
-        if (use_strings) {
-          auto a_keys = parlay::map(all_keys, [] (K k) {return parlay::to_chars(k);});
-          auto u_keys = parlay::map(unique_keys, [] (K k) {return parlay::to_chars(k);});
-          auto endKey = [] (const parlay::chars& begin, long range_size) {return begin;};
-          run_loops(a_keys, u_keys,
-                    percents, transaction_sizes, range_sizes, throughputs, bytes,
-                    zipfian_param, warmup, endKey, P);
-        } else {
-          run_loops(all_keys, unique_keys,
-                    percents, transaction_sizes, range_sizes, throughputs, bytes,
-                    zipfian_param, warmup, endKey, P);
-        }
+#ifdef StringValues //        if (use_strings) {
+        auto a_keys = parlay::map(all_keys, [] (K k) {return parlay::to_chars(k);});
+        auto u_keys = parlay::map(unique_keys, [] (K k) {return parlay::to_chars(k);});
+        auto endKey = [] (const parlay::chars& begin, long range_size) {return begin;};
+        run_loops(a_keys, u_keys,
+                  percents, transaction_sizes, range_sizes, throughputs, bytes,
+                  zipfian_param, warmup, endKey, P);
+#else //       } else {
+        run_loops(all_keys, unique_keys,
+                  percents, transaction_sizes, range_sizes, throughputs, bytes,
+                  zipfian_param, warmup, endKey, P);
+#endif //  }
       }
     }
   }
