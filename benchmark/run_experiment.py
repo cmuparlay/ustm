@@ -73,7 +73,7 @@ class Config:
             self.small_structs = ["btree", "hash_list"]
             self.tpcc_structs = ["hash_list", "btree", "mix"]
         else:
-            self.structs = self.range_structs = self.small_structs = self.tpcc_structs = [ args.struct ]
+            self.structs = self.range_structs = self.small_structs = self.tpcc_structs = args.struct
             self.lstructs = ["list"] if args.struct == "list" else []
         print(self)
 
@@ -630,9 +630,9 @@ Examples:
     parser.add_argument("--impl", default=None,
                        choices=["mvustm", "fuse", "2plsf", "multiverse"],
                        help="Run a specific stm system only")
-    parser.add_argument("--struct", default=None,
+    parser.add_argument("--struct", default=None, nargs="+",
                        choices=["btree", "arttree", "avltree", "leaftree", "treap", "skiplist", "hash_list"],
-                       help="Run a specific struct only")
+                       help="Run specific struct(s) only")
     
     args = parser.parse_args()
     
