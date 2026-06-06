@@ -59,7 +59,7 @@ class Config:
             self.tpcc_impls = ["mvustm", "fuse", "2plsf", "multiverse"]
         else:
             #only run impl
-            self.impls = self.tpcc_impls = [ args.impl ]
+            self.impls = self.tpcc_impls = args.impl
 
         self.max_threads = os.cpu_count()
         self.numa_cmd = "numactl -i all"
@@ -627,8 +627,8 @@ Examples:
                        help="Restrict to btree, hash_list, and list (geomean uses runall.sh parameters)")
     parser.add_argument("--allocator", default="deqalloc",
                        help="Choose which allocator to use (default: deqalloc)")
-    parser.add_argument("--impl", default=None,
-                       choices=["mvustm", "fuse", "2plsf", "multiverse"],
+    parser.add_argument("--impl", default=None, nargs="+",
+                       choices=["mvustm", "mvustm_hwstamp", "fuse", "2plsf", "multiverse"],
                        help="Run a specific stm system only")
     parser.add_argument("--struct", default=None, nargs="+",
                        choices=["btree", "arttree", "avltree", "leaftree", "treap", "skiplist", "hash_list"],

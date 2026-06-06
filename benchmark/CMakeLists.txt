@@ -7,6 +7,7 @@ set(FUSE_DIR ${OTHER_DIR}/fuse)
 
 set(STRUCTS "avltree" "treap" "leaftree" "btree" "arttree" "hash_block" "hash_list" "list" "skiplist" "hash_probe")
 set(SUB_STRUCTS "btree")
+set(HWSTAMP_STRUCTS "btree" "avltree" "hash_list")
 
 list(APPEND COMMON_DEFS "STMStats")
 
@@ -150,9 +151,13 @@ foreach(bench ${NSTRUCTS})
 #  add_benchmark(${bench}_mvustm_unprotected ${MIXED} ${STRUCT_DIR}/${bench} "USTM;MV;UnprotectedLoad" "")
 endforeach()
 
+foreach(bench ${HWSTAMP_STRUCTS})
+  add_benchmark(${bench}_mvustm_hwstamp ${MIXED} ${STRUCT_DIR}/${bench} "USTM;MV;HWStamp" "")  # Use agg funnels for lazy timestamp
+endforeach()
+
 #x86-only benchmarks
 if (TARGET_ARCH MATCHES "x86")
-  foreach(bench ${SUB_STRUCTS})
+  foreach(bench ${HWSTAMP_STRUCTS})
     add_benchmark(${bench}_mvustm_hwstamp ${MIXED} ${STRUCT_DIR}/${bench} "USTM;MV;HWStamp" "")  # Use agg funnels for lazy timestamp
     add_benchmark(${bench}_mvustm_hwstamp_unprotected ${MIXED} ${STRUCT_DIR}/${bench} "USTM;MV;UnprotectedLoad;HWStamp" "")
     add_benchmark(${bench}_fuse_hwstamp ${MIXED} ${STRUCT_DIR}/${bench} "Other;Fuse;HWWriteStamp;MV_TLF" "")

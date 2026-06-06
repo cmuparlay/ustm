@@ -60,11 +60,36 @@ namespace ustm {
   using TS = size_t; // type for timestamps
 #ifdef HWStamp
   struct timeStamp {
+#if defined(USTM_X86)
     TS getStamp() {
       unsigned int lo,hi;
       __asm__ __volatile__ ("rdtsc" : "=a" (lo), "=d" (hi));
       return (TS) (((uint64_t)(hi & ~(1<<31)) << 32) | lo);
     }
+#elif defined(USTM_ARM)
+
+//https://github.com/torvalds/linux/blob/8e65320d91cdc3b241d4b94855c88459b91abf66/arch/arm64/include/asm/barrier.h#L116
+#define arch_counter_enforce_ordering(cnt) do {        \
+    uint64_t _tmp;                                     \
+    __asm__ __volatile__(                              \
+        "eor %0, %1, %1\n"                             \
+        "add %0, sp,  %0\n"                            \
+        "ldr xzr, [%0]"                                \
+        : "=r"(_tmp) : "r"((uint64_t)(cnt)));          \
+} while (0)
+
+    TS getStamp() {
+      TS cnt;
+      __asm__ __volatile__("isb\n\t"
+                           "mrs %0, cntvct_el0"
+                           : "=r"(cnt) : : "memory");
+      arch_counter_enforce_ordering(cnt);
+      return cnt;
+    }
+#else
+  #error HW Stamps not supported for this architecture.
+#endif
+
     TS nextStamp(TS prevStamp=0) {
       if (prevStamp == 0) prevStamp = getStamp();
       while (true) {
