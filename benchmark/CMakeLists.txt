@@ -10,6 +10,7 @@ set(STRUCTS "avltree" "treap" "leaftree" "btree" "arttree" "hash_block" "hash_li
 set(SUB_STRUCTS "btree")
 # Structures available as native blocking optimistic-locking implementations in fuse/include/structures.
 set(OL_STRUCTS "avltree" "treap" "leaftree" "btree" "arttree" "hash_block" "list" "skiplist")
+set(HWSTAMP_STRUCTS "btree" "avltree" "hash_list")
 
 list(APPEND COMMON_DEFS "STMStats")
 
@@ -53,10 +54,22 @@ function(add_benchmark NAME SOURCE STRUCT_NAME DEFS LIB)
   endif()
 endfunction()
 
-add_benchmark(btree_inplace_mvustm ${MIXED} ${STRUCT_DIR}/btree "USTM;MV;SplitStamp;UpsertInPlace" "")
-add_benchmark(btree_inplace_2plsf ${MIXED} ${STRUCT_DIR}/btree "Other;TWOPLSF;UpsertInPlace" "")
-add_benchmark(btree_inplace_fuse ${MIXED} ${STRUCT_DIR}/btree "Other;Fuse;WriteStamp;MV_TLF;UpsertInPlace" "")
-#add_benchmark(btree_inplace_multiverse ${MIXED} ${STRUCT_DIR}/btree "MAX_THREADS_POW2=256;CPU_FREQ_GHZ=2.4;MULTIVERSE;UpsertInPlace" "")
+add_benchmark(hash_probe_string_mvustm ${MIXED} ${STRUCT_DIR}/hash_probe "USTM;MV;SplitStamp;StringValues" "")
+
+add_benchmark(btree_string_mvustm ${MIXED} ${STRUCT_DIR}/btree "USTM;MV;SplitStamp;StringValues" "")
+add_benchmark(btree_string_inplace_indirect_mvustm ${MIXED} ${STRUCT_DIR}/btree "USTM;MV;SplitStamp;UpsertInPlace;ForceIndirect;StringValues" "")
+add_benchmark(btree_string_inplace_mvustm ${MIXED} ${STRUCT_DIR}/btree "USTM;MV;SplitStamp;UpsertInPlace;StringValues" "")
+add_benchmark(btree_string_indirect_mvustm ${MIXED} ${STRUCT_DIR}/btree "USTM;MV;SplitStamp;ForceIndirect;StringValues" "")
+
+
+
+add_benchmark(btree_string_2plsf ${MIXED} ${STRUCT_DIR}/btree "Other;TWOPLSF;StringValues" "")
+add_benchmark(btree_string_inplace_indirect_2plsf ${MIXED} ${STRUCT_DIR}/btree "Other;TWOPLSF;UpsertInPlace;ForceIndirect;StringValues" "")
+
+add_benchmark(btree_string_fuse ${MIXED} ${STRUCT_DIR}/btree "Other;Fuse;WriteStamp;MV_TLF;StringValues" "")
+
+add_benchmark(btree_string_multiverse ${MIXED} ${STRUCT_DIR}/btree "MAX_THREADS_POW2=256;CPU_FREQ_GHZ=2.4;MULTIVERSE;StringValues" "")
+add_benchmark(btree_string_inplace_indirect_multiverse ${MIXED} ${STRUCT_DIR}/btree "MAX_THREADS_POW2=256;CPU_FREQ_GHZ=2.4;MULTIVERSE;UpsertInPlace;ForceIndirect;StringValues" "")
 
 foreach(bench ${SUB_STRUCTS})
 #  add_benchmark(${bench}_ustm ${MIXED} ${STRUCT_DIR}/${bench} "USTM;SplitStamp;SimpleSTM" "")
@@ -141,9 +154,13 @@ foreach(bench ${NSTRUCTS})
 #  add_benchmark(${bench}_mvustm_unprotected ${MIXED} ${STRUCT_DIR}/${bench} "USTM;MV;UnprotectedLoad" "")
 endforeach()
 
+foreach(bench ${HWSTAMP_STRUCTS})
+  add_benchmark(${bench}_mvustm_hwstamp ${MIXED} ${STRUCT_DIR}/${bench} "USTM;MV;HWStamp" "")  # Use agg funnels for lazy timestamp
+endforeach()
+
 #x86-only benchmarks
 if (TARGET_ARCH MATCHES "x86")
-  foreach(bench ${SUB_STRUCTS})
+  foreach(bench ${HWSTAMP_STRUCTS})
     add_benchmark(${bench}_mvustm_hwstamp ${MIXED} ${STRUCT_DIR}/${bench} "USTM;MV;HWStamp" "")  # Use agg funnels for lazy timestamp
     add_benchmark(${bench}_mvustm_hwstamp_unprotected ${MIXED} ${STRUCT_DIR}/${bench} "USTM;MV;UnprotectedLoad;HWStamp" "")
     add_benchmark(${bench}_fuse_hwstamp ${MIXED} ${STRUCT_DIR}/${bench} "Other;Fuse;HWWriteStamp;MV_TLF" "")

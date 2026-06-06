@@ -37,8 +37,9 @@
 	#define TM_ALLOC_PAGE_SIZE_BYTES 4*1024*1024ULL
 #endif
 
+#undef MAX_THREADS_POW2
 #ifndef MAX_THREADS_POW2
-	#define MAX_THREADS_POW2 256
+	#define MAX_THREADS_POW2 512
 #endif
 
 // static const int TM_ALLOC_BUFFER_SIZE = 64

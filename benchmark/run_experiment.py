@@ -78,8 +78,8 @@ class Config:
             self.small_structs = ["btree", "hash_list"]
             self.tpcc_structs = ["hash_list", "btree", "mix"]
         else:
-            self.structs = self.range_structs = self.small_structs = self.tpcc_structs = [ args.struct ]
-            self.lstructs = ["list"] if args.struct == "list" else []
+            self.structs = self.range_structs = self.small_structs = self.tpcc_structs = list(args.struct)
+            self.lstructs = ["list"] if "list" in args.struct else []
         print(self)
 
     """Experiment configuration."""
@@ -759,11 +759,11 @@ Examples:
     parser.add_argument("--allocator", default="deqalloc",
                        help="Choose which allocator to use (default: deqalloc)")
     parser.add_argument("--impl", default=None, nargs="+",
-                       choices=["mvustm", "fuse", "2plsf", "multiverse", "onefile", "tiny", "tl2", "ol", "ol_ustm_counter"],
+                       choices=["mvustm", "mvustm_hwstamp", "fuse", "2plsf", "multiverse", "onefile", "tiny", "tl2", "ol", "ol_ustm_counter"],
                        help="Run only the specified stm system(s)")
-    parser.add_argument("--struct", default=None,
+    parser.add_argument("--struct", default=None, nargs="+",
                        choices=["btree", "arttree", "avltree", "leaftree", "treap", "skiplist", "hash_list"],
-                       help="Run a specific struct only")
+                       help="Run specific struct(s) only")
     
     args = parser.parse_args()
     

@@ -38,7 +38,7 @@ struct unordered_map {
     Table(size_t n) {
       int bits = 1 + parlay::log2_up(n);
       size = 1ul << bits;
-      table = parlay::sequence<lnk>(size, nullptr);
+      table = parlay::tabulate<lnk>(size, [&] (long i) { return nullptr;});
     }
   };
 

@@ -39,22 +39,37 @@ struct ordered_map {
     VP_direct() {}
     VP_direct(const V& v) : v(v) {}
   };
+
 #else
+  struct VV : stm::versioned { V val; VV(V val) : val(val){} };
+
   struct VP_indirect {
-    stm::atomic<V*> vp;
-    V get_value() { return *(vp.load()); }
-    void retire() const { stm::Delete(vp.load()); }
+    stm::atomic<VV*> vp;
+    VP_indirect(const VP_indirect& other) : vp(other.vp.load()) {}
+    VP_indirect& operator=(const VP_indirect& other) {
+      if (this == &other) return *this;
+      vp = other.vp.load();
+      return *this;
+    }
+    V get_value() { return vp.load()->val; }
+    void retire() { stm::Delete(vp.load()); }
     void store(const V& new_v) {
-      V* old_v = vp.load();
-      vp.store(stm::New<V>(new_v));
+      VV* old_v = vp.load();
+      vp.store(stm::New<VV>(new_v));
       stm::Delete(old_v);
     }
     VP_indirect() {}
-    VP_indirect(const V& v) : vp(stm::New<V>(v)) {}
+    VP_indirect(const V& v) : vp(stm::New<VV>(v)) {}
   };
 
   struct VP_direct {
     stm::atomic<V> v;
+    VP_direct(const VP_direct& other) : v(other.v.load()) { }
+    VP_direct& operator=(const VP_direct& other) {
+      if (this == &other) return *this;
+      v.store(other.v.load());
+      return *this;
+    }
     V get_value() { return v.load(); }
     void retire() const {}
     void store(const V& new_v) { v.store(new_v);}
@@ -63,8 +78,12 @@ struct ordered_map {
   };
 #endif
 
+#ifdef ForceIndirect
+  using VP = VP_indirect;
+#else
   static constexpr bool use_indirect = (sizeof(V) + sizeof(K)) >= 64;
   using VP = std::conditional_t<use_indirect, VP_indirect, VP_direct>;
+#endif
 
   static constexpr auto less = Compare{};
   struct KV {K key; VP value;};
