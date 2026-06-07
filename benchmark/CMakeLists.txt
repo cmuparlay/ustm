@@ -10,7 +10,6 @@ set(STRUCTS "avltree" "treap" "leaftree" "btree" "arttree" "hash_block" "hash_li
 set(SUB_STRUCTS "btree")
 # Structures available as native blocking optimistic-locking implementations in fuse/include/structures.
 set(OL_STRUCTS "avltree" "treap" "leaftree" "btree" "arttree" "hash_block" "list" "skiplist")
-set(HWSTAMP_STRUCTS "btree" "avltree" "hash_list")
 
 list(APPEND COMMON_DEFS "STMStats")
 
@@ -154,17 +153,23 @@ foreach(bench ${NSTRUCTS})
 #  add_benchmark(${bench}_mvustm_unprotected ${MIXED} ${STRUCT_DIR}/${bench} "USTM;MV;UnprotectedLoad" "")
 endforeach()
 
-foreach(bench ${HWSTAMP_STRUCTS})
-  add_benchmark(${bench}_mvustm_hwstamp ${MIXED} ${STRUCT_DIR}/${bench} "USTM;MV;HWStamp" "")  # Use agg funnels for lazy timestamp
-endforeach()
-
 #x86-only benchmarks
 if (TARGET_ARCH MATCHES "x86")
-  foreach(bench ${HWSTAMP_STRUCTS})
-    add_benchmark(${bench}_mvustm_hwstamp ${MIXED} ${STRUCT_DIR}/${bench} "USTM;MV;HWStamp" "")  # Use agg funnels for lazy timestamp
+  # _mvustm_hwstamp_unprotected stays scoped to SUB_STRUCTS — it's an
+  # experimental variant intended for one structure at a time. Plain
+  # _mvustm_hwstamp / _fuse_hwstamp baselines are emitted by the
+  # STRUCTS loop below.
+  foreach(bench ${SUB_STRUCTS})
     add_benchmark(${bench}_mvustm_hwstamp_unprotected ${MIXED} ${STRUCT_DIR}/${bench} "USTM;MV;UnprotectedLoad;HWStamp" "")
-    add_benchmark(${bench}_fuse_hwstamp ${MIXED} ${STRUCT_DIR}/${bench} "Other;Fuse;HWWriteStamp;MV_TLF" "")
 #    add_benchmark(${bench}_multiverse_hwstamp ${MIXED} ${STRUCT_DIR}/${bench} "MAX_THREADS_POW2=256;CPU_FREQ_GHZ=2.4;MULTIVERSE;USE_RDTSC" "")
+  endforeach()
+
+  # HWStamp baselines used by run_stm_vs_ol — must cover every structure
+  # in the sweep, otherwise _binary_exists() filters the impl out and the
+  # bars go missing.
+  foreach(bench ${STRUCTS})
+    add_benchmark(${bench}_mvustm_hwstamp ${MIXED} ${STRUCT_DIR}/${bench} "USTM;MV;HWStamp" "")
+    add_benchmark(${bench}_fuse_hwstamp ${MIXED} ${STRUCT_DIR}/${bench} "Other;Fuse;HWWriteStamp;MV_TLF" "")
   endforeach()
 
   foreach(bench ${STRUCTS})
@@ -216,6 +221,20 @@ foreach(bench ${OL_STRUCTS})
   add_benchmark(${bench}_flock ${FLOCK_BENCH_SRC} ${OL_STRUCT_DIR}/${bench} "OL" "")
 endforeach()
 
+
+# Canonical fuse TLF over OL structures. MV_TLF activates verlib.h's
+# MV_TLF branch, which provides verlib::versioned_ptr =
+# tlf_internal::versioned_ptr — that type's load_transactional() has
+# the real TLF unprotected-read mechanism: skip validate_ptr_log push
+# when in_lock == 0 (versioned_ptr.h:50-66). Locks are logged into the
+# transaction descriptor and taken at commit (lock fusion via
+# tlf_internal::lock::try_lock). This is the published SPAA'25
+# implementation; included for sanity checking the uSTM TLF integration
+# (${bench}_ol_ustm_counter).
+foreach(bench ${OL_STRUCTS})
+  add_benchmark(${bench}_ol_fuse ${MIXED} ${OL_STRUCT_DIR}/${bench} "Other;Fuse;MV_TLF;OL" "")
+endforeach()
+
 # Transactional-wrapping variant of the OL benchmarks using uSTM with
 # the TLF (Transactional Lock Fusion) counter protocol. Same plain
 # blocking OL structures as ${bench}_ol but:
@@ -231,6 +250,49 @@ endforeach()
 # (would require bypassing uSTM's per-location seq-lock on reads).
 foreach(bench ${OL_STRUCTS})
   add_benchmark(${bench}_ol_ustm_counter ${MIXED} ${OL_STRUCT_DIR}/${bench} "USTM;MV;SplitStamp;OL;OL_USE_STM;USTM_TLF" "")
+endforeach()
+
+# Companion to ${bench}_ol_ustm_counter: same uSTM backend and TLF lock
+# wrapper, but USTM_TLF is dropped. Without USTM_TLF, every read inside
+# a transaction is pushed to readLog regardless of inProtected — i.e.,
+# "uSTM TLF without weak loads". Lets us isolate the value of the
+# unprotected-read optimization on its own.
+foreach(bench ${OL_STRUCTS})
+  add_benchmark(${bench}_ol_ustm_full ${MIXED} ${OL_STRUCT_DIR}/${bench} "USTM;MV;SplitStamp;OL;OL_USE_STM" "")
+endforeach()
+
+# Hardware-timestamp variants of the OL TLF benchmarks (x86 only).
+# RDTSC-based global timestamp eliminates the commit-time CAS contention
+# on a single shared atomic, which is a major bottleneck at high thread
+# counts. The published Fuse / mvustm experiments use these; included
+# here so the txn_overhead sweep can attribute overhead to the stamp
+# scheme separately from the TLF protocol.
+if (TARGET_ARCH MATCHES "x86")
+  foreach(bench ${OL_STRUCTS})
+    add_benchmark(${bench}_ol_fuse_hwstamp ${MIXED} ${OL_STRUCT_DIR}/${bench} "Other;Fuse;MV_TLF;HWWriteStamp;OL" "")
+    add_benchmark(${bench}_ol_ustm_counter_hwstamp ${MIXED} ${OL_STRUCT_DIR}/${bench} "USTM;MV;HWStamp;OL;OL_USE_STM;USTM_TLF" "")
+    add_benchmark(${bench}_ol_ustm_full_hwstamp ${MIXED} ${OL_STRUCT_DIR}/${bench} "USTM;MV;HWStamp;OL;OL_USE_STM" "")
+  endforeach()
+
+  # Pure-STM variants of the OL benchmark — every load/store goes through
+  # tlf_internal::lock's read_lock / try_lock machinery (fuse/stm.h via
+  # verlib.h's MV_STM branch). No weak loads on traversal pointers; reads
+  # always counter-bump in_lock and stores always lock_log. WeakLoad is
+  # defined explicitly so atomic_bool's removed flag works (without it the
+  # MV_STM atomic_bool::load() returns false unconditionally).
+  foreach(bench ${OL_STRUCTS})
+    add_benchmark(${bench}_ol_fuse_stm ${MIXED} ${OL_STRUCT_DIR}/${bench} "Other;Fuse;MV_STM;WeakLoad;OL" "")
+    add_benchmark(${bench}_ol_fuse_stm_hwstamp ${MIXED} ${OL_STRUCT_DIR}/${bench} "Other;Fuse;MV_STM;WeakLoad;HWWriteStamp;OL" "")
+  endforeach()
+endif()
+
+# Multiverse on OL data structures. Same OL_USE_STM routing as
+# ol_ustm: structures' versioned_ptr / atomic_bool / lock alias to
+# ::stm::atomic / lock, which multiverse_glue.hpp provides backed by
+# ns_multiverse::tx_field. Multiverse is intrinsically MV; no TLF
+# integration needed.
+foreach(bench ${OL_STRUCTS})
+  add_benchmark(${bench}_ol_multiverse ${MIXED} ${OL_STRUCT_DIR}/${bench} "MAX_THREADS_POW2=256;CPU_FREQ_GHZ=2.4;MULTIVERSE;OL;OL_USE_STM" "")
 endforeach()
 
 #benchmarks incompatible with arm

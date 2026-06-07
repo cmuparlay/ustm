@@ -6,9 +6,10 @@
 #else
 #include <ustm_swiss.h>
 #endif
-#ifdef USTM_TLF
-// Used to wrap the OL structures' flck::lock with the TLF counter-variant
-// behavior. Only needed when OL_USE_STM routes verlib::lock through stm::.
+// flck::lock is only referenced in OL builds (stm::lock alias is used
+// by verlib::lock under OL_USE_STM). Pure STM builds (no OL) don't
+// link against fuse and don't have flock on the include path.
+#ifdef OL
 #include <flock/flock.h>
 #endif
 namespace stm {
@@ -109,6 +110,7 @@ namespace stm {
 #endif
   }
 
+#ifdef OL
 #ifdef USTM_TLF
   // verlib::lock under OL_USE_STM aliases to this. Wraps flck::lock with
   // the counter-variant TLF protocol — never acquires the underlying
@@ -121,6 +123,7 @@ namespace stm {
   // lock as normal — useful only for compilation; semantically unsound
   // inside a uSTM transaction.
   using lock = flck::lock;
+#endif
 #endif
 
   // Structures call stm::New / stm::Delete directly. mvustm_glue already

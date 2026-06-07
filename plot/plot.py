@@ -53,6 +53,20 @@ IMPL_COLORS = {
     'fuse': '#e41a1c',
     'fuse_hwstamp': '#ff6347',
     'multiverse': '#333333',
+    # ---- OL / TLF benchmark variants (txn_overhead, stm_vs_ol) ----
+    'ol': '#2c3e50',                       # baseline OL no-wrap (dark slate)
+    'ol_ustm_counter': '#1f77b4',          # uSTM TLF counter (uSTM blue family)
+    'ol_ustm_counter_hwstamp': '#2ca02c',  # ... + HWStamp
+    'ol_ustm_full': '#1f77b4',             # uSTM full STM (no read skip) — match mvustm "μSTM" blue
+    'ol_ustm_full_hwstamp': '#98df8a',     # ... + HWStamp
+    'ol_fuse': '#e41a1c',                  # fuse TLF (fuse red)
+    'ol_fuse_hwstamp': '#ff6347',          # fuse TLF + HWWriteStamp
+    'ol_fuse_stm': '#9467bd',              # fuse MV_STM (no TLF read skip)
+    'ol_fuse_stm_hwstamp': '#c5b0d5',      # ... + HWStamp
+    'ol_multiverse': '#333333',            # Multiverse — match the non-OL multiverse color
+    # ---- hash_probe strings sweep ----
+    'string_mvustm':        '#1f77b4',     # mvustm color
+    'string_bigval_mvustm': '#ff7f0e',     # orange — distinct from blue/red family
 }
 
 IMPL_LABELS = {
@@ -75,6 +89,18 @@ IMPL_LABELS = {
     'fuse': 'Fuse',
     'fuse_hwstamp': 'Fuse-HWStamp',
     'multiverse': 'Multiverse',
+    'ol': 'OL (no wrap)',
+    'ol_ustm_counter': '$\\mu$STM-TLF',
+    'ol_ustm_counter_hwstamp': '$\\mu$STM-TLF-HW',
+    'ol_ustm_full': '$\\mu$STM',
+    'ol_ustm_full_hwstamp': '$\\mu$STM-HW',
+    'ol_fuse': 'Fuse-TLF',
+    'ol_fuse_hwstamp': 'Fuse-TLF-HW',
+    'ol_fuse_stm': 'Fuse-STM',
+    'ol_fuse_stm_hwstamp': 'Fuse-STM-HW',
+    'ol_multiverse': 'Multiverse',
+    'string_mvustm':        '$\\mu$STM (string)',
+    'string_bigval_mvustm': '$\\mu$STM (string + bigval)',
 }
 
 # Map impl -> marker shape (unique per implementation for easy identification)
@@ -98,6 +124,18 @@ IMPL_MARKERS = {
     'fuse': 'v',
     'fuse_hwstamp': '<',
     'multiverse': 'X',
+    'ol': 'o',
+    'ol_ustm_counter': 's',
+    'ol_ustm_counter_hwstamp': 'P',
+    'ol_ustm_full': 's',
+    'ol_ustm_full_hwstamp': 'X',
+    'ol_fuse': 'v',
+    'ol_fuse_hwstamp': '^',
+    'ol_fuse_stm': '<',
+    'ol_fuse_stm_hwstamp': '>',
+    'ol_multiverse': 'X',
+    'string_mvustm':        'o',
+    'string_bigval_mvustm': 'D',
 }
 
 # Map impl -> linestyle (solid for inplace, dashed for non-inplace when pair exists)
@@ -121,6 +159,18 @@ IMPL_LINESTYLES = {
     'fuse': '--',
     'fuse_hwstamp': '-.',
     'multiverse': '--',
+    'ol': '-',
+    'ol_ustm_counter': '--',
+    'ol_ustm_counter_hwstamp': '-',
+    'ol_ustm_full': '--',
+    'ol_ustm_full_hwstamp': '-.',
+    'ol_fuse': '--',
+    'ol_fuse_hwstamp': '-',
+    'ol_fuse_stm': ':',
+    'ol_fuse_stm_hwstamp': '-.',
+    'ol_multiverse': '--',
+    'string_mvustm':        '--',
+    'string_bigval_mvustm': ':',
 }
 
 STRUCT_LABELS = {
@@ -161,16 +211,36 @@ IMPL_ORDER = [
     'mvustm_longjmp', 'mvustm_trythrow',
     'mvustm_unprotected', '2plsf', 'hytm', 'tiny',
     'fuse', 'fuse_hwstamp', 'multiverse', 'dcotl',
+    # OL / TLF benchmark order: bare OL first, then uSTM variants, then fuse
+    'ol',
+    'ol_ustm_counter', 'ol_ustm_counter_hwstamp',
+    'ol_ustm_full',    'ol_ustm_full_hwstamp',
+    'ol_fuse',         'ol_fuse_hwstamp',
+    'ol_fuse_stm',     'ol_fuse_stm_hwstamp',
+    'ol_multiverse',
+    # hash_probe strings sweep
+    'string_bigval_mvustm', 'string_mvustm',
 ]
 
-# Known implementations (longer matches first)
+# Known implementations (longer matches first — parser strips greedily from the end)
 KNOWN_IMPLS = [
+    # OL variants must come before the bare 'ol' to avoid wrong split.
+    # Within OL, longer suffixes must come first to avoid premature match
+    # (e.g. 'ol_fuse_hwstamp' before 'ol_fuse').
+    'ol_ustm_counter_hwstamp', 'ol_ustm_counter',
+    'ol_ustm_full_hwstamp', 'ol_ustm_full',
+    'ol_fuse_stm_hwstamp', 'ol_fuse_stm',
+    'ol_fuse_hwstamp', 'ol_fuse',
+    'ol_multiverse',
+    # hash_probe strings sweep — longer-suffix first so `string_bigval_mvustm`
+    # wins over `string_mvustm`, which wins over `mvustm`.
+    'string_bigval_mvustm', 'string_mvustm',
     'mvustm_agg_funnel_eager', 'ustm_simple_longjmp',
     'ustm_longjmp_hwstamp', 'mvustm_lzstamp', 'mvustm_hwstamp',
     'mvustm_longjmp', 'mvustm_trythrow', 'mvustm_unprotected',
     'mvustm_indirect', 'mvustm_eager', 'fuse_hwstamp',
     'ustm_longjmp', 'mvustm', 'ustm',
-    '2plsf', 'hytm', 'tiny', 'fuse', 'multiverse',
+    '2plsf', 'hytm', 'tiny', 'fuse', 'multiverse', 'ol',
 ]
 
 #TODO: should be made into a config class
@@ -488,7 +558,115 @@ def aggregate_points(points):
     return sorted(aggregated, key=lambda p: p[0])
 
 
-def plot_varying_parameter(results, param_name, param_label, output_dir, 
+def plot_txn_overhead_bars(geomean_data, output_dir, filename='txn_overhead.pdf',
+                            baseline='ol'):
+    """Grouped bar chart for the txn_overhead / stm_vs_ol experiment.
+
+    One group per data structure, one bar per impl, height = throughput
+    normalized to the `baseline` impl on that structure (default 'ol').
+    1.0 means "matches bare OL"; 0.5 means "half throughput of bare OL".
+    Raw mops printed above each bar.
+
+    Skips structures where the baseline impl is missing (can't normalize).
+    """
+    structures = sorted({s for (s, _) in geomean_data.keys()},
+                        key=lambda s: STRUCT_LABELS.get(s, s))
+    impls_found = {i for (_, i) in geomean_data.keys()}
+    impls = [i for i in IMPL_ORDER if i in impls_found]
+    if not impls:
+        print(f"  No known impls in data for {filename}")
+        return
+
+    # Keep only structures where we have the baseline (so normalization works).
+    structures = [s for s in structures if (s, baseline) in geomean_data]
+    if not structures:
+        print(f"  No baseline ({baseline}) data found; skipping {filename}")
+        return
+
+    normalized = defaultdict(dict)
+    raw = defaultdict(dict)
+    for s in structures:
+        base = geomean_data[(s, baseline)]
+        for impl in impls:
+            v = geomean_data.get((s, impl))
+            if v is not None and base > 0:
+                normalized[s][impl] = v / base
+                raw[s][impl] = v
+
+    n_impls = len(impls)
+    n_structs = len(structures)
+    # Scale width with the number of bars so labels don't crash into each
+    # other. The geomean plot uses (6, 2.5) but assumes ~3 structs ×
+    # ~5 impls. For 8 × 9 here we need much more horizontal room.
+    fig_width = max(6.0, 0.85 * n_structs * (0.45 + 0.18 * n_impls))
+    fig, ax = plt.subplots(figsize=(fig_width, 2.8))
+    x = np.arange(len(structures))
+    width = 0.78 / n_impls
+    inner_spacing = 1.0
+
+    bars_list = []
+    for i, impl in enumerate(impls):
+        # Skip slots where the impl has no geomean for this structure
+        # (i.e. the run crashed). Drawing 0-height bars would otherwise
+        # leave visible empty slots at every crashed (struct, impl) pair.
+        valid = [(j, normalized[s][impl], raw[s][impl])
+                 for j, s in enumerate(structures)
+                 if impl in normalized[s]]
+        if not valid:
+            continue
+        idxs, values, raws = zip(*valid)
+        offset = (i - n_impls / 2 + 0.5) * width * inner_spacing
+        color = IMPL_COLORS.get(impl, '#333333')
+        label = IMPL_LABELS.get(impl, impl)
+        bars_list.append((values, raws,
+                          ax.bar(np.array(idxs) + offset, values, width,
+                                 label=label, color=color,
+                                 edgecolor='black', linewidth=0.6)))
+
+    # Raw-mops labels above bars. Rotated 90° because at 9 arms the bars
+    # are too narrow for horizontal text to fit without colliding with
+    # neighbors. Skip the label entirely for very small bars to avoid
+    # noise.
+    text_fontsize = max(4.0, fontsize - 5)
+    for values, raws, bars in bars_list:
+        for b, v, r in zip(bars, values, raws):
+            if r is None or v < 0.05:
+                continue
+            ax.text(b.get_x() + b.get_width() / 2,
+                    b.get_height() + 0.01,
+                    f'{r:.0f}',
+                    ha='center', va='bottom',
+                    fontsize=text_fontsize, rotation=90)
+
+    # Reference line at 1.0 (= bare-OL baseline)
+    ax.axhline(y=1.0, color='black', linestyle='--', linewidth=1, alpha=0.5)
+
+    ax.set_xlabel('Data Structure', fontsize=fontsize - 1)
+    ax.set_ylabel(f'Throughput / {IMPL_LABELS.get(baseline, baseline)}',
+                  fontsize=fontsize - 1)
+    ax.set_xticks(x)
+    ax.set_xticklabels([STRUCT_LABELS.get(s, s) for s in structures],
+                       rotation=0, ha='center', fontsize=fontsize - 2)
+    ax.tick_params(axis='y', labelsize=fontsize - 3)
+    # Wrap legend into ~5 columns when there are many impls; gives a
+    # readable two-row layout instead of one super-wide row.
+    legend_cols = min(n_impls, 5)
+    legend_rows = (n_impls + legend_cols - 1) // legend_cols
+    legend_y = 1.10 + 0.07 * legend_rows
+    ax.legend(loc='upper center', fontsize=fontsize - 2.5,
+              ncol=legend_cols, bbox_to_anchor=(0.5, legend_y))
+    ax.grid(axis='y', alpha=0.3)
+    # Headroom above 1.0 so rotated raw labels above a bar at 1.0 fit.
+    ax.set_ylim(0, 1.2)
+
+    plt.tight_layout()
+    plt.savefig(output_dir / filename, dpi=300,
+                bbox_inches='tight', pad_inches=0.015)
+    plt.close()
+    print(f"Generated: {filename}")
+
+
+def plot_varying_parameter(results, param_name, param_label, output_dir,
                            structures=None, filename_prefix='varying', quiet=False):
     """
     Create individual line plots showing throughput vs a varying parameter.
@@ -601,6 +779,75 @@ def plot_varying(results, output_dir, param):
                           structures=tree_structs, filename_prefix=shortname, quiet=True)
     plot_varying_parameter(results, param, label, output_dir,
                           structures=other_structs, filename_prefix=shortname, quiet=True)
+
+
+def plot_varying_grid(results, param, param_label, output_dir,
+                      structures, filename, ncols=4, log_y=False, log_x=False):
+    """Compact rows×cols grid of throughput-vs-param subplots.
+    One subplot per structure, shared legend across the top."""
+    data = defaultdict(lambda: defaultdict(list))
+    for r in results:
+        if r.get(param) is not None and r['structure'] in structures:
+            data[r['structure']][r['impl']].append((r[param], r['mops']))
+
+    available = [s for s in structures if s in data]
+    if not available:
+        print(f"Warning: no data for grid ({param})")
+        return
+
+    impls_found = set()
+    for sd in data.values():
+        impls_found.update(sd.keys())
+    impls = [i for i in IMPL_ORDER if i in impls_found]
+
+    nrows = (len(available) + ncols - 1) // ncols
+    fig, axes = plt.subplots(nrows, ncols,
+                             figsize=(2.4 * ncols, 1.9 * nrows),
+                             squeeze=False)
+
+    for idx, struct in enumerate(available):
+        ax = axes[idx // ncols][idx % ncols]
+        for impl in impls:
+            if impl not in data[struct]:
+                continue
+            points = aggregate_points(data[struct][impl])
+            if not points:
+                continue
+            xs = [p[0] for p in points]
+            ys = [p[1] for p in points]
+            ax.plot(xs, ys,
+                    marker=IMPL_MARKERS.get(impl, 'o'),
+                    linestyle=IMPL_LINESTYLES.get(impl, '-'),
+                    linewidth=1.2, markersize=4,
+                    color=IMPL_COLORS.get(impl, '#333333'),
+                    label=IMPL_LABELS.get(impl, impl))
+        if log_x: ax.set_xscale('log')
+        if log_y: ax.set_yscale('log')
+        ax.set_title(STRUCT_LABELS.get(struct, struct),
+                     fontsize=8, fontweight='bold')
+        ax.tick_params(axis='both', labelsize=6)
+        ax.grid(True, alpha=0.3, linewidth=0.4)
+        if idx // ncols == nrows - 1:
+            ax.set_xlabel(param_label, fontsize=7)
+        if idx % ncols == 0:
+            ax.set_ylabel('MOps/s', fontsize=7)
+
+    # Hide empty subplots
+    for idx in range(len(available), nrows * ncols):
+        axes[idx // ncols][idx % ncols].set_visible(False)
+
+    handles, labels = axes[0][0].get_legend_handles_labels()
+    if handles:
+        fig.legend(handles, labels, loc='upper center',
+                   ncol=min(len(impls), 5), fontsize=6.5,
+                   bbox_to_anchor=(0.5, 1.0 + 0.04 * (5 / max(len(impls), 1))),
+                   columnspacing=1.0, handlelength=2.0)
+
+    plt.tight_layout(rect=[0, 0, 1, 0.93])
+    plt.savefig(output_dir / filename, dpi=300,
+                bbox_inches='tight', pad_inches=0.02)
+    plt.close()
+    print(f"Generated: {filename}")
 
 
 def plot_range_queries(results, output_dir):
@@ -759,10 +1006,28 @@ def plot_range_queries(results, output_dir):
         plt.close()
 
 
-def plot_paper_row_(results, output_dir, param, structures, name='plot', fmt='pdf'):
+def plot_paper_row_(results, output_dir, param, structures, name='plot', fmt='pdf',
+                    impl_whitelist=None, flat_baseline_impl=None,
+                    impl_label_overrides=None):
     """
     Generate a compact 1x3 subplot figure suitable for a two-column paper.
     Matches the style of typical systems-conference plots.
+
+    impl_whitelist: if set, only render these impls (in IMPL_ORDER order).
+                    Other impls in the data are dropped silently.
+    flat_baseline_impl: if set, this impl is rendered as a horizontal
+                       dotted line at its maximum-over-param value
+                       (instead of an actual line plot). Useful for the
+                       OL baseline in txn_overhead plots — OL doesn't
+                       support trans>1, so its line collapses to a
+                       single point; a flat reference line at its peak
+                       throughput is the cleaner comparison.
+    impl_label_overrides: optional {impl: label} dict to override the
+                       global IMPL_LABELS for just this plot. Useful
+                       when the same impl ID needs a different
+                       presentation in different figures (e.g.
+                       `mvustm` rendered as "μSTM" in stm_vs_ol but
+                       as "Integer" in the strings_update sweep).
     """
     param_info = {
         'n': ('Size (n)', True),
@@ -790,6 +1055,8 @@ def plot_paper_row_(results, output_dir, param, structures, name='plot', fmt='pd
     impls_found = set()
     for sd in data.values():
         impls_found.update(sd.keys())
+    if impl_whitelist is not None:
+        impls_found &= set(impl_whitelist)
     impls = [i for i in IMPL_ORDER if i in impls_found]
 
     n = len(available)
@@ -804,10 +1071,20 @@ def plot_paper_row_(results, output_dir, param, structures, name='plot', fmt='pd
             points = aggregate_points(data[struct][impl])
             if not points:
                 continue
+            color = IMPL_COLORS.get(impl, '#333333')
+            if impl_label_overrides and impl in impl_label_overrides:
+                label = impl_label_overrides[impl]
+            else:
+                label = IMPL_LABELS.get(impl, impl)
+            if impl == flat_baseline_impl:
+                # Flat dotted reference line at the max-throughput value
+                # achieved across all param sweeps for this (struct, impl).
+                peak = max(p[1] for p in points)
+                ax.axhline(y=peak, color=color, linestyle=':', linewidth=1.5,
+                           label=label)
+                continue
             x_vals = [p[0] for p in points]
             y_vals = [p[1] for p in points]
-            color = IMPL_COLORS.get(impl, '#333333')
-            label = IMPL_LABELS.get(impl, impl)
             mkr = IMPL_MARKERS.get(impl, 'o')
             ls = IMPL_LINESTYLES.get(impl, '-')
             ax.plot(x_vals, y_vals, marker=mkr, linewidth=1.2, markersize=4,
@@ -821,6 +1098,7 @@ def plot_paper_row_(results, output_dir, param, structures, name='plot', fmt='pd
         ax.set_title(STRUCT_LABELS.get(struct, struct), fontsize=8, fontweight='bold')
         ax.tick_params(axis='both', labelsize=6)
         ax.grid(True, alpha=0.3, linewidth=0.4)
+        ax.set_ylim(bottom=0)
 
     # Single shared legend across the top
     handles, labels = axes[0].get_legend_handles_labels()
@@ -1468,9 +1746,10 @@ def main():
                        help='Path to directory containing timing files (geomean, vary_size, etc.)')
     parser.add_argument('-o', '--output-dir', type=str, default='plots',
                        help='Output directory for plots (default: plots)')
-    parser.add_argument('--plots', nargs='+', 
+    parser.add_argument('--plots', nargs='+',
                        choices=['geomean', 'varying', 'range', 'combined', 'tpcc',
-                                'nontrivial', 'ablation', 'machines', 'paper', 'all'],
+                                'nontrivial', 'ablation', 'machines', 'paper',
+                                'txn_overhead', 'stm_vs_ol', 'strings', 'all'],
                        default=['all'],
                        help='Which plots to generate (default: all)')
     parser.add_argument('--format', type=str, choices=['pdf', 'png', 'svg'], 
@@ -1506,6 +1785,15 @@ def main():
         'range_queries',
         'nontrivial_types',
         'ablation',
+        'stm_vs_ol',
+        'stm_vs_ol_vary_z',
+        'stm_vs_ol_vary_trans',
+        'strings_update',
+        'txn_overhead',
+        # Per-parameter sweeps for the OL TLF benchmarks.
+        'vary_trans_focus',
+        'vary_txn_trans',
+        'vary_txn_threads',
     ]
     
     # Keep results separate by experiment file
@@ -1548,7 +1836,9 @@ def main():
     
     plots = args.plots
     if 'all' in plots:
-        plots = ['geomean', 'varying', 'range', 'combined', 'tpcc', 'nontrivial', 'ablation', 'machines', 'paper']
+        plots = ['geomean', 'varying', 'range', 'combined', 'tpcc', 'nontrivial',
+                 'ablation', 'machines', 'paper', 'txn_overhead', 'stm_vs_ol',
+                 'strings']
     
     if 'geomean' in plots:
         # Use only geomean data from the dedicated 'geomean' experiment file
@@ -1605,6 +1895,67 @@ def main():
     if 'paper' in plots:
         print("\nGenerating compact paper figures (ART, B-tree, Linked List)...")
         plot_paper_figures(exp_results, output_dir, fmt=args.format)
+
+    if 'txn_overhead' in plots:
+        txn_geomeans = exp_geomeans.get('txn_overhead', {})
+        if txn_geomeans:
+            print("\nGenerating txn_overhead bar chart...")
+            plot_txn_overhead_bars(txn_geomeans, output_dir,
+                                   filename=f'txn_overhead.{args.format}',
+                                   baseline='ol')
+        # Also plot any per-parameter sweeps that are available
+        if exp_results.get('vary_txn_trans'):
+            print("\nGenerating txn_overhead vary_trans line plots...")
+            plot_varying(exp_results['vary_txn_trans'], output_dir, 'trans')
+            grid_structs = ['btree', 'arttree', 'avltree', 'leaftree',
+                            'treap', 'skiplist', 'hash_block', 'list']
+            plot_varying_grid(exp_results['vary_txn_trans'], 'trans',
+                              'Ops per Transaction', output_dir,
+                              grid_structs, f'trans_grid.{args.format}',
+                              ncols=4)
+        if exp_results.get('vary_txn_threads'):
+            print("\nGenerating txn_overhead vary_threads line plots...")
+            plot_varying(exp_results['vary_txn_threads'], output_dir, 'p')
+        if exp_results.get('vary_trans_focus'):
+            print("\nGenerating vary_trans_focus row plot...")
+            plot_paper_row_(exp_results['vary_trans_focus'], output_dir, 'trans',
+                            structures=['btree', 'avltree', 'hash_block'],
+                            name='trans_focus', fmt=args.format,
+                            impl_whitelist=['ol', '2plsf', 'ol_fuse',
+                                            'ol_multiverse', 'ol_ustm_full'],
+                            flat_baseline_impl='ol')
+
+    if 'stm_vs_ol' in plots:
+        svo_geomeans = exp_geomeans.get('stm_vs_ol', {})
+        if svo_geomeans:
+            print("\nGenerating stm_vs_ol bar chart...")
+            plot_txn_overhead_bars(svo_geomeans, output_dir,
+                                   filename=f'stm_vs_ol.{args.format}',
+                                   baseline='ol')
+        if exp_results.get('stm_vs_ol_vary_z'):
+            print("\nGenerating stm_vs_ol vary_z row plot...")
+            plot_paper_row_(exp_results['stm_vs_ol_vary_z'], output_dir, 'z',
+                            structures=['btree', 'avltree', 'hash_block'],
+                            name='stm_vs_ol_vary_z', fmt=args.format)
+        if exp_results.get('stm_vs_ol_vary_trans'):
+            print("\nGenerating stm_vs_ol vary_trans row plot...")
+            plot_paper_row_(exp_results['stm_vs_ol_vary_trans'], output_dir, 'trans',
+                            structures=['btree', 'avltree', 'hash_block'],
+                            name='stm_vs_ol_vary_trans', fmt=args.format)
+
+    if 'strings' in plots:
+        if exp_results.get('strings_update'):
+            print("\nGenerating strings_update plot...")
+            plot_paper_row_(exp_results['strings_update'], output_dir, 'u',
+                            structures=['hash_probe'],
+                            name='strings_update', fmt=args.format,
+                            impl_whitelist=['mvustm', 'string_mvustm',
+                                            'string_bigval_mvustm'],
+                            impl_label_overrides={
+                                'mvustm':               'Integer',
+                                'string_mvustm':        'Short String',
+                                'string_bigval_mvustm': 'Long String',
+                            })
 
     if 'machines' in plots and args.machine_dirs:
         print("\nGenerating Multi-machine comparison plot...")

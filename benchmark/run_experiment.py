@@ -62,9 +62,11 @@ class Config:
                 # "dcotl"
             ]
             self.tpcc_impls = ["mvustm", "fuse", "2plsf", "multiverse"]
+            self.impls_explicit = False
         else:
             #only run specified impls
             self.impls = self.tpcc_impls = list(args.impl)
+            self.impls_explicit = True
 
         self.max_threads = os.cpu_count()
         self.numa_cmd = "numactl -i all"
@@ -392,9 +394,10 @@ class ExperimentRunner:
     
     def _run_varying_experiment(self, name: str, param_name: str, values: List,
                                 fixed_params: dict = None, list_values: List = None,
-                                structs_override: List[str] = None):
+                                structs_override: List[str] = None,
+                                impls_override: List[str] = None):
         """Run an experiment that varies one parameter.
-        
+
         Args:
             name: Output file name suffix.
             param_name: Parameter being varied (e.g. 'n', 'p', 'z').
@@ -403,16 +406,20 @@ class ExperimentRunner:
             list_values: Alternate sweep values for list structs (default: same
                          values but with n overridden to default_list_n).
             structs_override: Use only these structs, skip list structs.
+            impls_override: Use this list of impls instead of self.config.impls.
+                            For experiments that target a focused set of arms
+                            (e.g. the OL TLF variants).
         """
         if fixed_params is None:
             fixed_params = self._default_params()
             fixed_params.pop(param_name, None)
-        
+
         self.setup_output(name)
         self.results_file.write(f"Fixed: {', '.join(f'{k}={v}' for k, v in fixed_params.items())}\n")
         self.results_file.write("---\n")
-        
-        for impl in self.config.impls:
+
+        impls = impls_override if impls_override is not None else self.config.impls
+        for impl in impls:
             for struct in self._all_structs_for_impl(impl, structs_override):
                 if not self._binary_exists(f"{struct}_{impl}"):
                     continue
@@ -612,11 +619,18 @@ class ExperimentRunner:
                 'p': self.config.default_p,
             }
 
-        # Default to STM impls + ol; if the user passed --impl, honour it.
-        if "ol" in self.config.impls:
-            impls = self.config.impls
+        # stm_vs_ol scopes to the four STM systems we benchmark against
+        # the blocking-OL baseline: uSTM, Fuse, 2PLSF, Multiverse. Other
+        # STM impls (onefile/tiny/tl2/hytm) are excluded — they ran
+        # before but aren't part of the comparison set. Honour --impl
+        # if the user passed it explicitly. _binary_exists() filters
+        # out impls that weren't built (e.g. on non-x86 hosts).
+        default_stm_impls = ["mvustm", "fuse", "2plsf", "multiverse"]
+        hwstamp_extras = ["mvustm_hwstamp", "fuse_hwstamp"]
+        if self.config.impls_explicit:
+            impls = list(self.config.impls)
         else:
-            impls = list(self.config.impls) + ["ol"]
+            impls = default_stm_impls + hwstamp_extras + ["ol"]
 
         for impl in impls:
             structs_for_impl = self._all_structs_for_impl(impl)
@@ -643,16 +657,21 @@ class ExperimentRunner:
     def run_txn_overhead(self):
         """Transactional-wrapping overhead on OL data structures.
 
-        Same plain blocking OL structures in both arms — only the
-        stm::atomic_region wrapper differs:
+        Same plain blocking OL structures in three arms — only the
+        stm::atomic_region wrapper and lock-fusion mechanism differ:
           - ol             : pass-through (identity). 4 ops run in
                              a loop unwrapped.
           - ol_ustm_counter: ustm::transaction with the TLF counter
                              protocol — OL locks bump inProtected
                              instead of acquiring, reads in unprotected
-                             regions skip readLog. Provides real
-                             atomicity through uSTM's commit-time
-                             write locks.
+                             regions skip readLog. Atomicity via uSTM's
+                             commit-time write locks.
+          - ol_fuse        : fuse::atomic_region with fuse's native TLF
+                             implementation — flck::lock::try_lock is
+                             intercepted directly, logged into the txn
+                             descriptor, taken at commit. The canonical
+                             SPAA'25 published implementation, included
+                             as a sanity check.
 
         Trans is pinned at 4 (the experiment's whole point); size,
         update rate, and zipfian sweep exactly like run_geomean /
@@ -686,7 +705,11 @@ class ExperimentRunner:
         ol_structs = ["btree", "arttree", "avltree", "leaftree",
                       "treap", "skiplist", "hash_block"]
 
-        for impl in ("ol", "ol_ustm_counter"):
+        for impl in ("ol",
+                     "ol_ustm_counter", "ol_ustm_counter_hwstamp",
+                     "ol_ustm_full",    "ol_ustm_full_hwstamp",
+                     "ol_fuse",         "ol_fuse_hwstamp",
+                     "ol_fuse_stm",     "ol_fuse_stm_hwstamp"):
             for struct in ol_structs + self.config.lstructs:
                 if not self._binary_exists(f"{struct}_{impl}"):
                     continue
@@ -695,6 +718,224 @@ class ExperimentRunner:
                 self._run_batch(struct, impl, batch_params(sz_list))
 
         self.results_file.close()
+
+    # ---- OL TLF parameter-varying experiments ---------------------------
+    def _ol_tlf_impls(self):
+        """Standard set of arms for the OL TLF varying experiments.
+
+        Mixes OL+wrapper variants (ol_*) with one cross-system arm
+        (2plsf, STM-native) — fuse doesn't expose a "no-TLF" 2PLSF
+        path for OL structures, so the cross-system version is what
+        fuse's own paper compares against. ol_multiverse is the
+        OL+multiverse wrap (multiverse_glue's stm::lock is a no-op,
+        which is semantically fine inside an updateTx — multiverse's
+        tmtype tracking handles atomicity in place of flck::lock).
+        """
+        return ("ol",
+                "ol_ustm_counter", "ol_ustm_counter_hwstamp",
+                "ol_ustm_full",    "ol_ustm_full_hwstamp",
+                "ol_fuse",         "ol_fuse_hwstamp",
+                "ol_fuse_stm",     "ol_fuse_stm_hwstamp",
+                "2plsf",
+                "ol_multiverse")
+
+    def _ol_tlf_structs(self):
+        """Structures with all _ol* variants (omits hash_list — STM-only)."""
+        return ["btree", "arttree", "avltree", "leaftree",
+                "treap", "skiplist", "hash_block"]
+
+    def run_vary_txn_trans(self):
+        """Sweep transaction size for the OL TLF arms.
+
+        Directly tests whether STM overhead amortizes with trans size as
+        the SPAA'25 paper predicts. n, u, z fixed at defaults; only trans
+        varies. p = default (max threads). For each (impl, struct) the
+        binary internally geomeans across the trans values but we also
+        capture per-config rows for line plots.
+        """
+        trans_vals = [1, 2, 4, 8, 16, 32]
+        fixed = {
+            'n': self.config.default_n,
+            'u': self.config.default_u,
+            'z': self.config.default_z,
+            'p': self.config.default_p,
+        }
+        self._run_varying_experiment(
+            "vary_txn_trans", 'trans', trans_vals,
+            fixed_params=fixed,
+            structs_override=self._ol_tlf_structs() + self.config.lstructs,
+            impls_override=list(self._ol_tlf_impls()),
+        )
+
+    def run_stm_vs_ol_vary_zipfian(self):
+        """Sweep zipfian for the stm_vs_ol arms.
+
+        Same impl set as run_stm_vs_ol (the 4 STM systems + their
+        HWStamp variants + bare OL), trans pinned at 1 (OL is point-
+        update only). n, u, p fixed at defaults; only z varies.
+        """
+        z_vals = [0, 0.5, 0.75, 0.9, 0.99]
+        fixed = {
+            'n': self.config.default_n,
+            'u': self.config.default_u,
+            'trans': 1,
+            'p': self.config.default_p,
+        }
+        stm_vs_ol_impls = ["mvustm", "mvustm_hwstamp",
+                           "fuse", "fuse_hwstamp",
+                           "2plsf", "multiverse",
+                           "ol"]
+        # Focused subset for the paper figure: a tree, a balanced tree,
+        # and a hash. Matches the structure set used by
+        # run_vary_trans_focus.
+        structs = ["btree", "avltree", "hash_block"]
+        self._run_varying_experiment(
+            "stm_vs_ol_vary_z", 'z', z_vals,
+            fixed_params=fixed,
+            structs_override=structs,
+            impls_override=stm_vs_ol_impls,
+        )
+
+    def run_stm_vs_ol_vary_trans(self):
+        """Sweep trans for the stm_vs_ol arms on a focused subset.
+
+        Same impl set as run_stm_vs_ol_vary_zipfian (4 STM systems +
+        their HWStamp variants + bare OL). z, n, u, p fixed at
+        defaults; only trans varies. OL silently skips trans>1 — its
+        line collapses to a single point at trans=1.
+        """
+        trans_vals = [1, 2, 4, 8, 16, 32]
+        fixed = {
+            'n': self.config.default_n,
+            'u': self.config.default_u,
+            'z': self.config.default_z,
+            'p': self.config.default_p,
+        }
+        stm_vs_ol_impls = ["mvustm", "mvustm_hwstamp",
+                           "fuse", "fuse_hwstamp",
+                           "2plsf", "multiverse",
+                           "ol"]
+        structs = ["btree", "avltree", "hash_block"]
+        self._run_varying_experiment(
+            "stm_vs_ol_vary_trans", 'trans', trans_vals,
+            fixed_params=fixed,
+            structs_override=structs,
+            impls_override=stm_vs_ol_impls,
+        )
+
+    def run_vary_trans_focus(self):
+        """Vary trans on a focused subset of structures.
+
+        Three structures (btree, avltree, hash_block), n = 10^6, z = 0,
+        every other parameter at its default. Produces tight per-struct
+        line plots suitable for a single paper figure row.
+        """
+        trans_vals = [1, 2, 4, 8, 16, 32]
+        fixed = {
+            'n': self.config.default_n,
+            'u': self.config.default_u,
+            'z': 0,
+            'p': self.config.default_p,
+        }
+        self._run_varying_experiment(
+            "vary_trans_focus", 'trans', trans_vals,
+            fixed_params=fixed,
+            structs_override=["btree", "avltree", "hash_block"],
+            impls_override=list(self._ol_tlf_impls()),
+        )
+
+    def run_strings_update(self):
+        """Vary update rate on hash_probe + mvustm, three value-size
+        variants.
+
+        Three arms, single structure:
+          - hash_probe_mvustm                    : long (8-byte) values.
+          - hash_probe_string_mvustm             : short-string values
+            (~1-byte default_val = "3"), with `dense = !bigval = true`
+            so keys are also short strings.
+          - hash_probe_string_mvustm -bigval     : ~20-byte string
+            values (default_val = to_chars(~0ul)), `dense = false` so
+            keys are hashed 64-bit numbers — also ~20-char strings.
+
+        Both string arms run the same binary; -bigval is a runtime
+        flag (added in commit ed60d1b). To distinguish the two in the
+        output file we rewrite the binary's `./hash_probe_string_mvustm`
+        prefix to `./hash_probe_string_bigval_mvustm` for the bigval
+        run so plot.py's parser splits the impl correctly.
+
+        Other parameters fixed at defaults.
+        """
+        self.setup_output("strings_update")
+        self.results_file.write(
+            f"Fixed: n={self.config.default_n}, "
+            f"trans={self.config.default_trans}, "
+            f"z={self.config.default_z}, p={self.config.default_p}\n")
+        self.results_file.write("---\n")
+
+        updates = [0, 5, 10, 20, 50, 100]
+        configs = [
+            # (binary,                        extra_flag, recorded_impl)
+            ("hash_probe_mvustm",             "",         "mvustm"),
+            ("hash_probe_string_mvustm",      "",         "string_mvustm"),
+            ("hash_probe_string_mvustm",      "-bigval",  "string_bigval_mvustm"),
+        ]
+
+        for binary, extra, recorded_impl in configs:
+            if not self._binary_exists(binary):
+                print(f"  SKIP hash_probe_{recorded_impl} ({binary} not built)")
+                continue
+            print(f"  hash_probe_{recorded_impl}")
+            record_prefix = f"./hash_probe_{recorded_impl}"
+            for u in updates:
+                param_str = (f"-n {self.config.default_n} "
+                             f"-trans {self.config.default_trans} "
+                             f"-z {self.config.default_z} "
+                             f"-p {self.config.default_p} "
+                             f"-u {u} "
+                             f"-r 1 -t 1 {extra}").strip()
+                output, status = run_benchmark(
+                    f"./{binary} {param_str}",
+                    self.config.numa_cmd,
+                    self.config.allocator)
+                for line in output.split('\n'):
+                    line = line.strip()
+                    if 'mops=' in line or 'GEOMETRIC MEAN' in line:
+                        # Substitute the binary's emitted prefix
+                        # (./hash_probe_string_mvustm) with our
+                        # recorded prefix so the two -bigval arms
+                        # remain distinguishable post-parse.
+                        if line.startswith(f"./{binary},"):
+                            line = record_prefix + line[len(f"./{binary}"):]
+                        self.results_file.write(f"{line}\n")
+                        self.results_file.flush()
+                if status != "ok":
+                    self._log_failure(record_prefix, status, param_str)
+
+        self.results_file.close()
+
+    def run_vary_txn_threads(self):
+        """Sweep thread count for the OL TLF arms, trans pinned at 4.
+
+        Tests where commit-stamp contention (HWStamp vs SplitStamp) and
+        general STM scaling kicks in. At p=1 STM overhead should be
+        roughly fixed per-op; at p=144 commit-stamp CAS contention
+        should dominate the non-HWStamp variants.
+        """
+        threads = [p for p in [1, 4, 16, 32, 64, 128] if p <= self.nproc]
+        if self.nproc not in threads:
+            threads.append(self.nproc)
+        fixed = {
+            'n': self.config.default_n,
+            'u': self.config.default_u,
+            'z': self.config.default_z,
+            'trans': 4,
+        }
+        self._run_varying_experiment(
+            "vary_txn_threads", 'p', threads,
+            fixed_params=fixed,
+            structs_override=self._ol_tlf_structs() + self.config.lstructs,
+            impls_override=list(self._ol_tlf_impls()),
+        )
 
     def run_sweep(self):
         """Run parameter sweep experiments (2-6)."""
@@ -739,7 +980,13 @@ Experiments:
   nontrivial Non-trivial types (btree upsert variants, hash_list/hash_probe)
   ablation   Ablation studies (timestamping, abort mechanism)
   stm_vs_ol  STM vs fine-grained-concurrent (blocking OL) at trans=1
+  stm_vs_ol_vary_z  Sweep zipfian for the stm_vs_ol arms (trans=1, rest default)
+  stm_vs_ol_vary_trans  Sweep trans for the stm_vs_ol arms (z=default, rest default)
   txn_overhead   OL vs OL+fuse-txn-wrap on same OL structures at trans=4
+  vary_txn_trans   Sweep trans size for OL TLF arms (tests amortization claim)
+  vary_trans_focus Focused trans sweep (btree/avltree/hash_block, n=10^7, z=0)
+  strings_update Sweep update rate on hash_probe + mvustm: long vs string vs string-bigval
+  vary_txn_threads Sweep thread count for OL TLF arms (tests stamp contention)
   sweep      Run parameter sweep experiments (size, threads, zipfian, trans, update)
   all        Run all experiments
 
@@ -750,7 +997,7 @@ Examples:
 """)
     
     parser.add_argument("experiment", nargs="+",
-                       choices=["geomean", "size", "threads", "zipfian", "trans", "update", "range", "tpcc", "nontrivial", "ablation", "stm_vs_ol", "txn_overhead", "sweep", "all"],
+                       choices=["geomean", "size", "threads", "zipfian", "trans", "update", "range", "tpcc", "nontrivial", "ablation", "stm_vs_ol", "stm_vs_ol_vary_z", "stm_vs_ol_vary_trans", "txn_overhead", "vary_txn_trans", "vary_trans_focus", "vary_txn_threads", "strings_update", "sweep", "all"],
                        help="Experiment(s) to run (one or more)")
     parser.add_argument("--output", "-o", metavar="DIR",
                        help="Output directory for results")
@@ -759,7 +1006,13 @@ Examples:
     parser.add_argument("--allocator", default="deqalloc",
                        help="Choose which allocator to use (default: deqalloc)")
     parser.add_argument("--impl", default=None, nargs="+",
-                       choices=["mvustm", "mvustm_hwstamp", "fuse", "2plsf", "multiverse", "onefile", "tiny", "tl2", "ol", "ol_ustm_counter"],
+                       choices=["mvustm", "mvustm_hwstamp",
+                                "fuse", "fuse_hwstamp",
+                                "2plsf", "multiverse", "onefile", "tiny", "tl2", "ol",
+                                "ol_ustm_counter", "ol_ustm_counter_hwstamp",
+                                "ol_ustm_full", "ol_ustm_full_hwstamp",
+                                "ol_fuse", "ol_fuse_hwstamp",
+                                "ol_fuse_stm", "ol_fuse_stm_hwstamp"],
                        help="Run only the specified stm system(s)")
     parser.add_argument("--struct", default=None, nargs="+",
                        choices=["btree", "arttree", "avltree", "leaftree", "treap", "skiplist", "hash_list"],
@@ -788,7 +1041,13 @@ Examples:
         "nontrivial": runner.run_nontrivial_types,
         "ablation": runner.run_ablation,
         "stm_vs_ol": runner.run_stm_vs_ol,
+        "stm_vs_ol_vary_z": runner.run_stm_vs_ol_vary_zipfian,
+        "stm_vs_ol_vary_trans": runner.run_stm_vs_ol_vary_trans,
+        "strings_update": runner.run_strings_update,
         "txn_overhead": runner.run_txn_overhead,
+        "vary_txn_trans": runner.run_vary_txn_trans,
+        "vary_trans_focus": runner.run_vary_trans_focus,
+        "vary_txn_threads": runner.run_vary_txn_threads,
         "sweep": runner.run_sweep,
         "all": runner.run_all,
     }

@@ -112,6 +112,24 @@ namespace stm {
   using atomic = std::conditional_t<sizeof(T) <= sizeof(void*) && std::is_scalar_v<T>,
                                     direct_atomic<T>, indirect_atomic<T>>;
 
+  // Required by verlib.h's OL_USE_STM path: when the OL structures
+  // route their internal verlib::versioned_ptr / atomic_bool / lock
+  // through ::stm::, we need to provide stm::lock and stm::with_epoch
+  // as well. Multiverse has no per-structure locks (its STM does
+  // commit-time validation through tx_field), so stm::lock here is a
+  // no-op wrapper — read_lock just runs the callback, try_lock too.
+  // That preserves the structure code's call shape while leaving the
+  // real concurrency control to ns_multiverse::updateTx.
+  struct lock {
+    template <typename Thunk>
+    auto read_lock(Thunk f) { return f(); }
+    template <typename Thunk>
+    auto try_lock(Thunk f) { return f(); }
+  };
+
+  template <typename F>
+  auto with_epoch(F&& f) { return std::forward<F>(f)(); }
+
   std::pair<long,long> statistics() {
 #ifdef TRACK_MULTIVERSE_COUNTERS
     uint64_t aborts = 0, commits = 0;

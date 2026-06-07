@@ -1,0 +1,224 @@
+Date: 06-02-2026
+Experiment: vary_trans_focus
+Threads: 144
+Model name:                           Intel(R) Xeon(R) CPU E7-8867 v4 @ 2.40GHz
+Git: a77fa76
+---
+Fixed: n=1000000, u=5, z=0, p=144
+---
+./btree_ol,u=5,trans=1,n=1000000,p=144,z=0,pa=0,be=0,mops=375
+./btree_ol,u=5,trans=2,n=1000000,p=144,z=0,pa=0,be=0,mops=377
+./btree_ol,u=5,trans=4,n=1000000,p=144,z=0,pa=0,be=0,mops=389
+./btree_ol,u=5,trans=8,n=1000000,p=144,z=0,pa=0,be=0,mops=392
+./btree_ol,u=5,trans=16,n=1000000,p=144,z=0,pa=0,be=0,mops=393
+./btree_ol,u=5,trans=32,n=1000000,p=144,z=0,pa=0,be=0,mops=392
+./btree_ol,GEOMETRIC MEAN OF THROUGHPUTS: 386.3
+./btree_ol,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
+./avltree_ol,u=5,trans=1,n=1000000,p=144,z=0,pa=0,be=0,mops=107
+./avltree_ol,u=5,trans=2,n=1000000,p=144,z=0,pa=0,be=0,mops=107
+./avltree_ol,u=5,trans=4,n=1000000,p=144,z=0,pa=0,be=0,mops=107
+./avltree_ol,u=5,trans=8,n=1000000,p=144,z=0,pa=0,be=0,mops=107
+./avltree_ol,u=5,trans=16,n=1000000,p=144,z=0,pa=0,be=0,mops=107
+./avltree_ol,u=5,trans=32,n=1000000,p=144,z=0,pa=0,be=0,mops=107
+./avltree_ol,GEOMETRIC MEAN OF THROUGHPUTS: 107
+./avltree_ol,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
+./hash_block_ol,u=5,trans=1,n=1000000,p=144,z=0,pa=0,be=0,mops=720
+./hash_block_ol,u=5,trans=2,n=1000000,p=144,z=0,pa=0,be=0,mops=734
+./hash_block_ol,u=5,trans=4,n=1000000,p=144,z=0,pa=0,be=0,mops=756
+./hash_block_ol,u=5,trans=8,n=1000000,p=144,z=0,pa=0,be=0,mops=769
+./hash_block_ol,u=5,trans=16,n=1000000,p=144,z=0,pa=0,be=0,mops=771
+./hash_block_ol,u=5,trans=32,n=1000000,p=144,z=0,pa=0,be=0,mops=775
+./hash_block_ol,GEOMETRIC MEAN OF THROUGHPUTS: 753.9
+./hash_block_ol,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
+./btree_ol_ustm_counter,u=5,trans=1,n=1000000,p=144,z=0,pa=0,be=0,mops=190
+./btree_ol_ustm_counter,u=5,trans=2,n=1000000,p=144,z=0,pa=0,be=0,mops=225
+./btree_ol_ustm_counter,u=5,trans=4,n=1000000,p=144,z=0,pa=0,be=0,mops=266
+./btree_ol_ustm_counter,u=5,trans=8,n=1000000,p=144,z=0,pa=0.116,be=0,mops=281
+./btree_ol_ustm_counter,u=5,trans=16,n=1000000,p=144,z=0,pa=0.44,be=0,mops=288
+./btree_ol_ustm_counter,u=5,trans=32,n=1000000,p=144,z=0,pa=1.82,be=0,mops=289
+./btree_ol_ustm_counter,GEOMETRIC MEAN OF THROUGHPUTS: 253.6
+./btree_ol_ustm_counter,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
+./avltree_ol_ustm_counter,u=5,trans=1,n=1000000,p=144,z=0,pa=0,be=0,mops=60.6
+./avltree_ol_ustm_counter,u=5,trans=2,n=1000000,p=144,z=0,pa=0,be=0,mops=61.2
+./avltree_ol_ustm_counter,u=5,trans=4,n=1000000,p=144,z=0,pa=0,be=0,mops=61.9
+./avltree_ol_ustm_counter,u=5,trans=8,n=1000000,p=144,z=0,pa=0,be=0,mops=62.3
+./avltree_ol_ustm_counter,u=5,trans=16,n=1000000,p=144,z=0,pa=0,be=0,mops=62.3
+./avltree_ol_ustm_counter,u=5,trans=32,n=1000000,p=144,z=0,pa=0.169,be=0,mops=61.2
+./avltree_ol_ustm_counter,GEOMETRIC MEAN OF THROUGHPUTS: 61.56
+./avltree_ol_ustm_counter,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
+./hash_block_ol_ustm_counter,u=5,trans=1,n=1000000,p=144,z=0,pa=0,be=0,mops=220
+./hash_block_ol_ustm_counter,u=5,trans=2,n=1000000,p=144,z=0,pa=0,be=0,mops=270
+./hash_block_ol_ustm_counter,u=5,trans=4,n=1000000,p=144,z=0,pa=0,be=0,mops=324
+./hash_block_ol_ustm_counter,u=5,trans=8,n=1000000,p=144,z=0,pa=0,be=0,mops=360
+./hash_block_ol_ustm_counter,u=5,trans=16,n=1000000,p=144,z=0,pa=0,be=0,mops=386
+./hash_block_ol_ustm_counter,u=5,trans=32,n=1000000,p=144,z=0,pa=0,be=0,mops=401
+./hash_block_ol_ustm_counter,GEOMETRIC MEAN OF THROUGHPUTS: 320.1
+./hash_block_ol_ustm_counter,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
+./btree_ol_ustm_counter_hwstamp,u=5,trans=1,n=1000000,p=144,z=0,pa=0,be=0,mops=266
+./btree_ol_ustm_counter_hwstamp,u=5,trans=2,n=1000000,p=144,z=0,pa=0,be=0,mops=277
+./btree_ol_ustm_counter_hwstamp,u=5,trans=4,n=1000000,p=144,z=0,pa=0,be=0,mops=291
+./btree_ol_ustm_counter_hwstamp,u=5,trans=8,n=1000000,p=144,z=0,pa=0,be=0,mops=290
+./btree_ol_ustm_counter_hwstamp,u=5,trans=16,n=1000000,p=144,z=0,pa=0.397,be=0,mops=289
+./btree_ol_ustm_counter_hwstamp,u=5,trans=32,n=1000000,p=144,z=0,pa=1.75,be=0,mops=284
+./btree_ol_ustm_counter_hwstamp,GEOMETRIC MEAN OF THROUGHPUTS: 282.6
+./btree_ol_ustm_counter_hwstamp,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
+./avltree_ol_ustm_counter_hwstamp,u=5,trans=1,n=1000000,p=144,z=0,pa=0,be=0,mops=66.2
+./avltree_ol_ustm_counter_hwstamp,u=5,trans=2,n=1000000,p=144,z=0,pa=0,be=0,mops=66
+./avltree_ol_ustm_counter_hwstamp,u=5,trans=4,n=1000000,p=144,z=0,pa=0,be=0,mops=65.7
+./avltree_ol_ustm_counter_hwstamp,u=5,trans=8,n=1000000,p=144,z=0,pa=0,be=0,mops=63.6
+./avltree_ol_ustm_counter_hwstamp,u=5,trans=16,n=1000000,p=144,z=0,pa=0,be=0,mops=62.8
+./avltree_ol_ustm_counter_hwstamp,u=5,trans=32,n=1000000,p=144,z=0,pa=0.161,be=0,mops=62.6
+./avltree_ol_ustm_counter_hwstamp,GEOMETRIC MEAN OF THROUGHPUTS: 64.46
+./avltree_ol_ustm_counter_hwstamp,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
+./hash_block_ol_ustm_counter_hwstamp,u=5,trans=1,n=1000000,p=144,z=0,pa=0,be=0,mops=327
+./hash_block_ol_ustm_counter_hwstamp,u=5,trans=2,n=1000000,p=144,z=0,pa=0,be=0,mops=407
+./hash_block_ol_ustm_counter_hwstamp,u=5,trans=4,n=1000000,p=144,z=0,pa=0,be=0,mops=433
+./hash_block_ol_ustm_counter_hwstamp,u=5,trans=8,n=1000000,p=144,z=0,pa=0,be=0,mops=418
+./hash_block_ol_ustm_counter_hwstamp,u=5,trans=16,n=1000000,p=144,z=0,pa=0,be=0,mops=424
+./hash_block_ol_ustm_counter_hwstamp,u=5,trans=32,n=1000000,p=144,z=0,pa=0,be=0,mops=429
+./hash_block_ol_ustm_counter_hwstamp,GEOMETRIC MEAN OF THROUGHPUTS: 404.5
+./hash_block_ol_ustm_counter_hwstamp,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
+./btree_ol_ustm_full,u=5,trans=1,n=1000000,p=144,z=0,pa=0,be=0,mops=191
+./btree_ol_ustm_full,u=5,trans=2,n=1000000,p=144,z=0,pa=0,be=0,mops=221
+./btree_ol_ustm_full,u=5,trans=4,n=1000000,p=144,z=0,pa=0.149,be=0,mops=257
+./btree_ol_ustm_full,u=5,trans=8,n=1000000,p=144,z=0,pa=0.839,be=0,mops=268
+./btree_ol_ustm_full,u=5,trans=16,n=1000000,p=144,z=0,pa=4.88,be=0,mops=270
+./btree_ol_ustm_full,u=5,trans=32,n=1000000,p=144,z=0,pa=26.6,be=0,mops=243
+./btree_ol_ustm_full,GEOMETRIC MEAN OF THROUGHPUTS: 240
+./btree_ol_ustm_full,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
+./avltree_ol_ustm_full,u=5,trans=1,n=1000000,p=144,z=0,pa=0,be=0,mops=59.8
+./avltree_ol_ustm_full,u=5,trans=2,n=1000000,p=144,z=0,pa=0,be=0,mops=61.8
+./avltree_ol_ustm_full,u=5,trans=4,n=1000000,p=144,z=0,pa=0,be=0,mops=61.1
+./avltree_ol_ustm_full,u=5,trans=8,n=1000000,p=144,z=0,pa=0.141,be=0,mops=58.2
+./avltree_ol_ustm_full,u=5,trans=16,n=1000000,p=144,z=0,pa=0.886,be=0,mops=55.9
+./avltree_ol_ustm_full,u=5,trans=32,n=1000000,p=144,z=0,pa=5.24,be=0,mops=51.5
+./avltree_ol_ustm_full,GEOMETRIC MEAN OF THROUGHPUTS: 57.95
+./avltree_ol_ustm_full,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
+./hash_block_ol_ustm_full,u=5,trans=1,n=1000000,p=144,z=0,pa=0,be=0,mops=232
+./hash_block_ol_ustm_full,u=5,trans=2,n=1000000,p=144,z=0,pa=0,be=0,mops=287
+./hash_block_ol_ustm_full,u=5,trans=4,n=1000000,p=144,z=0,pa=0,be=0,mops=350
+./hash_block_ol_ustm_full,u=5,trans=8,n=1000000,p=144,z=0,pa=0,be=0,mops=399
+./hash_block_ol_ustm_full,u=5,trans=16,n=1000000,p=144,z=0,pa=0.169,be=0,mops=453
+./hash_block_ol_ustm_full,u=5,trans=32,n=1000000,p=144,z=0,pa=0.962,be=0,mops=472
+./hash_block_ol_ustm_full,GEOMETRIC MEAN OF THROUGHPUTS: 354.6
+./hash_block_ol_ustm_full,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
+./btree_ol_ustm_full_hwstamp,u=5,trans=1,n=1000000,p=144,z=0,pa=0,be=0,mops=269
+./btree_ol_ustm_full_hwstamp,u=5,trans=2,n=1000000,p=144,z=0,pa=0,be=0,mops=279
+./btree_ol_ustm_full_hwstamp,u=5,trans=4,n=1000000,p=144,z=0,pa=0.114,be=0,mops=264
+./btree_ol_ustm_full_hwstamp,u=5,trans=8,n=1000000,p=144,z=0,pa=0.682,be=0,mops=283
+./btree_ol_ustm_full_hwstamp,u=5,trans=16,n=1000000,p=144,z=0,pa=4.28,be=0,mops=277
+./btree_ol_ustm_full_hwstamp,u=5,trans=32,n=1000000,p=144,z=0,pa=24.3,be=0,mops=246
+./btree_ol_ustm_full_hwstamp,GEOMETRIC MEAN OF THROUGHPUTS: 269.6
+./btree_ol_ustm_full_hwstamp,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
+./avltree_ol_ustm_full_hwstamp,u=5,trans=1,n=1000000,p=144,z=0,pa=0,be=0,mops=63.6
+./avltree_ol_ustm_full_hwstamp,u=5,trans=2,n=1000000,p=144,z=0,pa=0,be=0,mops=61.1
+./avltree_ol_ustm_full_hwstamp,u=5,trans=4,n=1000000,p=144,z=0,pa=0,be=0,mops=59.8
+./avltree_ol_ustm_full_hwstamp,u=5,trans=8,n=1000000,p=144,z=0,pa=0.169,be=0,mops=59.1
+./avltree_ol_ustm_full_hwstamp,u=5,trans=16,n=1000000,p=144,z=0,pa=0.756,be=0,mops=55.9
+./avltree_ol_ustm_full_hwstamp,u=5,trans=32,n=1000000,p=144,z=0,pa=4.66,be=0,mops=51.4
+./avltree_ol_ustm_full_hwstamp,GEOMETRIC MEAN OF THROUGHPUTS: 58.34
+./avltree_ol_ustm_full_hwstamp,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
+./hash_block_ol_ustm_full_hwstamp,u=5,trans=1,n=1000000,p=144,z=0,pa=0,be=0,mops=371
+./hash_block_ol_ustm_full_hwstamp,u=5,trans=2,n=1000000,p=144,z=0,pa=0,be=0,mops=452
+./hash_block_ol_ustm_full_hwstamp,u=5,trans=4,n=1000000,p=144,z=0,pa=0,be=0,mops=473
+./hash_block_ol_ustm_full_hwstamp,u=5,trans=8,n=1000000,p=144,z=0,pa=0,be=0,mops=497
+./hash_block_ol_ustm_full_hwstamp,u=5,trans=16,n=1000000,p=144,z=0,pa=0.143,be=0,mops=504
+./hash_block_ol_ustm_full_hwstamp,u=5,trans=32,n=1000000,p=144,z=0,pa=0.876,be=0,mops=507
+./hash_block_ol_ustm_full_hwstamp,GEOMETRIC MEAN OF THROUGHPUTS: 464.7
+./hash_block_ol_ustm_full_hwstamp,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
+./btree_ol_fuse,u=5,trans=1,n=1000000,p=144,z=0,pa=0,be=0,mops=58.8
+./btree_ol_fuse,u=5,trans=2,n=1000000,p=144,z=0,pa=0,be=0,mops=98.6
+./btree_ol_fuse,u=5,trans=4,n=1000000,p=144,z=0,pa=0,be=0,mops=160
+./btree_ol_fuse,u=5,trans=8,n=1000000,p=144,z=0,pa=0,be=0,mops=220
+./btree_ol_fuse,u=5,trans=16,n=1000000,p=144,z=0,pa=0,be=0,mops=273
+./btree_ol_fuse,u=5,trans=32,n=1000000,p=144,z=0,pa=0,be=0,mops=301
+./btree_ol_fuse,GEOMETRIC MEAN OF THROUGHPUTS: 160.1
+./btree_ol_fuse,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
+./avltree_ol_fuse,u=5,trans=1,n=1000000,p=144,z=0,pa=0,be=0,mops=41.7
+./avltree_ol_fuse,u=5,trans=2,n=1000000,p=144,z=0,pa=0,be=0,mops=58.7
+./avltree_ol_fuse,u=5,trans=4,n=1000000,p=144,z=0,pa=0,be=0,mops=73.7
+./avltree_ol_fuse,u=5,trans=8,n=1000000,p=144,z=0,pa=0,be=0,mops=83.5
+./avltree_ol_fuse,u=5,trans=16,n=1000000,p=144,z=0,pa=0,be=0,mops=87.4
+./avltree_ol_fuse,u=5,trans=32,n=1000000,p=144,z=0,pa=0,be=0,mops=88
+./avltree_ol_fuse,GEOMETRIC MEAN OF THROUGHPUTS: 69.82
+./avltree_ol_fuse,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
+./hash_block_ol_fuse,u=5,trans=1,n=1000000,p=144,z=0,pa=0,be=0,mops=70.9
+./hash_block_ol_fuse,u=5,trans=2,n=1000000,p=144,z=0,pa=0,be=0,mops=96
+./hash_block_ol_fuse,u=5,trans=4,n=1000000,p=144,z=0,pa=0,be=0,mops=140
+./hash_block_ol_fuse,u=5,trans=8,n=1000000,p=144,z=0,pa=0,be=0,mops=229
+./hash_block_ol_fuse,u=5,trans=16,n=1000000,p=144,z=0,pa=0,be=0,mops=343
+./hash_block_ol_fuse,u=5,trans=32,n=1000000,p=144,z=0,pa=0,be=0,mops=439
+./hash_block_ol_fuse,GEOMETRIC MEAN OF THROUGHPUTS: 179
+./hash_block_ol_fuse,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
+./btree_ol_fuse_hwstamp,u=5,trans=1,n=1000000,p=144,z=0,pa=0,be=0,mops=280
+./btree_ol_fuse_hwstamp,u=5,trans=2,n=1000000,p=144,z=0,pa=0,be=0,mops=263
+./btree_ol_fuse_hwstamp,u=5,trans=4,n=1000000,p=144,z=0,pa=0,be=0,mops=295
+./btree_ol_fuse_hwstamp,u=5,trans=8,n=1000000,p=144,z=0,pa=0,be=0,mops=310
+./btree_ol_fuse_hwstamp,u=5,trans=16,n=1000000,p=144,z=0,pa=0,be=0,mops=315
+./btree_ol_fuse_hwstamp,u=5,trans=32,n=1000000,p=144,z=0,pa=0,be=0,mops=319
+./btree_ol_fuse_hwstamp,GEOMETRIC MEAN OF THROUGHPUTS: 296.5
+./btree_ol_fuse_hwstamp,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
+./avltree_ol_fuse_hwstamp,u=5,trans=1,n=1000000,p=144,z=0,pa=0,be=0,mops=89.1
+./avltree_ol_fuse_hwstamp,u=5,trans=2,n=1000000,p=144,z=0,pa=0,be=0,mops=86.3
+./avltree_ol_fuse_hwstamp,u=5,trans=4,n=1000000,p=144,z=0,pa=0,be=0,mops=87.4
+./avltree_ol_fuse_hwstamp,u=5,trans=8,n=1000000,p=144,z=0,pa=0,be=0,mops=87.7
+./avltree_ol_fuse_hwstamp,u=5,trans=16,n=1000000,p=144,z=0,pa=0,be=0,mops=87.8
+./avltree_ol_fuse_hwstamp,u=5,trans=32,n=1000000,p=144,z=0,pa=0,be=0,mops=86.8
+./avltree_ol_fuse_hwstamp,GEOMETRIC MEAN OF THROUGHPUTS: 87.5
+./avltree_ol_fuse_hwstamp,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
+./hash_block_ol_fuse_hwstamp,u=5,trans=1,n=1000000,p=144,z=0,pa=0,be=0,mops=323
+./hash_block_ol_fuse_hwstamp,u=5,trans=2,n=1000000,p=144,z=0,pa=0,be=0,mops=404
+./hash_block_ol_fuse_hwstamp,u=5,trans=4,n=1000000,p=144,z=0,pa=0,be=0,mops=475
+./hash_block_ol_fuse_hwstamp,u=5,trans=8,n=1000000,p=144,z=0,pa=0,be=0,mops=515
+./hash_block_ol_fuse_hwstamp,u=5,trans=16,n=1000000,p=144,z=0,pa=0,be=0,mops=548
+./hash_block_ol_fuse_hwstamp,u=5,trans=32,n=1000000,p=144,z=0,pa=0,be=0,mops=547
+./hash_block_ol_fuse_hwstamp,GEOMETRIC MEAN OF THROUGHPUTS: 460.7
+./hash_block_ol_fuse_hwstamp,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
+./btree_ol_fuse_stm,u=5,trans=1,n=1000000,p=144,z=0,pa=0,be=0,mops=58.8
+./btree_ol_fuse_stm,u=5,trans=2,n=1000000,p=144,z=0,pa=0,be=0,mops=92
+./btree_ol_fuse_stm,u=5,trans=4,n=1000000,p=144,z=0,pa=0,be=0,mops=143
+./btree_ol_fuse_stm,u=5,trans=8,n=1000000,p=144,z=0,pa=0,be=0,mops=184
+./btree_ol_fuse_stm,u=5,trans=16,n=1000000,p=144,z=0,pa=0,be=0,mops=217
+./btree_ol_fuse_stm,u=5,trans=32,n=1000000,p=144,z=0,pa=0,be=0,mops=226
+./btree_ol_fuse_stm,GEOMETRIC MEAN OF THROUGHPUTS: 138.2
+./btree_ol_fuse_stm,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
+./avltree_ol_fuse_stm,u=5,trans=1,n=1000000,p=144,z=0,pa=0,be=0,mops=38.5
+./avltree_ol_fuse_stm,u=5,trans=2,n=1000000,p=144,z=0,pa=0,be=0,mops=46.4
+./avltree_ol_fuse_stm,u=5,trans=4,n=1000000,p=144,z=0,pa=0,be=0,mops=53.4
+./avltree_ol_fuse_stm,u=5,trans=8,n=1000000,p=144,z=0,pa=0,be=0,mops=56.7
+./avltree_ol_fuse_stm,u=5,trans=16,n=1000000,p=144,z=0,pa=0,be=0,mops=55.8
+./avltree_ol_fuse_stm,u=5,trans=32,n=1000000,p=144,z=0,pa=0,be=0,mops=52.2
+./avltree_ol_fuse_stm,GEOMETRIC MEAN OF THROUGHPUTS: 50.06
+./avltree_ol_fuse_stm,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
+./hash_block_ol_fuse_stm,u=5,trans=1,n=1000000,p=144,z=0,pa=0,be=0,mops=69.7
+./hash_block_ol_fuse_stm,u=5,trans=2,n=1000000,p=144,z=0,pa=0,be=0,mops=108
+./hash_block_ol_fuse_stm,u=5,trans=4,n=1000000,p=144,z=0,pa=0,be=0,mops=179
+./hash_block_ol_fuse_stm,u=5,trans=8,n=1000000,p=144,z=0,pa=0,be=0,mops=268
+./hash_block_ol_fuse_stm,u=5,trans=16,n=1000000,p=144,z=0,pa=0,be=0,mops=369
+./hash_block_ol_fuse_stm,u=5,trans=32,n=1000000,p=144,z=0,pa=0,be=0,mops=430
+./hash_block_ol_fuse_stm,GEOMETRIC MEAN OF THROUGHPUTS: 196.4
+./hash_block_ol_fuse_stm,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
+./btree_ol_fuse_stm_hwstamp,u=5,trans=1,n=1000000,p=144,z=0,pa=0,be=0,mops=265
+./btree_ol_fuse_stm_hwstamp,u=5,trans=2,n=1000000,p=144,z=0,pa=0,be=0,mops=244
+./btree_ol_fuse_stm_hwstamp,u=5,trans=4,n=1000000,p=144,z=0,pa=0,be=0,mops=264
+./btree_ol_fuse_stm_hwstamp,u=5,trans=8,n=1000000,p=144,z=0,pa=0,be=0,mops=247
+./btree_ol_fuse_stm_hwstamp,u=5,trans=16,n=1000000,p=144,z=0,pa=0,be=0,mops=248
+./btree_ol_fuse_stm_hwstamp,u=5,trans=32,n=1000000,p=144,z=0,pa=0,be=0,mops=245
+./btree_ol_fuse_stm_hwstamp,GEOMETRIC MEAN OF THROUGHPUTS: 251.7
+./btree_ol_fuse_stm_hwstamp,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
+./avltree_ol_fuse_stm_hwstamp,u=5,trans=1,n=1000000,p=144,z=0,pa=0,be=0,mops=72.9
+./avltree_ol_fuse_stm_hwstamp,u=5,trans=2,n=1000000,p=144,z=0,pa=0,be=0,mops=59.9
+./avltree_ol_fuse_stm_hwstamp,u=5,trans=4,n=1000000,p=144,z=0,pa=0,be=0,mops=59.3
+./avltree_ol_fuse_stm_hwstamp,u=5,trans=8,n=1000000,p=144,z=0,pa=0,be=0,mops=55.5
+./avltree_ol_fuse_stm_hwstamp,u=5,trans=16,n=1000000,p=144,z=0,pa=0,be=0,mops=56.2
+./avltree_ol_fuse_stm_hwstamp,u=5,trans=32,n=1000000,p=144,z=0,pa=0,be=0,mops=51.4
+./avltree_ol_fuse_stm_hwstamp,GEOMETRIC MEAN OF THROUGHPUTS: 58.83
+./avltree_ol_fuse_stm_hwstamp,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
+./hash_block_ol_fuse_stm_hwstamp,u=5,trans=1,n=1000000,p=144,z=0,pa=0,be=0,mops=308
+./hash_block_ol_fuse_stm_hwstamp,u=5,trans=2,n=1000000,p=144,z=0,pa=0,be=0,mops=355
+./hash_block_ol_fuse_stm_hwstamp,u=5,trans=4,n=1000000,p=144,z=0,pa=0,be=0,mops=450
+./hash_block_ol_fuse_stm_hwstamp,u=5,trans=8,n=1000000,p=144,z=0,pa=0,be=0,mops=504
+./hash_block_ol_fuse_stm_hwstamp,u=5,trans=16,n=1000000,p=144,z=0,pa=0,be=0,mops=519
+./hash_block_ol_fuse_stm_hwstamp,u=5,trans=32,n=1000000,p=144,z=0,pa=0,be=0,mops=373
+./hash_block_ol_fuse_stm_hwstamp,GEOMETRIC MEAN OF THROUGHPUTS: 410.5
+./hash_block_ol_fuse_stm_hwstamp,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
