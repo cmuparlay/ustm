@@ -3,7 +3,7 @@
 # paper, by delegating to the per-experiment scripts in this directory.
 #
 # Currently:
-#   - txn_overhead family (vary_trans_focus + txn_overhead bar chart)
+#   - txn_overhead family (txn_overhead_vary_trans + txn_overhead bar chart)
 #   - strings_update (hash_probe Integer / Short String / Long String)
 #
 # All output plots land in plot/plots/.

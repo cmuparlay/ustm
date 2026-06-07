@@ -787,7 +787,7 @@ class ExperimentRunner:
                            "ol"]
         # Focused subset for the paper figure: a tree, a balanced tree,
         # and a hash. Matches the structure set used by
-        # run_vary_trans_focus.
+        # run_txn_overhead_vary_trans.
         structs = ["btree", "avltree", "hash_block"]
         self._run_varying_experiment(
             "stm_vs_ol_vary_z", 'z', z_vals,
@@ -823,7 +823,7 @@ class ExperimentRunner:
             impls_override=stm_vs_ol_impls,
         )
 
-    def run_vary_trans_focus(self):
+    def run_txn_overhead_vary_trans(self):
         """Vary trans on a focused subset of structures.
 
         Three structures (btree, avltree, hash_block), n = 10^6, z = 0,
@@ -838,7 +838,7 @@ class ExperimentRunner:
             'p': self.config.default_p,
         }
         self._run_varying_experiment(
-            "vary_trans_focus", 'trans', trans_vals,
+            "txn_overhead_vary_trans", 'trans', trans_vals,
             fixed_params=fixed,
             structs_override=["btree", "avltree", "hash_block"],
             impls_override=list(self._ol_tlf_impls()),
@@ -984,7 +984,7 @@ Experiments:
   stm_vs_ol_vary_trans  Sweep trans for the stm_vs_ol arms (z=default, rest default)
   txn_overhead   OL vs OL+fuse-txn-wrap on same OL structures at trans=4
   vary_txn_trans   Sweep trans size for OL TLF arms (tests amortization claim)
-  vary_trans_focus Focused trans sweep (btree/avltree/hash_block, n=10^7, z=0)
+  txn_overhead_vary_trans Focused trans sweep (btree/avltree/hash_block, n=10^7, z=0)
   strings_update Sweep update rate on hash_probe + mvustm: long vs string vs string-bigval
   vary_txn_threads Sweep thread count for OL TLF arms (tests stamp contention)
   sweep      Run parameter sweep experiments (size, threads, zipfian, trans, update)
@@ -997,7 +997,7 @@ Examples:
 """)
     
     parser.add_argument("experiment", nargs="+",
-                       choices=["geomean", "size", "threads", "zipfian", "trans", "update", "range", "tpcc", "nontrivial", "ablation", "stm_vs_ol", "stm_vs_ol_vary_z", "stm_vs_ol_vary_trans", "txn_overhead", "vary_txn_trans", "vary_trans_focus", "vary_txn_threads", "strings_update", "sweep", "all"],
+                       choices=["geomean", "size", "threads", "zipfian", "trans", "update", "range", "tpcc", "nontrivial", "ablation", "stm_vs_ol", "stm_vs_ol_vary_z", "stm_vs_ol_vary_trans", "txn_overhead", "vary_txn_trans", "txn_overhead_vary_trans", "vary_txn_threads", "strings_update", "sweep", "all"],
                        help="Experiment(s) to run (one or more)")
     parser.add_argument("--output", "-o", metavar="DIR",
                        help="Output directory for results")
@@ -1046,7 +1046,7 @@ Examples:
         "strings_update": runner.run_strings_update,
         "txn_overhead": runner.run_txn_overhead,
         "vary_txn_trans": runner.run_vary_txn_trans,
-        "vary_trans_focus": runner.run_vary_trans_focus,
+        "txn_overhead_vary_trans": runner.run_txn_overhead_vary_trans,
         "vary_txn_threads": runner.run_vary_txn_threads,
         "sweep": runner.run_sweep,
         "all": runner.run_all,

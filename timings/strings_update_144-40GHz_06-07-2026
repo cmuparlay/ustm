@@ -1,0 +1,26 @@
+Date: 06-07-2026
+Experiment: strings_update
+Threads: 144
+Model name:                           Intel(R) Xeon(R) CPU E7-8867 v4 @ 2.40GHz
+Git: f22cc71
+---
+Fixed: n=1000000, trans=4, z=0.75, p=144
+---
+./hash_probe_mvustm,u=0,trans=4,n=1000000,p=144,z=0.75,pa=0,be=0,mops=684
+./hash_probe_mvustm,u=5,trans=4,n=1000000,p=144,z=0.75,pa=0.155,be=0,mops=449
+./hash_probe_mvustm,u=10,trans=4,n=1000000,p=144,z=0.75,pa=0.502,be=0,mops=391
+./hash_probe_mvustm,u=20,trans=4,n=1000000,p=144,z=0.75,pa=1.56,be=0,mops=310
+./hash_probe_mvustm,u=50,trans=4,n=1000000,p=144,z=0.75,pa=8.11,be=0,mops=207
+./hash_probe_mvustm,u=100,trans=4,n=1000000,p=144,z=0.75,pa=50.8,be=0,mops=126
+./hash_probe_string_mvustm,u=0,trans=4,n=1000000,p=144,z=0.75,pa=0,be=0,mops=437
+./hash_probe_string_mvustm,u=5,trans=4,n=1000000,p=144,z=0.75,pa=0.132,be=0,mops=310
+./hash_probe_string_mvustm,u=10,trans=4,n=1000000,p=144,z=0.75,pa=0.443,be=0,mops=274
+./hash_probe_string_mvustm,u=20,trans=4,n=1000000,p=144,z=0.75,pa=1.43,be=0,mops=229
+./hash_probe_string_mvustm,u=50,trans=4,n=1000000,p=144,z=0.75,pa=6.88,be=0,mops=170
+./hash_probe_string_mvustm,u=100,trans=4,n=1000000,p=144,z=0.75,pa=36.5,be=0,mops=109
+./hash_probe_string_bigval_mvustm,u=0,trans=4,n=1000000,p=144,z=0.75,pa=0,be=0,mops=141
+./hash_probe_string_bigval_mvustm,u=5,trans=4,n=1000000,p=144,z=0.75,pa=0,be=0,mops=121
+./hash_probe_string_bigval_mvustm,u=10,trans=4,n=1000000,p=144,z=0.75,pa=0.347,be=0,mops=113
+./hash_probe_string_bigval_mvustm,u=20,trans=4,n=1000000,p=144,z=0.75,pa=1.16,be=0,mops=101
+./hash_probe_string_bigval_mvustm,u=50,trans=4,n=1000000,p=144,z=0.75,pa=5.81,be=0,mops=73.2
+./hash_probe_string_bigval_mvustm,u=100,trans=4,n=1000000,p=144,z=0.75,pa=33.3,be=0,mops=50.9

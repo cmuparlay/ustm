@@ -1,19 +1,18 @@
 #!/usr/bin/env bash
 # Push-button driver for the txn_overhead family of experiments.
 #
-# Builds every binary the sweeps need, runs vary_trans_focus
-# (1x3 paper-row plot: btree / avltree / hash_block, vary trans)
-# and txn_overhead (full geomean sweep across 8 OL structures at
-# trans=4), then regenerates the plots into plot/plots/.
+# Currently this is just the txn_overhead_vary_trans line plot
+# (1x3 paper-row: btree / avltree / hash_block, vary trans). The
+# heavier txn_overhead bar-chart geomean sweep is not part of the
+# current paper figure set.
 #
 # Usage:
-#   scripts/run_txn_overhead.sh             # all three: build + sweep + plot
+#   scripts/run_txn_overhead.sh             # build + sweep + plot
 #   scripts/run_txn_overhead.sh build       # build only
 #   scripts/run_txn_overhead.sh sweep       # sweep only (assumes binaries exist)
 #   scripts/run_txn_overhead.sh plot        # plot only (assumes timings exist)
 #
-# Wall-clock: ~10-15 min build + ~10 min vary_trans_focus
-# + ~60-80 min txn_overhead full geomean on a 144-core machine.
+# Wall-clock: ~10-15 min build + ~10 min sweep on a 144-core machine.
 
 set -euo pipefail
 
@@ -33,34 +32,31 @@ step_build() {
 }
 
 step_sweep() {
-  echo "== Running vary_trans_focus =="
-  (cd benchmark && python3 run_experiment.py vary_trans_focus)
-  echo "== Running txn_overhead =="
-  (cd benchmark && python3 run_experiment.py txn_overhead)
+  echo "== Running txn_overhead_vary_trans =="
+  (cd benchmark && python3 run_experiment.py txn_overhead_vary_trans)
 }
 
 step_plot() {
-  echo "== Staging timings and rendering plots =="
+  echo "== Staging timings and rendering plot =="
   STAGE=$(mktemp -d)
   trap "rm -rf $STAGE" EXIT
-  for exp in vary_trans_focus txn_overhead; do
-    src=$TIMINGS/${exp}_${MACHINE_TAG}_${DATE}
-    if [[ ! -f $src ]]; then
-      # Fall back to the newest file for this experiment if today's
-      # didn't get produced (e.g. plot-only invocation).
-      src=$(ls -t "$TIMINGS"/${exp}_${MACHINE_TAG}_* 2>/dev/null | head -1 || true)
-    fi
-    if [[ -f $src ]]; then
-      ln -sf "$src" "$STAGE/$exp"
-      echo "  $exp -> $src"
-    else
-      echo "  WARNING: no timings file for $exp" >&2
-    fi
-  done
+  src=$TIMINGS/txn_overhead_vary_trans_${MACHINE_TAG}_${DATE}
+  if [[ ! -f $src ]]; then
+    # Fall back to the newest file if today's didn't get produced
+    # (e.g. plot-only invocation).
+    src=$(ls -t "$TIMINGS"/txn_overhead_vary_trans_${MACHINE_TAG}_* 2>/dev/null | head -1 || true)
+  fi
+  if [[ -f $src ]]; then
+    ln -sf "$src" "$STAGE/txn_overhead_vary_trans"
+    echo "  txn_overhead_vary_trans -> $src"
+  else
+    echo "  ERROR: no timings file for txn_overhead_vary_trans" >&2
+    exit 1
+  fi
   python3 plot/plot.py "$STAGE" --plots txn_overhead -o "$STAGE/plots"
   mkdir -p "$PLOTS"
-  cp "$STAGE/plots/"trans_focus.pdf "$STAGE/plots/"txn_overhead.pdf "$PLOTS/" 2>/dev/null || true
-  echo "== Done. Plots in $PLOTS/ =="
+  cp "$STAGE/plots/txn_overhead_vary_trans.pdf" "$PLOTS/"
+  echo "== Done. Plot at $PLOTS/txn_overhead_vary_trans.pdf =="
 }
 
 case "${1:-all}" in

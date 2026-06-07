@@ -1791,7 +1791,7 @@ def main():
         'strings_update',
         'txn_overhead',
         # Per-parameter sweeps for the OL TLF benchmarks.
-        'vary_trans_focus',
+        'txn_overhead_vary_trans',
         'vary_txn_trans',
         'vary_txn_threads',
     ]
@@ -1916,11 +1916,11 @@ def main():
         if exp_results.get('vary_txn_threads'):
             print("\nGenerating txn_overhead vary_threads line plots...")
             plot_varying(exp_results['vary_txn_threads'], output_dir, 'p')
-        if exp_results.get('vary_trans_focus'):
-            print("\nGenerating vary_trans_focus row plot...")
-            plot_paper_row_(exp_results['vary_trans_focus'], output_dir, 'trans',
+        if exp_results.get('txn_overhead_vary_trans'):
+            print("\nGenerating txn_overhead_vary_trans row plot...")
+            plot_paper_row_(exp_results['txn_overhead_vary_trans'], output_dir, 'trans',
                             structures=['btree', 'avltree', 'hash_block'],
-                            name='trans_focus', fmt=args.format,
+                            name='txn_overhead_vary_trans', fmt=args.format,
                             impl_whitelist=['ol', '2plsf', 'ol_fuse',
                                             'ol_multiverse', 'ol_ustm_full'],
                             flat_baseline_impl='ol')
