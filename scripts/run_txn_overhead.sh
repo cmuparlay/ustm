@@ -7,7 +7,8 @@
 # current paper figure set.
 #
 # Usage:
-#   scripts/run_txn_overhead.sh             # build + sweep + plot
+#   scripts/run_txn_overhead.sh             # sync + build + sweep + plot
+#   scripts/run_txn_overhead.sh sync        # pull repo + sync fuse submodule only
 #   scripts/run_txn_overhead.sh build       # build only
 #   scripts/run_txn_overhead.sh sweep       # sweep only (assumes binaries exist)
 #   scripts/run_txn_overhead.sh plot        # plot only (assumes timings exist)
@@ -24,6 +25,14 @@ PLOTS=$ROOT/plot/plots
 DATE=$(date +%m-%d-%Y)
 MACHINE_TAG="144-40GHz"   # matches setup_output() naming in run_experiment.py
 JOBS=$(nproc)
+
+step_sync() {
+  echo "== Fast-forwarding ustm and syncing fuse submodule =="
+  # --ff-only refuses to merge if there are local commits ahead of
+  # upstream; pair with a clean working tree.
+  git pull --ff-only
+  git submodule update --init --recursive
+}
 
 step_build() {
   echo "== Configuring and building (j=$JOBS) =="
@@ -60,9 +69,10 @@ step_plot() {
 }
 
 case "${1:-all}" in
+  sync)  step_sync ;;
   build) step_build ;;
   sweep) step_sweep ;;
   plot)  step_plot ;;
-  all)   step_build; step_sweep; step_plot ;;
-  *)     echo "usage: $0 [build|sweep|plot|all]" >&2; exit 1 ;;
+  all)   step_sync; step_build; step_sweep; step_plot ;;
+  *)     echo "usage: $0 [sync|build|sweep|plot|all]" >&2; exit 1 ;;
 esac
