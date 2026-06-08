@@ -1,0 +1,26 @@
+Date: 06-08-2026
+Experiment: strings_update
+Threads: 192
+Model name:                              Intel(R) Xeon(R) Platinum 8488C
+Git: 775dfa1
+---
+Fixed: n=1000000, trans=4, z=0.75, p=192
+---
+./hash_probe_mvustm,u=0,trans=4,n=1000000,p=192,z=0.75,pa=0,be=0,mops=2.14e+03
+./hash_probe_mvustm,u=5,trans=4,n=1000000,p=192,z=0.75,pa=0.207,be=0,mops=545
+./hash_probe_mvustm,u=10,trans=4,n=1000000,p=192,z=0.75,pa=0.684,be=0,mops=454
+./hash_probe_mvustm,u=20,trans=4,n=1000000,p=192,z=0.75,pa=2.25,be=0,mops=325
+./hash_probe_mvustm,u=50,trans=4,n=1000000,p=192,z=0.75,pa=17.8,be=0,mops=219
+./hash_probe_mvustm,u=100,trans=4,n=1000000,p=192,z=0.75,pa=82.1,be=0,mops=103
+./hash_probe_string_mvustm,u=0,trans=4,n=1000000,p=192,z=0.75,pa=0,be=0,mops=918
+./hash_probe_string_mvustm,u=5,trans=4,n=1000000,p=192,z=0.75,pa=0.189,be=0,mops=461
+./hash_probe_string_mvustm,u=10,trans=4,n=1000000,p=192,z=0.75,pa=0.64,be=0,mops=371
+./hash_probe_string_mvustm,u=20,trans=4,n=1000000,p=192,z=0.75,pa=2.22,be=0,mops=268
+./hash_probe_string_mvustm,u=50,trans=4,n=1000000,p=192,z=0.75,pa=28.9,be=0,mops=166
+./hash_probe_string_mvustm,u=100,trans=4,n=1000000,p=192,z=0.75,pa=114,be=0,mops=73.4
+./hash_probe_string_bigval_mvustm,u=0,trans=4,n=1000000,p=192,z=0.75,pa=0,be=0,mops=310
+./hash_probe_string_bigval_mvustm,u=5,trans=4,n=1000000,p=192,z=0.75,pa=0.154,be=0,mops=213
+./hash_probe_string_bigval_mvustm,u=10,trans=4,n=1000000,p=192,z=0.75,pa=0.519,be=0,mops=185
+./hash_probe_string_bigval_mvustm,u=20,trans=4,n=1000000,p=192,z=0.75,pa=1.76,be=0,mops=150
+./hash_probe_string_bigval_mvustm,u=50,trans=4,n=1000000,p=192,z=0.75,pa=10.3,be=0,mops=104
+./hash_probe_string_bigval_mvustm,u=100,trans=4,n=1000000,p=192,z=0.75,pa=76.3,be=0,mops=58.7

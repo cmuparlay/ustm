@@ -1,0 +1,26 @@
+Date: 06-08-2026
+Experiment: strings_update
+Threads: 192
+Model name:                              Intel(R) Xeon(R) 6975P-C
+Git: 775dfa1
+---
+Fixed: n=1000000, trans=4, z=0.75, p=192
+---
+./hash_probe_mvustm,u=0,trans=4,n=1000000,p=192,z=0.75,pa=0,be=0,mops=2.78e+03
+./hash_probe_mvustm,u=5,trans=4,n=1000000,p=192,z=0.75,pa=0.179,be=0,mops=443
+./hash_probe_mvustm,u=10,trans=4,n=1000000,p=192,z=0.75,pa=0.585,be=0,mops=336
+./hash_probe_mvustm,u=20,trans=4,n=1000000,p=192,z=0.75,pa=1.78,be=0,mops=252
+./hash_probe_mvustm,u=50,trans=4,n=1000000,p=192,z=0.75,pa=8.34,be=0,mops=180
+./hash_probe_mvustm,u=100,trans=4,n=1000000,p=192,z=0.75,pa=55.6,be=0,mops=122
+./hash_probe_string_mvustm,u=0,trans=4,n=1000000,p=192,z=0.75,pa=0,be=0,mops=1.17e+03
+./hash_probe_string_mvustm,u=5,trans=4,n=1000000,p=192,z=0.75,pa=0.161,be=0,mops=364
+./hash_probe_string_mvustm,u=10,trans=4,n=1000000,p=192,z=0.75,pa=0.548,be=0,mops=317
+./hash_probe_string_mvustm,u=20,trans=4,n=1000000,p=192,z=0.75,pa=1.83,be=0,mops=225
+./hash_probe_string_mvustm,u=50,trans=4,n=1000000,p=192,z=0.75,pa=9.73,be=0,mops=161
+./hash_probe_string_mvustm,u=100,trans=4,n=1000000,p=192,z=0.75,pa=110,be=0,mops=100
+./hash_probe_string_bigval_mvustm,u=0,trans=4,n=1000000,p=192,z=0.75,pa=0,be=0,mops=370
+./hash_probe_string_bigval_mvustm,u=5,trans=4,n=1000000,p=192,z=0.75,pa=0.143,be=0,mops=218
+./hash_probe_string_bigval_mvustm,u=10,trans=4,n=1000000,p=192,z=0.75,pa=0.508,be=0,mops=192
+./hash_probe_string_bigval_mvustm,u=20,trans=4,n=1000000,p=192,z=0.75,pa=1.67,be=0,mops=150
+./hash_probe_string_bigval_mvustm,u=50,trans=4,n=1000000,p=192,z=0.75,pa=9.27,be=0,mops=109
+./hash_probe_string_bigval_mvustm,u=100,trans=4,n=1000000,p=192,z=0.75,pa=82,be=0,mops=82.4
