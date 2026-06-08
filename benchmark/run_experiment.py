@@ -620,17 +620,17 @@ class ExperimentRunner:
             }
 
         # stm_vs_ol scopes to the four STM systems we benchmark against
-        # the blocking-OL baseline: uSTM, Fuse, 2PLSF, Multiverse. Other
-        # STM impls (onefile/tiny/tl2/hytm) are excluded — they ran
-        # before but aren't part of the comparison set. Honour --impl
-        # if the user passed it explicitly. _binary_exists() filters
-        # out impls that weren't built (e.g. on non-x86 hosts).
+        # the blocking-OL baseline: uSTM (SoftStamp), Fuse (SoftStamp),
+        # 2PLSF, Multiverse. No HWStamp variants — the bar chart only
+        # compares the SoftStamp implementations of each system head-
+        # to-head against ol. Other STM impls (onefile/tiny/tl2/hytm)
+        # are excluded. Honour --impl if the user passed it explicitly.
+        # _binary_exists() filters out impls that weren't built.
         default_stm_impls = ["mvustm", "fuse", "2plsf", "multiverse"]
-        hwstamp_extras = ["mvustm_hwstamp", "fuse_hwstamp"]
         if self.config.impls_explicit:
             impls = list(self.config.impls)
         else:
-            impls = default_stm_impls + hwstamp_extras + ["ol"]
+            impls = default_stm_impls + ["ol"]
 
         for impl in impls:
             structs_for_impl = self._all_structs_for_impl(impl)

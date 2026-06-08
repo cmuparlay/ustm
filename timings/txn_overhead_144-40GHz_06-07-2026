@@ -1,0 +1,19 @@
+Date: 06-07-2026
+Experiment: txn_overhead
+Threads: 144
+Model name:                           Intel(R) Xeon(R) CPU E7-8867 v4 @ 2.40GHz
+Git: dd8a543
+---
+Threads: 144
+---
+./btree_ol,u=0,trans=4,n=1000000,p=144,z=0,pa=0,be=0,mops=454
+./btree_ol,u=5,trans=4,n=1000000,p=144,z=0,pa=0,be=0,mops=364
+./btree_ol,u=50,trans=4,n=1000000,p=144,z=0,pa=0,be=0,mops=148
+./btree_ol,u=0,trans=4,n=1000000,p=144,z=0.75,pa=0,be=0,mops=447
+./btree_ol,u=5,trans=4,n=1000000,p=144,z=0.75,pa=0,be=0,mops=378
+./btree_ol,u=50,trans=4,n=1000000,p=144,z=0.75,pa=0,be=0,mops=186
+./btree_ol,u=0,trans=4,n=1000000,p=144,z=0.99,pa=0,be=0,mops=509
+./btree_ol,u=5,trans=4,n=1000000,p=144,z=0.99,pa=0,be=0,mops=397
+./btree_ol,u=50,trans=4,n=1000000,p=144,z=0.99,pa=0,be=0,mops=181
+./btree_ol,GEOMETRIC MEAN OF THROUGHPUTS: 312.1
+./btree_ol,GEOMETRIC MEAN OF BYTES PER ELEMENT: 1
