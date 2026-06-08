@@ -631,7 +631,7 @@ Examples:
                        choices=["mvustm", "mvustm_hwstamp", "fuse", "2plsf", "multiverse"],
                        help="Run a specific stm system only")
     parser.add_argument("--struct", default=None, nargs="+",
-                       choices=["btree", "arttree", "avltree", "leaftree", "treap", "skiplist", "hash_list"],
+                       choices=["btree", "arttree", "avltree", "leaftree", "treap", "skiplist", "hash_list", "hash_block"],
                        help="Run specific struct(s) only")
     
     args = parser.parse_args()
