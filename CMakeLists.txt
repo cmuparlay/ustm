@@ -34,8 +34,8 @@ else()
   message(FATAL_ERROR "Unknown architecture.")
 endif()
 
-set (ALLOCATOR "deqalloc")
-#set (ALLOCATOR "jemalloc")
+#set (ALLOCATOR "deqalloc")
+set (ALLOCATOR "jemalloc")
 
 message(STATUS "--------------- General configuration -------------")
 message(STATUS "CMake Generator:                ${CMAKE_GENERATOR}")

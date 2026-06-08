@@ -65,8 +65,10 @@ IMPL_COLORS = {
     'ol_fuse_stm_hwstamp': '#c5b0d5',      # ... + HWStamp
     'ol_multiverse': '#333333',            # Multiverse — match the non-OL multiverse color
     # ---- hash_probe strings sweep ----
-    'string_mvustm':        '#1f77b4',     # mvustm color
-    'string_bigval_mvustm': '#ff7f0e',     # orange — distinct from blue/red family
+    # Three distinct hues: Integer (blue, baseline) / Short String
+    # (green, mid) / Long String (red, "big and slow").
+    'string_mvustm':        '#2ca02c',     # green
+    'string_bigval_mvustm': '#d62728',     # red
 }
 
 IMPL_LABELS = {
@@ -559,7 +561,7 @@ def aggregate_points(points):
 
 
 def plot_txn_overhead_bars(geomean_data, output_dir, filename='txn_overhead.pdf',
-                            baseline='ol'):
+                            baseline='ol', structures_filter=None):
     """Grouped bar chart for the txn_overhead / stm_vs_ol experiment.
 
     One group per data structure, one bar per impl, height = throughput
@@ -568,9 +570,14 @@ def plot_txn_overhead_bars(geomean_data, output_dir, filename='txn_overhead.pdf'
     Raw mops printed above each bar.
 
     Skips structures where the baseline impl is missing (can't normalize).
+    structures_filter: if set, only render these structures (in the
+    order given). Otherwise auto-derive from the data.
     """
-    structures = sorted({s for (s, _) in geomean_data.keys()},
-                        key=lambda s: STRUCT_LABELS.get(s, s))
+    if structures_filter is not None:
+        structures = list(structures_filter)
+    else:
+        structures = sorted({s for (s, _) in geomean_data.keys()},
+                            key=lambda s: STRUCT_LABELS.get(s, s))
     impls_found = {i for (_, i) in geomean_data.keys()}
     impls = [i for i in IMPL_ORDER if i in impls_found]
     if not impls:
@@ -1008,7 +1015,7 @@ def plot_range_queries(results, output_dir):
 
 def plot_paper_row_(results, output_dir, param, structures, name='plot', fmt='pdf',
                     impl_whitelist=None, flat_baseline_impl=None,
-                    impl_label_overrides=None):
+                    impl_label_overrides=None, struct_title_overrides=None):
     """
     Generate a compact 1x3 subplot figure suitable for a two-column paper.
     Matches the style of typical systems-conference plots.
@@ -1095,26 +1102,39 @@ def plot_paper_row_(results, output_dir, param, structures, name='plot', fmt='pd
         ax.set_xlabel(param_label, fontsize=7)
         if col == 0:
             ax.set_ylabel('Throughput\n(MOps/s)', fontsize=7)
-        ax.set_title(STRUCT_LABELS.get(struct, struct), fontsize=8, fontweight='bold')
+        title = (struct_title_overrides.get(struct)
+                 if struct_title_overrides else None) \
+            or STRUCT_LABELS.get(struct, struct)
+        ax.set_title(title, fontsize=8, fontweight='bold')
         ax.tick_params(axis='both', labelsize=6)
         ax.grid(True, alpha=0.3, linewidth=0.4)
         ax.set_ylim(bottom=0)
 
-    # Single shared legend across the top. Scale font size up when
-    # there are only a few entries (e.g. the 3-arm strings_* plots)
-    # so the legend is actually readable; for the busier 9-11 impl
-    # paper rows keep it small so wrapping stays sane.
+    # Shared legend. For multi-subplot rows we float it above the
+    # figure (the only place that's outside every subplot). For
+    # single-subplot plots (1×1 — typical for the 3-arm strings_*
+    # series) we put it INSIDE the axes at the bottom-right so the
+    # plot doesn't get a half-inch of empty whitespace above it. Font
+    # size scales modestly with entry count.
     handles, labels = axes[0].get_legend_handles_labels()
     if handles:
         n_entries = len(handles)
-        legend_fs = 9 if n_entries <= 4 else 6
-        legend_anchor = 1.15 if n_entries <= 4 else 1.12
-        fig.legend(handles, labels, loc='upper center',
-                   ncol=min(n_entries, 6), fontsize=legend_fs,
-                   bbox_to_anchor=(0.5, legend_anchor),
-                   columnspacing=1.0, handlelength=2.0)
+        if n == 1:
+            # Single subplot: legend inside axes (no float-above gap).
+            axes[0].legend(handles, labels, loc='best',
+                           fontsize=7, frameon=True,
+                           handlelength=1.5,
+                           borderpad=0.3, labelspacing=0.3)
+        else:
+            legend_fs = 7 if n_entries <= 4 else 6
+            fig.legend(handles, labels, loc='upper center',
+                       ncol=min(n_entries, 6), fontsize=legend_fs,
+                       bbox_to_anchor=(0.5, 1.08),
+                       columnspacing=1.0, handlelength=2.0)
 
-    plt.tight_layout(rect=[0, 0, 1, 0.95])
+    # Tight top margin for single-subplot, leave room above for the
+    # floating legend in multi-subplot rows.
+    plt.tight_layout(rect=[0, 0, 1, 1.0 if n == 1 else 0.95])
     filename = f'{name}.{fmt}'
     plt.savefig(output_dir / filename, dpi=300, bbox_inches='tight')
     print(f"Generated: paper/{filename}")
@@ -1938,7 +1958,9 @@ def main():
             print("\nGenerating stm_vs_ol bar chart...")
             plot_txn_overhead_bars(svo_geomeans, output_dir,
                                    filename=f'stm_vs_ol.{args.format}',
-                                   baseline='ol')
+                                   baseline='ol',
+                                   structures_filter=['btree', 'avltree',
+                                                      'hash_block'])
         if exp_results.get('stm_vs_ol_vary_z'):
             print("\nGenerating stm_vs_ol vary_z row plot...")
             plot_paper_row_(exp_results['stm_vs_ol_vary_z'], output_dir, 'z',
@@ -1957,20 +1979,23 @@ def main():
             'string_mvustm':        'Short String',
             'string_bigval_mvustm': 'Long String',
         }
+        strings_title = {'hash_probe': 'Non-trivial types'}
         if exp_results.get('strings_update'):
             print("\nGenerating strings_update plot...")
             plot_paper_row_(exp_results['strings_update'], output_dir, 'u',
                             structures=['hash_probe'],
                             name='strings_update', fmt=args.format,
                             impl_whitelist=strings_whitelist,
-                            impl_label_overrides=strings_labels)
+                            impl_label_overrides=strings_labels,
+                            struct_title_overrides=strings_title)
         if exp_results.get('strings_zipfian'):
             print("\nGenerating strings_zipfian plot...")
             plot_paper_row_(exp_results['strings_zipfian'], output_dir, 'z',
                             structures=['hash_probe'],
                             name='strings_zipfian', fmt=args.format,
                             impl_whitelist=strings_whitelist,
-                            impl_label_overrides=strings_labels)
+                            impl_label_overrides=strings_labels,
+                            struct_title_overrides=strings_title)
 
     if 'machines' in plots and args.machine_dirs:
         print("\nGenerating Multi-machine comparison plot...")

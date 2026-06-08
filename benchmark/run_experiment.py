@@ -111,7 +111,7 @@ class Config:
     rounds: int = 1
     trial_time: int = 1
 
-    allocator: str = "deqalloc"
+    allocator: str = "jemalloc"
 
 
 def get_nproc() -> int:
@@ -1028,7 +1028,7 @@ Examples:
                        help="Output directory for results")
     parser.add_argument("--small", action="store_true",
                        help="Restrict to btree, hash_list, and list (geomean uses runall.sh parameters)")
-    parser.add_argument("--allocator", default="deqalloc",
+    parser.add_argument("--allocator", default="jemalloc",
                        help="Choose which allocator to use (default: deqalloc)")
     parser.add_argument("--impl", default=None, nargs="+",
                        choices=["mvustm", "mvustm_hwstamp",

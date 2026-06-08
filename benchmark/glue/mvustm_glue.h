@@ -6,9 +6,6 @@
 #else
 #include <ustm_swiss.h>
 #endif
-// flck::lock is only referenced in OL builds (stm::lock alias is used
-// by verlib::lock under OL_USE_STM). Pure STM builds (no OL) don't
-// link against fuse and don't have flock on the include path.
 #ifdef OL
 #include <flock/flock.h>
 #endif
@@ -112,17 +109,18 @@ namespace stm {
 
 #ifdef OL
 #ifdef USTM_TLF
-  // verlib::lock under OL_USE_STM aliases to this. Wraps flck::lock with
-  // the counter-variant TLF protocol — never acquires the underlying
-  // lock inside a uSTM transaction; only bumps inProtected so load()
-  // can decide whether to track reads.
+  // TLF counter variant: inside a uSTM transaction the lock body
+  // bumps inProtected so ustm::load can skip readLog tracking on
+  // unprotected reads. The real flck CAS is never acquired inside a
+  // transaction.
   using lock = ustm::tlf_lock_counter<flck::lock>;
 #else
-  // OL_USE_STM may be on without USTM_TLF; provide a plain flck::lock
-  // alias so the verlib::lock alias still resolves. This case takes the
-  // lock as normal — useful only for compilation; semantically unsound
-  // inside a uSTM transaction.
-  using lock = flck::lock;
+  // No-TLF variant: inside a uSTM transaction the lock body runs
+  // directly — no flck CAS, no inProtected bookkeeping (which would
+  // be dead work since ustm::load only checks inProtected under
+  // USTM_TLF). All reads still tracked in readLog; serialization
+  // comes from uSTM's commit-time validation.
+  using lock = ustm::noop_lock_in_tx<flck::lock>;
 #endif
 #endif
 
