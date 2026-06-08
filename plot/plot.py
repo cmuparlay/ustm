@@ -55,10 +55,10 @@ IMPL_COLORS = {
     'multiverse': '#333333',
     # ---- OL / TLF benchmark variants (txn_overhead, stm_vs_ol) ----
     'ol': '#27ae60',                       # baseline OL no-wrap (medium green) — distinct from Multiverse's dark gray
-    'ol_ustm_counter': '#1f77b4',          # uSTM TLF counter (uSTM blue family)
-    'ol_ustm_counter_hwstamp': '#2ca02c',  # ... + HWStamp
-    'ol_ustm_full': '#1f77b4',             # uSTM full STM (no read skip) — match mvustm "μSTM" blue
-    'ol_ustm_full_hwstamp': '#98df8a',     # ... + HWStamp
+    'ol_ustm_tlf': '#1f77b4',          # uSTM TLF counter (uSTM blue family)
+    'ol_ustm_tlf_hwstamp': '#2ca02c',  # ... + HWStamp
+    'ol_ustm': '#1f77b4',             # uSTM full STM (no read skip) — match mvustm "μSTM" blue
+    'ol_ustm_hwstamp': '#98df8a',     # ... + HWStamp
     'ol_fuse': '#e41a1c',                  # fuse TLF (fuse red)
     'ol_fuse_hwstamp': '#ff6347',          # fuse TLF + HWWriteStamp
     'ol_fuse_stm': '#9467bd',              # fuse MV_STM (no TLF read skip)
@@ -92,10 +92,10 @@ IMPL_LABELS = {
     'fuse_hwstamp': 'Fuse-HWStamp',
     'multiverse': 'Multiverse',
     'ol': 'OL (no wrap)',
-    'ol_ustm_counter': '$\\mu$STM-TLF',
-    'ol_ustm_counter_hwstamp': '$\\mu$STM-TLF-HW',
-    'ol_ustm_full': '$\\mu$STM',
-    'ol_ustm_full_hwstamp': '$\\mu$STM-HW',
+    'ol_ustm_tlf': '$\\mu$STM-TLF',
+    'ol_ustm_tlf_hwstamp': '$\\mu$STM-TLF-HW',
+    'ol_ustm': '$\\mu$STM',
+    'ol_ustm_hwstamp': '$\\mu$STM-HW',
     'ol_fuse': 'Fuse-TLF',
     'ol_fuse_hwstamp': 'Fuse-TLF-HW',
     'ol_fuse_stm': 'Fuse-STM',
@@ -127,10 +127,10 @@ IMPL_MARKERS = {
     'fuse_hwstamp': '<',
     'multiverse': 'X',
     'ol': 'o',
-    'ol_ustm_counter': 's',
-    'ol_ustm_counter_hwstamp': 'P',
-    'ol_ustm_full': 's',
-    'ol_ustm_full_hwstamp': 'X',
+    'ol_ustm_tlf': 's',
+    'ol_ustm_tlf_hwstamp': 'P',
+    'ol_ustm': 's',
+    'ol_ustm_hwstamp': 'X',
     'ol_fuse': 'v',
     'ol_fuse_hwstamp': '^',
     'ol_fuse_stm': '<',
@@ -162,10 +162,10 @@ IMPL_LINESTYLES = {
     'fuse_hwstamp': '-.',
     'multiverse': '--',
     'ol': '-',
-    'ol_ustm_counter': '--',
-    'ol_ustm_counter_hwstamp': '-',
-    'ol_ustm_full': '--',
-    'ol_ustm_full_hwstamp': '-.',
+    'ol_ustm_tlf': '--',
+    'ol_ustm_tlf_hwstamp': '-',
+    'ol_ustm': '--',
+    'ol_ustm_hwstamp': '-.',
     'ol_fuse': '--',
     'ol_fuse_hwstamp': '-',
     'ol_fuse_stm': ':',
@@ -215,8 +215,8 @@ IMPL_ORDER = [
     'fuse', 'fuse_hwstamp', 'multiverse', 'dcotl',
     # OL / TLF benchmark order: bare OL first, then uSTM variants, then fuse
     'ol',
-    'ol_ustm_counter', 'ol_ustm_counter_hwstamp',
-    'ol_ustm_full',    'ol_ustm_full_hwstamp',
+    'ol_ustm_tlf', 'ol_ustm_tlf_hwstamp',
+    'ol_ustm',    'ol_ustm_hwstamp',
     'ol_fuse',         'ol_fuse_hwstamp',
     'ol_fuse_stm',     'ol_fuse_stm_hwstamp',
     'ol_multiverse',
@@ -229,8 +229,8 @@ KNOWN_IMPLS = [
     # OL variants must come before the bare 'ol' to avoid wrong split.
     # Within OL, longer suffixes must come first to avoid premature match
     # (e.g. 'ol_fuse_hwstamp' before 'ol_fuse').
-    'ol_ustm_counter_hwstamp', 'ol_ustm_counter',
-    'ol_ustm_full_hwstamp', 'ol_ustm_full',
+    'ol_ustm_tlf_hwstamp', 'ol_ustm_tlf',
+    'ol_ustm_hwstamp', 'ol_ustm',
     'ol_fuse_stm_hwstamp', 'ol_fuse_stm',
     'ol_fuse_hwstamp', 'ol_fuse',
     'ol_multiverse',
@@ -249,12 +249,29 @@ KNOWN_IMPLS = [
 fontsize = 11.5
 paper_plot_structures = ['avltree', 'btree', 'hash_list']
 
+# Old → new impl-name aliases. Lets pre-rename timing files (with names
+# like `ol_ustm_full` / `ol_ustm_counter` and their `_hwstamp` variants)
+# still render through the new IMPL_COLORS / IMPL_LABELS / IMPL_MARKERS
+# / IMPL_LINESTYLES entries keyed on the new names.
+IMPL_NAME_ALIASES = {
+    'ol_ustm_counter_hwstamp': 'ol_ustm_tlf_hwstamp',
+    'ol_ustm_counter':         'ol_ustm_tlf',
+    'ol_ustm_full_hwstamp':    'ol_ustm_hwstamp',
+    'ol_ustm_full':            'ol_ustm',
+}
+
+
 def parse_structure_impl(name):
     """Parse structure_impl string, matching known implementations from the end."""
-    for impl in KNOWN_IMPLS:
+    # Walk both new and old names so timings predating the rename still
+    # parse. Try the longest old name first so e.g. `ol_ustm_full_hwstamp`
+    # matches before the bare `ol_ustm_full` prefix.
+    candidates = list(KNOWN_IMPLS) + sorted(
+        IMPL_NAME_ALIASES.keys(), key=len, reverse=True)
+    for impl in candidates:
         if name.endswith('_' + impl):
             struct = name[:-(len(impl) + 1)]
-            return struct, impl
+            return struct, IMPL_NAME_ALIASES.get(impl, impl)
     parts = name.split('_', 1)
     if len(parts) == 2:
         return parts[0], parts[1]
@@ -1948,8 +1965,8 @@ def main():
             plot_paper_row_(exp_results['txn_overhead_vary_trans'], output_dir, 'trans',
                             structures=['btree', 'avltree', 'hash_block'],
                             name='txn_overhead_vary_trans', fmt=args.format,
-                            impl_whitelist=['ol', '2plsf', 'ol_fuse',
-                                            'ol_multiverse', 'ol_ustm_full'],
+                            impl_whitelist=['ol', 'mvustm', 'fuse',
+                                            '2plsf', 'multiverse'],
                             flat_baseline_impl='ol')
 
     if 'stm_vs_ol' in plots:

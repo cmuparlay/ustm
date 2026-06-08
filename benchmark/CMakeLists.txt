@@ -230,7 +230,7 @@ endforeach()
 # transaction descriptor and taken at commit (lock fusion via
 # tlf_internal::lock::try_lock). This is the published SPAA'25
 # implementation; included for sanity checking the uSTM TLF integration
-# (${bench}_ol_ustm_counter).
+# (${bench}_ol_ustm_tlf).
 foreach(bench ${OL_STRUCTS})
   add_benchmark(${bench}_ol_fuse ${MIXED} ${OL_STRUCT_DIR}/${bench} "Other;Fuse;MV_TLF;OL" "")
 endforeach()
@@ -249,16 +249,16 @@ endforeach()
 # locks provide mutual exclusion. Lock-log variant is not implemented
 # (would require bypassing uSTM's per-location seq-lock on reads).
 foreach(bench ${OL_STRUCTS})
-  add_benchmark(${bench}_ol_ustm_counter ${MIXED} ${OL_STRUCT_DIR}/${bench} "USTM;MV;SplitStamp;OL;OL_USE_STM;USTM_TLF" "")
+  add_benchmark(${bench}_ol_ustm_tlf ${MIXED} ${OL_STRUCT_DIR}/${bench} "USTM;MV;SplitStamp;OL;OL_USE_STM;USTM_TLF" "")
 endforeach()
 
-# Companion to ${bench}_ol_ustm_counter: same uSTM backend and TLF lock
+# Companion to ${bench}_ol_ustm_tlf: same uSTM backend and TLF lock
 # wrapper, but USTM_TLF is dropped. Without USTM_TLF, every read inside
 # a transaction is pushed to readLog regardless of inProtected — i.e.,
 # "uSTM TLF without weak loads". Lets us isolate the value of the
 # unprotected-read optimization on its own.
 foreach(bench ${OL_STRUCTS})
-  add_benchmark(${bench}_ol_ustm_full ${MIXED} ${OL_STRUCT_DIR}/${bench} "USTM;MV;SplitStamp;OL;OL_USE_STM" "")
+  add_benchmark(${bench}_ol_ustm ${MIXED} ${OL_STRUCT_DIR}/${bench} "USTM;MV;SplitStamp;OL;OL_USE_STM" "")
 endforeach()
 
 # Hardware-timestamp variants of the OL TLF benchmarks (x86 only).
@@ -270,8 +270,8 @@ endforeach()
 if (TARGET_ARCH MATCHES "x86")
   foreach(bench ${OL_STRUCTS})
     add_benchmark(${bench}_ol_fuse_hwstamp ${MIXED} ${OL_STRUCT_DIR}/${bench} "Other;Fuse;MV_TLF;HWWriteStamp;OL" "")
-    add_benchmark(${bench}_ol_ustm_counter_hwstamp ${MIXED} ${OL_STRUCT_DIR}/${bench} "USTM;MV;HWStamp;OL;OL_USE_STM;USTM_TLF" "")
-    add_benchmark(${bench}_ol_ustm_full_hwstamp ${MIXED} ${OL_STRUCT_DIR}/${bench} "USTM;MV;HWStamp;OL;OL_USE_STM" "")
+    add_benchmark(${bench}_ol_ustm_tlf_hwstamp ${MIXED} ${OL_STRUCT_DIR}/${bench} "USTM;MV;HWStamp;OL;OL_USE_STM;USTM_TLF" "")
+    add_benchmark(${bench}_ol_ustm_hwstamp ${MIXED} ${OL_STRUCT_DIR}/${bench} "USTM;MV;HWStamp;OL;OL_USE_STM" "")
   endforeach()
 
   # Pure-STM variants of the OL benchmark — every load/store goes through
