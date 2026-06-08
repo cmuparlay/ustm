@@ -151,9 +151,11 @@ foreach(bench ${NSTRUCTS})
 #  add_benchmark(${bench}_mvustm_unprotected ${MIXED} ${STRUCT_DIR}/${bench} "USTM;MV;UnprotectedLoad" "")
 endforeach()
 
-foreach(bench ${HWSTAMP_STRUCTS})
-  add_benchmark(${bench}_mvustm_hwstamp ${MIXED} ${STRUCT_DIR}/${bench} "USTM;MV;HWStamp" "")  # Use agg funnels for lazy timestamp
-endforeach()
+if (TARGET_ARCH MATCHES "arm")
+  foreach(bench ${HWSTAMP_STRUCTS})
+    add_benchmark(${bench}_mvustm_hwstamp ${MIXED} ${STRUCT_DIR}/${bench} "USTM;MV;HWStamp" "")  # Use agg funnels for lazy timestamp
+  endforeach()
+endif()
 
 #x86-only benchmarks
 if (TARGET_ARCH MATCHES "x86")
