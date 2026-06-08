@@ -54,7 +54,7 @@ IMPL_COLORS = {
     'fuse_hwstamp': '#ff6347',
     'multiverse': '#333333',
     # ---- OL / TLF benchmark variants (txn_overhead, stm_vs_ol) ----
-    'ol': '#2c3e50',                       # baseline OL no-wrap (dark slate)
+    'ol': '#27ae60',                       # baseline OL no-wrap (medium green) — distinct from Multiverse's dark gray
     'ol_ustm_counter': '#1f77b4',          # uSTM TLF counter (uSTM blue family)
     'ol_ustm_counter_hwstamp': '#2ca02c',  # ... + HWStamp
     'ol_ustm_full': '#1f77b4',             # uSTM full STM (no read skip) — match mvustm "μSTM" blue
@@ -1100,13 +1100,19 @@ def plot_paper_row_(results, output_dir, param, structures, name='plot', fmt='pd
         ax.grid(True, alpha=0.3, linewidth=0.4)
         ax.set_ylim(bottom=0)
 
-    # Single shared legend across the top
+    # Single shared legend across the top. Scale font size up when
+    # there are only a few entries (e.g. the 3-arm strings_* plots)
+    # so the legend is actually readable; for the busier 9-11 impl
+    # paper rows keep it small so wrapping stays sane.
     handles, labels = axes[0].get_legend_handles_labels()
     if handles:
+        n_entries = len(handles)
+        legend_fs = 9 if n_entries <= 4 else 6
+        legend_anchor = 1.15 if n_entries <= 4 else 1.12
         fig.legend(handles, labels, loc='upper center',
-                   ncol=min(len(impls), 6), fontsize=6,
-                   bbox_to_anchor=(0.5, 1.12), columnspacing=1.0,
-                   handlelength=2.0)
+                   ncol=min(n_entries, 6), fontsize=legend_fs,
+                   bbox_to_anchor=(0.5, legend_anchor),
+                   columnspacing=1.0, handlelength=2.0)
 
     plt.tight_layout(rect=[0, 0, 1, 0.95])
     filename = f'{name}.{fmt}'
@@ -1789,6 +1795,7 @@ def main():
         'stm_vs_ol_vary_z',
         'stm_vs_ol_vary_trans',
         'strings_update',
+        'strings_zipfian',
         'txn_overhead',
         # Per-parameter sweeps for the OL TLF benchmarks.
         'txn_overhead_vary_trans',
@@ -1944,18 +1951,26 @@ def main():
                             name='stm_vs_ol_vary_trans', fmt=args.format)
 
     if 'strings' in plots:
+        strings_whitelist = ['mvustm', 'string_mvustm', 'string_bigval_mvustm']
+        strings_labels = {
+            'mvustm':               'Integer',
+            'string_mvustm':        'Short String',
+            'string_bigval_mvustm': 'Long String',
+        }
         if exp_results.get('strings_update'):
             print("\nGenerating strings_update plot...")
             plot_paper_row_(exp_results['strings_update'], output_dir, 'u',
                             structures=['hash_probe'],
                             name='strings_update', fmt=args.format,
-                            impl_whitelist=['mvustm', 'string_mvustm',
-                                            'string_bigval_mvustm'],
-                            impl_label_overrides={
-                                'mvustm':               'Integer',
-                                'string_mvustm':        'Short String',
-                                'string_bigval_mvustm': 'Long String',
-                            })
+                            impl_whitelist=strings_whitelist,
+                            impl_label_overrides=strings_labels)
+        if exp_results.get('strings_zipfian'):
+            print("\nGenerating strings_zipfian plot...")
+            plot_paper_row_(exp_results['strings_zipfian'], output_dir, 'z',
+                            structures=['hash_probe'],
+                            name='strings_zipfian', fmt=args.format,
+                            impl_whitelist=strings_whitelist,
+                            impl_label_overrides=strings_labels)
 
     if 'machines' in plots and args.machine_dirs:
         print("\nGenerating Multi-machine comparison plot...")

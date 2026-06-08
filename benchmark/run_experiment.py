@@ -770,9 +770,10 @@ class ExperimentRunner:
     def run_stm_vs_ol_vary_zipfian(self):
         """Sweep zipfian for the stm_vs_ol arms.
 
-        Same impl set as run_stm_vs_ol (the 4 STM systems + their
-        HWStamp variants + bare OL), trans pinned at 1 (OL is point-
-        update only). n, u, p fixed at defaults; only z varies.
+        Same 5-system set as run_stm_vs_ol — the 4 STM systems
+        (SoftStamp only — no HWStamp variants) plus bare OL. trans
+        pinned at 1 (OL is point-update only). n, u, p fixed at
+        defaults; only z varies.
         """
         z_vals = [0, 0.5, 0.75, 0.9, 0.99]
         fixed = {
@@ -781,10 +782,7 @@ class ExperimentRunner:
             'trans': 1,
             'p': self.config.default_p,
         }
-        stm_vs_ol_impls = ["mvustm", "mvustm_hwstamp",
-                           "fuse", "fuse_hwstamp",
-                           "2plsf", "multiverse",
-                           "ol"]
+        stm_vs_ol_impls = ["mvustm", "fuse", "2plsf", "multiverse", "ol"]
         # Focused subset for the paper figure: a tree, a balanced tree,
         # and a hash. Matches the structure set used by
         # run_txn_overhead_vary_trans.
@@ -799,10 +797,10 @@ class ExperimentRunner:
     def run_stm_vs_ol_vary_trans(self):
         """Sweep trans for the stm_vs_ol arms on a focused subset.
 
-        Same impl set as run_stm_vs_ol_vary_zipfian (4 STM systems +
-        their HWStamp variants + bare OL). z, n, u, p fixed at
-        defaults; only trans varies. OL silently skips trans>1 — its
-        line collapses to a single point at trans=1.
+        Same 5-system set as run_stm_vs_ol_vary_zipfian — SoftStamp
+        STMs only, no HWStamp variants. z, n, u, p fixed at defaults;
+        only trans varies. OL silently skips trans>1 — its line
+        collapses to a single point at trans=1.
         """
         trans_vals = [1, 2, 4, 8, 16, 32]
         fixed = {
@@ -811,10 +809,7 @@ class ExperimentRunner:
             'z': self.config.default_z,
             'p': self.config.default_p,
         }
-        stm_vs_ol_impls = ["mvustm", "mvustm_hwstamp",
-                           "fuse", "fuse_hwstamp",
-                           "2plsf", "multiverse",
-                           "ol"]
+        stm_vs_ol_impls = ["mvustm", "fuse", "2plsf", "multiverse", "ol"]
         structs = ["btree", "avltree", "hash_block"]
         self._run_varying_experiment(
             "stm_vs_ol_vary_trans", 'trans', trans_vals,
@@ -828,7 +823,13 @@ class ExperimentRunner:
 
         Three structures (btree, avltree, hash_block), n = 10^6, z = 0,
         every other parameter at its default. Produces tight per-struct
-        line plots suitable for a single paper figure row.
+        line plots suitable for a single paper figure row. Impl set is
+        the 5 systems the paper figure compares: bare OL, 2PLSF
+        (cross-system, STM-native), Fuse-TLF (SoftStamp), Multiverse,
+        and uSTM (no TLF, SoftStamp). Other ol_* ablation arms are not
+        shown in the figure, so we don't run them — the broader
+        _ol_tlf_impls() helper is reserved for the exploratory
+        vary_txn_trans / vary_txn_threads experiments.
         """
         trans_vals = [1, 2, 4, 8, 16, 32]
         fixed = {
@@ -837,62 +838,54 @@ class ExperimentRunner:
             'z': 0,
             'p': self.config.default_p,
         }
+        impls = ["ol", "2plsf", "ol_fuse", "ol_multiverse", "ol_ustm_full"]
         self._run_varying_experiment(
             "txn_overhead_vary_trans", 'trans', trans_vals,
             fixed_params=fixed,
             structs_override=["btree", "avltree", "hash_block"],
-            impls_override=list(self._ol_tlf_impls()),
+            impls_override=impls,
         )
 
-    def run_strings_update(self):
-        """Vary update rate on hash_probe + mvustm, three value-size
-        variants.
+    # Three arms shared by every strings_* experiment, single structure.
+    # Both string arms run the same binary; -bigval is a runtime flag
+    # (added in commit ed60d1b). To distinguish the two in the output
+    # file we rewrite the binary's `./hash_probe_string_mvustm` prefix
+    # to `./hash_probe_string_bigval_mvustm` for the bigval run so
+    # plot.py's parser splits the impl correctly.
+    _STRINGS_CONFIGS = [
+        # (binary,                        extra_flag, recorded_impl)
+        ("hash_probe_mvustm",             "",         "mvustm"),
+        ("hash_probe_string_mvustm",      "",         "string_mvustm"),
+        ("hash_probe_string_mvustm",      "-bigval",  "string_bigval_mvustm"),
+    ]
 
-        Three arms, single structure:
-          - hash_probe_mvustm                    : long (8-byte) values.
-          - hash_probe_string_mvustm             : short-string values
-            (~1-byte default_val = "3"), with `dense = !bigval = true`
-            so keys are also short strings.
-          - hash_probe_string_mvustm -bigval     : ~20-byte string
-            values (default_val = to_chars(~0ul)), `dense = false` so
-            keys are hashed 64-bit numbers — also ~20-char strings.
+    def _run_strings_sweep(self, name, sweep_param, sweep_vals, fixed_params):
+        """Driver shared by strings_update and strings_zipfian.
 
-        Both string arms run the same binary; -bigval is a runtime
-        flag (added in commit ed60d1b). To distinguish the two in the
-        output file we rewrite the binary's `./hash_probe_string_mvustm`
-        prefix to `./hash_probe_string_bigval_mvustm` for the bigval
-        run so plot.py's parser splits the impl correctly.
-
-        Other parameters fixed at defaults.
+        Sweeps `sweep_param` across `sweep_vals` on hash_probe with the
+        three value-size arms (Integer, Short String, Long String).
+        `fixed_params` is a dict of the params held constant.
         """
-        self.setup_output("strings_update")
+        self.setup_output(name)
         self.results_file.write(
-            f"Fixed: n={self.config.default_n}, "
-            f"trans={self.config.default_trans}, "
-            f"z={self.config.default_z}, p={self.config.default_p}\n")
+            "Fixed: " +
+            ", ".join(f"{k}={v}" for k, v in fixed_params.items()) +
+            "\n")
         self.results_file.write("---\n")
 
-        updates = [0, 5, 10, 20, 50, 100]
-        configs = [
-            # (binary,                        extra_flag, recorded_impl)
-            ("hash_probe_mvustm",             "",         "mvustm"),
-            ("hash_probe_string_mvustm",      "",         "string_mvustm"),
-            ("hash_probe_string_mvustm",      "-bigval",  "string_bigval_mvustm"),
-        ]
-
-        for binary, extra, recorded_impl in configs:
+        for binary, extra, recorded_impl in self._STRINGS_CONFIGS:
             if not self._binary_exists(binary):
                 print(f"  SKIP hash_probe_{recorded_impl} ({binary} not built)")
                 continue
             print(f"  hash_probe_{recorded_impl}")
             record_prefix = f"./hash_probe_{recorded_impl}"
-            for u in updates:
-                param_str = (f"-n {self.config.default_n} "
-                             f"-trans {self.config.default_trans} "
-                             f"-z {self.config.default_z} "
-                             f"-p {self.config.default_p} "
-                             f"-u {u} "
-                             f"-r 1 -t 1 {extra}").strip()
+            for val in sweep_vals:
+                fixed_str = " ".join(f"-{k} {v}" for k, v in fixed_params.items())
+                param_str = (
+                    f"{fixed_str} "
+                    f"-{sweep_param} {val} "
+                    f"-r 1 -t 1 {extra}"
+                ).strip()
                 output, status = run_benchmark(
                     f"./{binary} {param_str}",
                     self.config.numa_cmd,
@@ -900,9 +893,8 @@ class ExperimentRunner:
                 for line in output.split('\n'):
                     line = line.strip()
                     if 'mops=' in line or 'GEOMETRIC MEAN' in line:
-                        # Substitute the binary's emitted prefix
-                        # (./hash_probe_string_mvustm) with our
-                        # recorded prefix so the two -bigval arms
+                        # Substitute the binary's emitted prefix with
+                        # our recorded prefix so the two -bigval arms
                         # remain distinguishable post-parse.
                         if line.startswith(f"./{binary},"):
                             line = record_prefix + line[len(f"./{binary}"):]
@@ -912,6 +904,38 @@ class ExperimentRunner:
                     self._log_failure(record_prefix, status, param_str)
 
         self.results_file.close()
+
+    def run_strings_update(self):
+        """Vary update rate on hash_probe + mvustm, three value-size variants.
+
+        Integer (long V), Short String (~1-char V + dense small-int
+        keys), Long String (-bigval: ~20-char V + hashed 64-bit keys).
+        All other parameters at defaults.
+        """
+        self._run_strings_sweep(
+            "strings_update", "u", [0, 5, 10, 20, 50, 100],
+            {
+                "n":     self.config.default_n,
+                "trans": self.config.default_trans,
+                "z":     self.config.default_z,
+                "p":     self.config.default_p,
+            })
+
+    def run_strings_zipfian(self):
+        """Same three arms as run_strings_update, but vary zipfian.
+
+        Holds update rate at its default; sweeps z across the standard
+        zipfian set. Useful for showing how skew interacts with the
+        string-value path (cache-resident hot keys vs uniform access).
+        """
+        self._run_strings_sweep(
+            "strings_zipfian", "z", [0, 0.5, 0.75, 0.9, 0.99],
+            {
+                "n":     self.config.default_n,
+                "trans": self.config.default_trans,
+                "u":     self.config.default_u,
+                "p":     self.config.default_p,
+            })
 
     def run_vary_txn_threads(self):
         """Sweep thread count for the OL TLF arms, trans pinned at 4.
@@ -986,6 +1010,7 @@ Experiments:
   vary_txn_trans   Sweep trans size for OL TLF arms (tests amortization claim)
   txn_overhead_vary_trans Focused trans sweep (btree/avltree/hash_block, n=10^7, z=0)
   strings_update Sweep update rate on hash_probe + mvustm: long vs string vs string-bigval
+  strings_zipfian Same three arms but sweep zipfian instead of update rate
   vary_txn_threads Sweep thread count for OL TLF arms (tests stamp contention)
   sweep      Run parameter sweep experiments (size, threads, zipfian, trans, update)
   all        Run all experiments
@@ -997,7 +1022,7 @@ Examples:
 """)
     
     parser.add_argument("experiment", nargs="+",
-                       choices=["geomean", "size", "threads", "zipfian", "trans", "update", "range", "tpcc", "nontrivial", "ablation", "stm_vs_ol", "stm_vs_ol_vary_z", "stm_vs_ol_vary_trans", "txn_overhead", "vary_txn_trans", "txn_overhead_vary_trans", "vary_txn_threads", "strings_update", "sweep", "all"],
+                       choices=["geomean", "size", "threads", "zipfian", "trans", "update", "range", "tpcc", "nontrivial", "ablation", "stm_vs_ol", "stm_vs_ol_vary_z", "stm_vs_ol_vary_trans", "txn_overhead", "vary_txn_trans", "txn_overhead_vary_trans", "vary_txn_threads", "strings_update", "strings_zipfian", "sweep", "all"],
                        help="Experiment(s) to run (one or more)")
     parser.add_argument("--output", "-o", metavar="DIR",
                        help="Output directory for results")
@@ -1044,6 +1069,7 @@ Examples:
         "stm_vs_ol_vary_z": runner.run_stm_vs_ol_vary_zipfian,
         "stm_vs_ol_vary_trans": runner.run_stm_vs_ol_vary_trans,
         "strings_update": runner.run_strings_update,
+        "strings_zipfian": runner.run_strings_zipfian,
         "txn_overhead": runner.run_txn_overhead,
         "vary_txn_trans": runner.run_vary_txn_trans,
         "txn_overhead_vary_trans": runner.run_txn_overhead_vary_trans,
