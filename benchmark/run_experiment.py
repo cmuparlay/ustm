@@ -821,9 +821,9 @@ class ExperimentRunner:
     def run_txn_overhead_vary_trans(self):
         """Vary trans on a focused subset of structures.
 
-        Three structures (btree, avltree, hash_block), n = 10^6, z = 0,
-        every other parameter at its default. Produces tight per-struct
-        line plots suitable for a single paper figure row.
+        All OL-supported structures, n = 10^6, z = 0, every other
+        parameter at its default. Produces a per-struct line plot
+        across the canonical 8 OL structures.
 
         The four STM systems use their NATIVE structures
         (structures/, not the OL/blocking structures), so this
@@ -831,6 +831,11 @@ class ExperimentRunner:
         implementations" against the bare-OL fine-grained-concurrent
         baseline. Same impl set as run_stm_vs_ol; the difference is
         we vary trans here vs vary n/u/z there.
+
+        Uses `hash_block` (which both OL and STM-native build) as the
+        canonical hash — STM-native also has `hash_list`, but OL
+        doesn't, so picking `hash_block` keeps the OL baseline aligned
+        with the STM bars on every structure.
         """
         trans_vals = [1, 2, 4, 8, 16, 32]
         fixed = {
@@ -840,10 +845,12 @@ class ExperimentRunner:
             'p': self.config.default_p,
         }
         impls = ["ol", "mvustm", "fuse", "2plsf", "multiverse"]
+        structs = ["btree", "arttree", "avltree", "leaftree",
+                   "treap", "skiplist", "hash_block", "list"]
         self._run_varying_experiment(
             "txn_overhead_vary_trans", 'trans', trans_vals,
             fixed_params=fixed,
-            structs_override=["btree", "avltree", "hash_block"],
+            structs_override=structs,
             impls_override=impls,
         )
 

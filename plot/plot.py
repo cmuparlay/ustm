@@ -1084,8 +1084,21 @@ def plot_paper_row_(results, output_dir, param, structures, name='plot', fmt='pd
     impls = [i for i in IMPL_ORDER if i in impls_found]
 
     n = len(available)
-    fig, axes = plt.subplots(1, n, figsize=(2.4 * n, 2.0), squeeze=False)
-    axes = axes[0]
+    # Single row when few subplots, otherwise wrap to a grid so the
+    # figure doesn't end up unreadably wide. Threshold at 4 subplots
+    # matches the typical 2-column paper layout.
+    if n <= 4:
+        ncols = n
+        nrows = 1
+    else:
+        ncols = 4
+        nrows = (n + ncols - 1) // ncols
+    fig, axes_grid = plt.subplots(nrows, ncols,
+                                  figsize=(2.4 * ncols, 2.0 * nrows),
+                                  squeeze=False)
+    axes = [axes_grid[i // ncols][i % ncols] for i in range(nrows * ncols)]
+    for i in range(n, nrows * ncols):
+        axes[i].set_visible(False)
 
     for col, struct in enumerate(available):
         ax = axes[col]
@@ -1117,7 +1130,8 @@ def plot_paper_row_(results, output_dir, param, structures, name='plot', fmt='pd
         if log_scale:
             ax.set_xscale('log')
         ax.set_xlabel(param_label, fontsize=7)
-        if col == 0:
+        # y-label on the leftmost subplot of every row
+        if col % ncols == 0:
             ax.set_ylabel('Throughput\n(MOps/s)', fontsize=7)
         title = (struct_title_overrides.get(struct)
                  if struct_title_overrides else None) \
@@ -1963,7 +1977,8 @@ def main():
         if exp_results.get('txn_overhead_vary_trans'):
             print("\nGenerating txn_overhead_vary_trans row plot...")
             plot_paper_row_(exp_results['txn_overhead_vary_trans'], output_dir, 'trans',
-                            structures=['btree', 'avltree', 'hash_block'],
+                            structures=['btree', 'arttree', 'avltree', 'leaftree',
+                                        'treap', 'skiplist', 'hash_block', 'list'],
                             name='txn_overhead_vary_trans', fmt=args.format,
                             impl_whitelist=['ol', 'mvustm', 'fuse',
                                             '2plsf', 'multiverse'],
