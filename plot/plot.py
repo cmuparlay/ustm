@@ -23,7 +23,7 @@ from matplotlib.patches import Patch
 import matplotlib.patches as patches
 import numpy as np
 from itertools import product
-
+import traceback
 
 pdfmerge = True
 try:
@@ -449,7 +449,7 @@ def plot_geomean_bars(geomean_data, output_dir, filename='geomean.pdf'):
             ax.text(
                 b.get_x() + b.get_width() / 2,
                 b.get_height(),              # use normalized height for position
-                f'{vnn:.1f}',              # use RAW value for label
+                f'{vnn:.1f}' if vnn != None else "NaN",
                 ha='center',
                 va='bottom',
                 fontsize=fontsize-3,
@@ -842,7 +842,10 @@ def plot_paper_row(results, output_dir, input_dir, param, structures, name='plot
         pdf = f"{input_dir}/{name}_{struct}.{fmt}"
         to_merge.append(pdf)
     filename = f'{output_dir}/{name}.{fmt}'
-    merge_pdfs_horizontally(to_merge, filename)
+    try:
+        merge_pdfs_horizontally(to_merge, filename)
+    except Exception as e:
+        traceback.print_exc()
 
 def merge_pdfs_horizontally(pdf_list, output_path):
     # Open all documents
@@ -1310,7 +1313,7 @@ def plot_machines(machine_dirs, output_dir, fmt='pdf'):
 
     machine_impls = ['mvustm', 'fuse', '2plsf', 'multiverse', 'tiny']
     machine_data = {}  # label -> {impl: geomean_mops}
-    structs = ['avltree', 'btree', 'treap']
+    structs = ['avltree', 'btree', 'hash_block']
 
     for label, dirpath in machine_dirs:
         #find file
@@ -1330,7 +1333,13 @@ def plot_machines(machine_dirs, output_dir, fmt='pdf'):
         for struct in structs:
             machine_data[label][struct] = {}
             for impl in machine_impls:
-                val = gdata.get((struct, impl), 0)
+                # Add the fallback logic here
+                if struct == 'hash_block':
+                    val = gdata.get(('hash_block', impl), 0)
+                    if not val:  # If 0 or not found, try hash_list
+                        val = gdata.get(('hash_list', impl), 0)
+                else:
+                    val = gdata.get((struct, impl), 0)
                 if val:
                     machine_data[label][struct][impl] = val
 
@@ -1616,7 +1625,10 @@ def main():
             else:
                 label = Path(spec).name
                 machine_dirs.append((label, spec))
-        plot_machines(machine_dirs, output_dir, args.format)
+
+        mach_out_dir = Path(args.output_dir + "/machines")
+        mach_out_dir.mkdir(exist_ok=True)
+        plot_machines(machine_dirs, mach_out_dir, args.format)
     
     print(f"\nAll plots saved to {output_dir}/")
     return 0
