@@ -78,23 +78,12 @@ foreach(bench ${SUB_STRUCTS})
   add_benchmark(${bench}_mvustm_trythrow ${MIXED} ${STRUCT_DIR}/${bench} "USTM;MV;SplitStamp;TryThrow" "")
 #  add_benchmark(${bench}_mvustm_unprotected ${MIXED} ${STRUCT_DIR}/${bench} "USTM;MV;SplitStamp;UnprotectedLoad" "")
 
-  add_benchmark(${bench}_mvustm_agg_funnel ${MIXED} ${STRUCT_DIR}/${bench} "USTM;MV;Funnel;SimpleFunnel" "")
-  add_benchmark(${bench}_mvustm_agg_funnel_uepoch ${MIXED} ${STRUCT_DIR}/${bench} "USTM;MV;Funnel;SimpleFunnel;USE_UEPOCH" "")
-  add_benchmark(${bench}_mvustm_full_funnel ${MIXED} ${STRUCT_DIR}/${bench} "USTM;MV;Funnel;FullFunnel" "")
-#  add_benchmark(${bench}_mvustm_recursive_funnel ${MIXED} ${STRUCT_DIR}/${bench} "USTM;MV;RecursiveFunnel" "")
-
-  # Use agg funnels for eager timestamp
-  add_benchmark(${bench}_mvustm_agg_funnel_eager_uepoch ${MIXED} ${STRUCT_DIR}/${bench} "USTM;MV;FunnelEager;SimpleFunnel;USE_UEPOCH" "")
-  add_benchmark(${bench}_mvustm_agg_funnel_eager ${MIXED} ${STRUCT_DIR}/${bench} "USTM;MV;FunnelEager;SimpleFunnel" "")
-  add_benchmark(${bench}_mvustm_full_funnel_eager ${MIXED} ${STRUCT_DIR}/${bench} "USTM;MV;FunnelEager;FullFunnel" "")
-  add_benchmark(${bench}_mvustm_recursive_funnel_eager ${MIXED} ${STRUCT_DIR}/${bench} "USTM;MV;FunnelEager;RecursiveFunnel" "")
-
   add_benchmark(${bench}_mvustm_eager ${MIXED} ${STRUCT_DIR}/${bench} "USTM;MV;Eager" "")
 endforeach()
 
 foreach(bench ${STRUCTS})
   add_benchmark(${bench}_mvustm ${MIXED} ${STRUCT_DIR}/${bench} "USTM;MV;SplitStamp" "")
-  add_benchmark(${bench}_mvustm_vla ${MIXED} ${STRUCT_DIR}/${bench} "USTM;MV;SplitStamp;VLA" "")
+#  add_benchmark(${bench}_mvustm_vla ${MIXED} ${STRUCT_DIR}/${bench} "USTM;MV;SplitStamp;VLA" "")
   add_benchmark(${bench}_2plsf ${MIXED} ${STRUCT_DIR}/${bench} "Other;TWOPLSF" "")
 
   add_benchmark(${bench}_multiverse ${MIXED} ${STRUCT_DIR}/${bench} "MAX_THREADS_POW2=256;CPU_FREQ_GHZ=2.4;MULTIVERSE" "")
