@@ -9,7 +9,7 @@ Described in:
 > *uSTM: A Lightweight and Efficient STM Supporting General Types and Deferred Aborts*.
 > ACM Symposium on Parallelism in Algorithms and Architecture (SPAA), 2026.
 
-The code Was designed to be concise and portable, so that it should be
+The code is designed to be concise and portable, so that it should be
 easy for others to adapt.  The whole code is in the two files:
 
 ```
@@ -46,9 +46,22 @@ percentages, -z the zipfian distributions, -trans the transaction
 sizes, and -r the number of rounds.  The last line runs all the
 experiments in the paper.
 
-Note that the file `include/ustm_swiss.h` is a version with dozens of
-ifdefs in it to try out all sorts of configurations that are tested in
-the experiments (different timestamps, multiversioned or not, with
-longjump aborts, ...).  The file `include/ustm.h` is generated
-automatically from `include/ustm_swiss.h` by setting the default
-declarations and running it through the preprocessor (see script `include/strip.sh`).
+The directory structure is, roughly
+
+```
+  benchmark/   - our benchmark code
+  include/     - our uSTM and some support files
+  other/       - other STMs
+  plot/        - our plotting code
+  structures/  - the data structures tested
+  test/        - some simple testing code
+  timings/     - output of benchmark scripts
+```
+
+Note that the file `include/ustm_swiss.h` is a version of ustm with
+dozens of ifdefs in it to try out all sorts of configurations that are
+tested in the experiments (different timestamps, multiversioned or
+not, with longjump aborts, ...).  The file `include/ustm.h` is
+generated automatically from `include/ustm_swiss.h` by setting the
+default declarations and running it through the preprocessor (see
+script `include/strip.sh`).    We advise just looking at `ustm.h`.
