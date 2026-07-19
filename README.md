@@ -3,9 +3,9 @@ Micro Software Transactional Memory
 
 Described in:
 
-> Zachary Kent, Guy Blelloch and Andre Costa
-> uSTM: A Lightweight and Efficient STM Supporting General Types and Deferred Aborts
-> ACM Symposium on Parallelism in Algorithms and Architecture (SPAA), 2026
+> Zachary Kent, Guy Blelloch and Andre Costa.
+> *uSTM: A Lightweight and Efficient STM Supporting General Types and Deferred Aborts*.
+> ACM Symposium on Parallelism in Algorithms and Architecture (SPAA), 2026.
 
 A header only multiversioned sortware transactional memory library
 that supports general types, and without any aborts in user code.  Was
@@ -36,9 +36,12 @@ To try out:
 > cmake ..
 > cd benchmarks
 > make -j 16
-> ./arttree_mvustm -n "100000,10000000" -u "5,50" -z "0,.99" -trans "1,16" -r 3
+> ./arttree_mvustm -n "100000,10000000" -u "5,50" -z "0,.99" -trans "1,16" -r 2
 > ../../benchmark/run_experiment.py all
 ```
 
-The second to last line is just an example.   The last line runs all the experiments
-in the paper.
+The second to last line is just an example of an experiment on an
+ARTtree with ustm. The -n give the sizes, the -u the update
+percentages, -z the zipfian distributions, -trans the transaction
+sizes, -r the number of reounds.  The last line runs all the
+experiments in the paper.
