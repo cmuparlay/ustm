@@ -158,7 +158,7 @@ namespace ustm {
 
     // A hash map and filter to let reads find prior writes
     std::unordered_map<void*, int> writeMap;
-    std::bitset<filterBits> writeFilter;
+    std::bitset<size_t{1} << filterBits> writeFilter;
 
     // used to reset between each attempt
     void reset() {
