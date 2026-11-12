@@ -256,7 +256,9 @@ public:
   template<typename... Args>
   static T* create(Args... args) {
     static_assert(std::is_constructible_v<T, Args...>);
-    return new (alloc()) T(std::forward<Args>(args)...);
+    T* storage = alloc();
+    try { return new (storage) T(std::forward<Args>(args)...); }
+    catch (...) { free(storage); throw; }
   }
 
   // Destroy an object obtained by create(...) and deallocate its storage

@@ -62,27 +62,11 @@ namespace uepoch {
   // it as used, and its destructor marks the id as unused.
   struct registered_id {
     long id;
-    registered_id() {
-      auto& ti = get_thread_id_registry();
-      for (int i = 0; i < max_threads; i++) {
-        long x = 0;
-        if (ti.flags[i].load() == 0 &&
-            ti.flags[i].compare_exchange_strong(x, 1)) {
-          id = i;
-          auto max = ti.max_seen.load();
-          while (i+1 > max &&
-                 !ti.max_seen.compare_exchange_strong(max,i+1));
-          return;
-        }
-      }
-      std::cout << "thread registry is full, max threads is "
-                << max_threads << std::endl;
-      abort();
-    }
-    ~registered_id() { get_thread_id_registry().flags[id] = 0;}
+    registered_id();
+    ~registered_id();
   };
 
-  long num_threads() {
+  extern inline long num_threads() {
     return get_thread_id_registry().max_seen.load(); }
 
   extern inline int thread_id() {
@@ -93,7 +77,7 @@ namespace uepoch {
     using thunk = std::function<void()>;
 
     // the main structure
-    struct alignas(64) epoch_state {
+    struct alignas(256) epoch_state {
       // announcements for each thread
       struct alignas(64) announce {
         std::atomic<long> last;
@@ -134,7 +118,7 @@ namespace uepoch {
       void unannounce() {
         size_t id = thread_id();
         announcements[id].last.store(-1l,
-                                  std::memory_order_relaxed);
+                                  std::memory_order_release);
       }
 
       // run every once in a while to check if epoch can be
@@ -214,6 +198,31 @@ namespace uepoch {
     return epoch;
   }
 
+  inline registered_id::registered_id() {
+    get_epoch(); // ensure the epoch state outlives the thread id
+    auto& ti = get_thread_id_registry();
+    for (int i = 0; i < max_threads; i++) {
+      long x = 0;
+      if (ti.flags[i].load() == 0 &&
+          ti.flags[i].compare_exchange_strong(x, 1)) {
+        id = i;
+        auto max = ti.max_seen.load();
+        while (i+1 > max &&
+               !ti.max_seen.compare_exchange_strong(max,i+1));
+        return;
+      }
+    }
+    std::cout << "thread registry is full, max threads is "
+              << max_threads << std::endl;
+    abort();
+  }
+
+  inline registered_id::~registered_id() {
+    // clear the announcement before releasing the id
+    get_epoch().announcements[id].last.store(-1l);
+    get_thread_id_registry().flags[id] = 0;
+  }
+
   // Ensures any delayed functions called by other threads while
   // running the function f are not executed until after f
   // finishes.
@@ -221,27 +230,25 @@ namespace uepoch {
   template <typename Thunk>
   auto protect(const Thunk& f) {
     auto& epoch = get_epoch();
-    auto not_in_epoch = epoch.announce();
-    if constexpr (std::is_void_v<std::invoke_result_t<Thunk>>) {
-      f();
-      if (not_in_epoch) epoch.unannounce();
-    } else {
-      auto v = f();
-      if (not_in_epoch) epoch.unannounce();
-      return v;
-    }
+    struct announcement_scope {
+      internal::epoch_state& epoch;
+      bool owner;
+      ~announcement_scope() { if (owner) epoch.unannounce(); }
+    } scope{epoch, epoch.announce()};
+    if constexpr (std::is_void_v<std::invoke_result_t<Thunk>>) f();
+    else return f();
   }
 
-  void delay(std::function<void()>&& f) {
+  extern inline void delay(std::function<void()>&& f) {
     get_epoch().delay(std::forward<std::function<void()>>(f)); }
 
-  void add_before_epoch_hook(std::function<void()> f) {
+  extern inline void add_before_epoch_hook(std::function<void()> f) {
     get_epoch().before_epoch_hooks.push_back(f); }
 
-  void add_after_epoch_hook(std::function<void()> f) {
+  extern inline void add_after_epoch_hook(std::function<void()> f) {
     get_epoch().after_epoch_hooks.push_back(f); }
 
-  long clear() {return get_epoch().clear();}
+  extern inline long clear() {return get_epoch().clear();}
 } // end namespace uepoch
 
 #endif // UEPOCH_H_
